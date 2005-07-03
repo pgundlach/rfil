@@ -1,0 +1,232 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+
+# $: is the ruby input path - add the lib/ subdir
+$:.unshift File.join(File.dirname(__FILE__), "..", "lib")
+
+require 'afm'
+
+
+# sorry for german - one day I'll change that into engish. --pg
+class TextTable
+  def initialize (data,maxchars=80)
+    raise "Data must be an array of strings" unless data.kind_of? Array
+    @data = data
+    
+    @maxchars = 90
+    @maxwidth = 0
+    @data.each { |elt|
+      @maxwidth = @maxwidth > elt.length ? @maxwidth : elt.length
+    }
+    @maxwidth
+    @spalten = (@maxchars/(@maxwidth + 1)).floor
+  end
+  
+  def zeilenweise
+    (0...@data.size).each { |x|
+      print sprintf("%-" + @maxwidth.to_s + "s",@data[x]) +
+        if (x+1) % @spalten == 0
+          "\n"
+        else
+          " "
+        end
+    }
+    puts
+  end
+  
+  def spaltenweise
+    zeilenmin = (@data.size * 1.0 / @spalten).floor
+    zeilenmax = (@data.size * 1.0 / @spalten).ceil
+    anz_volle_spalten = @data.size % @spalten
+
+    verteilung=Array.new()
+    verteilung[0]=0
+    count = 0
+    (0...@spalten).each { |col|
+      if col < anz_volle_spalten
+        count += zeilenmax
+      else 
+        count += zeilenmin
+      end
+      verteilung[col]= count
+    }
+    verteilung.unshift 0
+    (0...zeilenmax).each { |zeile|
+      puts((0...@spalten).collect { |spalte| 
+             w = @data[verteilung[spalte] + zeile]
+             if (spalte >= anz_volle_spalten) and (zeile >= zeilenmin)
+               w = ""
+             end
+             sprintf("%-" + @maxwidth.to_s + "s",w)
+           }.join(' '))
+    }
+  end
+end
+
+class AFMinfo
+  def initialize (afm)
+    @afm = afm
+    @uppercase_letters = ('A'..'Z').collect { |l|  l }
+    @lowercase_letters = ('a'..'z').collect { |l|  l }
+    @digits = %w(one two three four five six seven eight nine zero)
+  end
+  def stdformat
+    "%-18s "
+  end
+  def printout (str,value)
+    puts sprintf(stdformat + "%s", str + ":" ,value.to_s)
+  end
+
+  def num_to_string (num,reservespace=true)
+    formatstring = "%" 
+    formatstring << " " if reservespace
+    formatstring << (num.to_i == num ? "d" : "f")
+    # output "integer" if value after decimal point is 0
+    sprintf(formatstring,num)
+  end
+  
+  def dump_maininfo
+    puts "General font information:"
+    puts "========================="
+    printout("Filename",@afm.filename)
+    [ 
+      ["Fontname",:fontname],
+      ["FullName",:fullname],
+      ["Family name",:familyname],
+      ["Weight",:weight],
+      ["EncodingScheme",:encodingscheme],
+#      ["·","·"],
+    ].each { |s,m|
+      printout(s,@afm.send(m))
+    }
+    puts sprintf(stdformat,'Number of gylphs:') +  @afm.count_charmetrics.to_s + 
+      " (encoded: " + @afm.count_charmetrics_encoded.to_s +  ", unencoded: " + @afm.count_charmetrics_unencoded.to_s + ")"
+
+  end
+  def dump_metrics
+    puts "\n\nGlobal metrics information:"
+    puts "=========================="
+    puts sprintf(stdformat,"FontBBox:") + @afm.fontbbox.collect { |f|
+      num_to_string(f)
+    }.join(' ') + ' (llx,lly,urx,ury)'
+    printout('IsFixedPitch',@afm.isfixedpitch)
+
+    [ 
+      ["ItalicAngle", :italicangle],
+      ["UnderlinePosition", :underlineposition],
+      ["UnderlineThickness", :underlinethickness],
+      ["CapHeight", :capheight],
+      ["XHeight", :xheight],
+      ["Ascender", :ascender],
+      ["Descender", :descender]
+    ].each { |s,m|
+      puts sprintf(stdformat,s) +  num_to_string(@afm.send(m))
+    }
+  end
+  def dump_glyphinfo (glyph)
+    chars=@afm.chars[glyph]
+    puts "\n\nGlyph information (" + glyph + ")"
+    puts "===================="
+    puts sprintf(stdformat,"Encoding pos:") +
+      if chars.c == -1 
+        "--" 
+      else 
+        sprintf("%d (dec), %x (hex), %o (oct)",chars.c,chars.c,chars.c)
+      end
+    puts sprintf(stdformat,"Width x (wx)")  + chars.wx.to_s
+    puts sprintf(stdformat,"Bounding box")  + chars.b.collect { |f|
+      num_to_string(f,false)
+    }.join(' ') + ' (llx,lly,urx,ury)'
+    puts "Kerning pairs: (x,y)"
+    puts "--------------------"
+    chars.kern_data.each { |k,v|
+      puts sprintf(stdformat,"  " + k) + num_to_string(v[0]) + "," +   
+        num_to_string(v[1]) 
+    }
+  end
+  def dump_glyphs
+    chars=@afm.chars
+    puts "\n\nList of glyphs"
+    puts "================"
+    removefromlist=[]
+    if @uppercase_letters.all? { |glyph|
+        chars[glyph]
+      }
+      puts sprintf(stdformat,"A-Z") + "available"
+      removefromlist += @uppercase_letters
+    else
+      puts sprintf(stdformat,"A-Z") + "some missing"
+    end
+    if @lowercase_letters.all? { |glyph|
+        chars[glyph]
+      }
+      puts sprintf(stdformat,"a-z") + "available"
+      removefromlist += @lowercase_letters
+    else
+      puts sprintf(stdformat,"a-z") + "some missing"
+    end
+    if @digits.all? { |glyph|
+        chars[glyph]
+      }
+      puts sprintf(stdformat,"one, two, .., zero") + "available"
+      removefromlist += @digits
+    else
+      puts sprintf(stdformat,"one, two, .., zero") + "some missing"
+    end
+    puts
+    glyphlist=[]
+    chars.each { |glyph,h|
+      glyphlist.push(glyph + (h.c == -1 ? "*" : ""))
+    } 
+    glyphlist = glyphlist - removefromlist
+    glyphlist.sort! { |a,b|
+      a.casecmp b
+    }
+    t = TextTable.new(glyphlist - removefromlist)
+    t.spaltenweise
+    puts "\n* = unencoded - only glyphs not mentioned above listed"
+  end
+
+end
+
+verbose = false
+metrics = false
+glyph = nil
+listglyphs = false
+generalinfo = true
+
+ARGV.options { |opt|
+  opt.banner = "Usage: #{File.basename($0)} [options] afm-file[.afm]"
+  opt.on("--metrics", "-m", "show global metrics information") { metrics=true}
+  opt.on("--verbose", "-v", "verbose output") { verbose=true }
+  opt.on("--[no-]info", "list general information (default)") { |x|
+    generalinfo=x }
+  opt.on("--list-glyphs", "-l", "list all available glyphs") { listglyphs=true }
+  opt.on("--glyphinfo g" , "-g", 
+         "information about a specific glyph") { |arg| 
+    glyph = arg
+  }
+    
+  opt.on("--help", "-h", "Show this help") { puts opt; exit 0 }
+  opt.separator  ""
+  opt.separator "Copyright (c) 2005 Patrick Gundlach"
+  opt.parse!
+}
+
+unless ARGV.size==1
+  puts "Please specify one afm-file to read"  if ARGV
+  exit 1
+end
+
+
+afm=AFM.new
+afm.verbose  = verbose
+# "foo.afm" and "foo" should read "foo.afm"
+afm.read(ARGV[0].chomp('.afm')+".afm")
+
+ai = AFMinfo.new(afm)
+ai.dump_maininfo if generalinfo
+ai.dump_metrics if metrics
+glyph && ai.dump_glyphinfo(glyph)
+ai.dump_glyphs if listglyphs

@@ -1,0 +1,14 @@
+= Ruby font installer library
+
+These files should help you (a programmer) to create a font installer
+for TeX. 
+
+== Example usage to install a single font:
+ font=Font.new
+ font.load_variant("savorg__.afm")
+ font.texenc=["ec","texnansi"]
+ font.mapenc=["8r"]
+ font.write_files
+
+This will create virtual fonts for _ec_ and _texnansi_ encoding that
+map to <em>8r</em> encoding, +tfm+ files for the _raw_ fonts and a +map+-file.
