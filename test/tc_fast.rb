@@ -27,12 +27,12 @@ class TestFont < Test::Unit::TestCase
     font.set_dirs(destdir)
     font.load_variant("savorg__.afm")
     fc=font.load_variant("savorg__.afm")
-    font.fake_caps(fc,0.5)
-    font.copy(fc)
+     font.fake_caps(fc,0.5)
+    font.copy(fc, :lowercase)
     font.mapenc="8r"
     font.texenc="ec"
     font.defaultfm.chars.apply_ligkern_instructions(RFI::STDLIGKERN)
-     #puts font.vpl(font.mapenc,font.texenc[0]).to_s
+    # puts font.vpl(font.mapenc,font.texenc[0]).to_s
     font.write_files(:dryrun => false,:verbose=>false)
   end
 end

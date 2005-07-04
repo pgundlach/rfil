@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 # 
-# Last Change: Sun Jul  3 22:18:31 2005
+# Last Change: Mon Jul  4 19:12:54 2005
 
 require 'set'
 
@@ -376,9 +376,18 @@ class Font
     File.join(get_dir(:map),@defaultfm.name + ".map")
   end
 
-  def copy(fontnumber)
-    @defaultfm.chars.update_uc_lc_list
+  # Copy glyphs from one font to the default font. _fontnumber_ is the
+  # number that is returned from load_variant, _glyphlist_ is whatever
+  # you want to copy.
+  def copy(fontnumber,glyphlist)
     tocopy=[]
+    case glyphlist
+    when Symbol
+      tocopy=@defaultfm.chars.foo(glyphlist)
+    when Array
+      tocopy=glyphlist
+    end
+    @defaultfm.chars.update_uc_lc_list
     @defaultfm.chars.each { |glyphname,char|
       if char.is_lowercase?
         tocopy.push(glyphname)

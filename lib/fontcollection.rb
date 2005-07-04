@@ -1,5 +1,5 @@
 # fontcollection.rb
-# Last Change: Wed Jun 29 16:26:05 2005
+# Last Change: Sun Jul  3 23:41:18 2005
 
 require 'helper'
 
@@ -73,7 +73,7 @@ class FontCollection
     end
     # set_enc(enc,@mapenc)
   end
-  def texenc=(enc)
+  def texenc=(enc) # :nodoc:
     @texenc=[]
     set_enc(enc,@texenc)
   end

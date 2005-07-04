@@ -1,6 +1,6 @@
 # rfi.rb -- general use classes
 #
-# Last Change: Sun Jul  3 22:15:31 2005
+# Last Change: Mon Jul  4 19:16:49 2005
 
 
 # This class contains methods and other classes that are pretty much
@@ -261,6 +261,39 @@ class RFI
     @@vpligops = ["LIG", "/LIG", "/LIG>", "LIG/", "LIG/>", "/LIG/",
       "/LIG/>", "/LIG/>>"]
 
+    # return an array with name of glyphs that are represented by the
+    # symbol _glyphlist_. Since I cannot think of a clever name,
+    # please excuse this incredibly stupid name. If you have a
+    # sensible name, just change it (and all references, of course).
+    #
+    # These symbols are defined: :lowercase, :uppercase, :digits
+    def foo(glyphlist)
+      ret=[]
+      unless glyphlist.instance_of? Symbol
+          raise ArgumentError, "glyphlist must be a symbol" 
+      end
+      case glyphlist
+      when :lowercase
+        update_uc_lc_list
+        
+        self.each { |glyphname,char|
+          if char.uc != nil
+            ret.push glyphname
+          end
+        }
+      when :uppercase
+        update_uc_lc_list
+        
+        self.each { |glyphname,char|
+          if char.lc != nil
+            ret.push glyphname
+          end
+        }
+      when :digits
+        ret=%w(one two three four five six seven eight nine)
+      end
+      ret
+    end
     # instructions.each must yield string objects (i.e. an array of
     # strings, an IO object, a single string, ...). Instruction is like:
     # "space l =: lslash" or "two {} *"
