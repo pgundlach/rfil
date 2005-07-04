@@ -12,3 +12,17 @@ for TeX.
 
 This will create virtual fonts for _ec_ and _texnansi_ encoding that
 map to <em>8r</em> encoding, +tfm+ files for the _raw_ fonts and a +map+-file.
+
+
+== Creating the documentation
+
+You can generate the documentation of the classes and methods by
+running Rdoc like this:
+
+ rdoc --title "Ruby Font Installer Library" README lib/*rb
+
+This creates a directory +doc+ and a lot of html files. Open
++doc/index.html+ in your browser and voila, all classes and methods
+documented. 
+
+
