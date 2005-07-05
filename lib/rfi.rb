@@ -1,6 +1,6 @@
 # rfi.rb -- general use classes
 #
-# Last Change: Mon Jul  4 19:16:49 2005
+# Last Change: Tue Jul  5 16:01:37 2005
 
 
 # This class contains methods and other classes that are pretty much
@@ -290,7 +290,7 @@ class RFI
           end
         }
       when :digits
-        ret=%w(one two three four five six seven eight nine)
+        ret=%w(one two three four five six seven eight nine zero)
       end
       ret
     end
