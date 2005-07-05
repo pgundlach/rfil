@@ -41,6 +41,18 @@ class TestFont < Test::Unit::TestCase
       font.load_variant("bar.xyz")
     }
   end
+  def test_mapfont
+    font=Font.new
+    font.load_variant("savorg__.afm")
+    fc=font.load_variant("savoscrg.afm")
+    font.copy(fc,:digits)
+    font.mapenc="8r"
+    font.texenc="ec"
+    v = font.vpl(font.mapenc,font.texenc[0])
+    assert_equal({0=>{:fontname=>"8r-savorg__-orig"},
+                  1=>{:fontname=>"8r-savoscrg-orig"}},v.mapfont)
+  end
+
   def test_vpl
     font=Font.new
     a=ENC.new()
@@ -87,8 +99,8 @@ class TestFont < Test::Unit::TestCase
     assert_equal({:space=>300, :stretch=>200, :shrink=>100, :xheight=>415,
                    :quad=>1000, :extraspace=>111, },pl.fontdimen)
     
-    assert_equal({:fontnumber=>0, :fontname=>"minienc-savorg__-orig"},
-                 pl.mapfont)
+    assert_equal({:fontname=>"minienc-savorg__-orig"},
+                 pl.mapfont[0])
     assert_equal({ 11=>[[[17, 24],
                          [18, 24],
                          [12, 15],
@@ -243,12 +255,12 @@ class TestFont < Test::Unit::TestCase
     npl.get_charentries.each_with_index { |charentry,i|
       assert_equal(ce[i],charentry)
     }
-    assert_equal(["minienc-savorg__-orig Savoy-Regular <minienc.enc <savorg__.pfb"], font.maplines)
+    assert_equal(["minienc-savorg__-orig Savoy-Regular <minienc.enc <savorg__.pfb\n"], font.maplines)
     font.texenc=[@ecenc,@texnansienc]
     font.mapenc=nil
     fontmaplines=font.maplines
-    mapline=["texnansi-savorg__-orig Savoy-Regular <texnansi.enc <savorg__.pfb",
-      "ec-savorg__-orig Savoy-Regular <EC.enc <savorg__.pfb"]
+    mapline=["texnansi-savorg__-orig Savoy-Regular <texnansi.enc <savorg__.pfb\n",
+      "ec-savorg__-orig Savoy-Regular <EC.enc <savorg__.pfb\n"]
     mapline.each { |m|
       assert(fontmaplines.member?(m), "'#{m}' is not in : " + fontmaplines.join(" - ") )
     }
