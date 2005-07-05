@@ -1,6 +1,6 @@
 # pl.rb - TeX Property List accessor class
 #
-# Last Change: Sun Jul  3 20:29:34 2005
+# Last Change: Tue Jul  5 17:10:11 2005
 
 
 FARRAY = ['MRR','MIR','BRR','BIR','LRR','LIR','MRC','MIC','BRC','BIC',
@@ -430,14 +430,16 @@ class PL
       node.type==:mapfont
     }
     n.each { |mapfontnode|
+      mapfonth={}
+      # fontnumber
       c=mapfontnode.contents
-      ret[:fontnumber]=c[0].value
+      ret[c[0].value]=mapfonth 
       subnodes=c[1]
       subnodes.each { |subnode|
         if subnode.contents[0].instance_of?(Num)
-          ret[subnode.type]=subnode.contents[0].value
+          mapfonth[subnode.type]=subnode.contents[0].value
         else
-          ret[subnode.type]=subnode.contents[0]
+          mapfonth[subnode.type]=subnode.contents[0]
         end
       }
     }
