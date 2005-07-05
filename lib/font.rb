@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 # 
-# Last Change: Mon Jul  4 19:12:54 2005
+# Last Change: Tue Jul  5 23:58:33 2005
 
 require 'set'
 
@@ -12,7 +12,6 @@ require 'pl'
 
 # Main class to manipulate and combine font metrics.
 class Font
-  include Helper
 
   # The encoding that the PDF/PS expects (what is put before
   # "ReEncodeFont" in the mapfile). If not set, use the setting from
@@ -36,12 +35,17 @@ class Font
   # fontcollection. You can set mapenc and texenc in the fontcollection
   # and don't bother about it here. Settings in a Font object will
   # override settings in the fontcollection.
+
+  
+  include Helper
+
   def initialize (fontcollection=nil)
     # we are part of a fontcollection
     @fontcollection=fontcollection
     # @defaultfm=FontMetric.new
     @variants=[]
     @dirs={}
+    @origsuffix="-orig"
     @kpse=Kpathsea.new
     if fontcollection
       unless @fontcollection.respond_to?(:register_font)
@@ -151,7 +155,8 @@ class Font
     vpl.fontdimen=@defaultfm
     vararray=[]
     find_used_fonts.each {|varnumber|
-      @variants[varnumber].mapto=map_fontname(mapenc)
+      @variants[varnumber].mapto=map_fontname(mapenc,varnumber)
+      # p @variants[varnumber].mapto
       vararray[varnumber]=@variants[varnumber]
     }
     # vararray can look like this: [0,1,3]
@@ -238,13 +243,16 @@ class Font
     texenc.each { |te|
       encodings.add mapenc ? mapenc : te
     }
-    
+    fontsused=find_used_fonts
     encodings.each { |te|
-      str=map_fontname(te)
-      str << " #{@defaultfm.fontname}"
-      str << " <#{te.filename}" unless te.filename == "8a.enc"
-      str << " <#{@defaultfm.fontfilename}"
-      ret.push str 
+      fontsused.each { |f|
+        str=map_fontname(te,f)
+        str << " #{@variants[f].fontname}"
+        str << " <#{te.filename}" unless te.filename == "8a.enc"
+        str << " <#{@variants[f].fontfilename}"
+        str << "\n"
+        ret.push str 
+      }
     }
     ret
   end
@@ -257,7 +265,9 @@ class Font
     
     tfmdir=get_dir(:tfm); ensure_dir(tfmdir)
     vfdir= get_dir(:vf) ; ensure_dir(vfdir)
-    mapdir=get_dir(:map); ensure_dir(mapdir)
+    unless options[:mapfile]==false
+      mapdir=get_dir(:map); ensure_dir(mapdir)
+    end
 
     encodings=Set.new
     texenc.each { |te|
@@ -295,14 +305,16 @@ class Font
       end
     }
 
-    # mapfile
-    if options[:verbose]==true
-      puts "writing #{mapfilename}"
-    end
-    unless options[:dryrun]==true
-      File.open(mapfilename,"w") { |f|
-        f << maplines
-      }
+    unless options[:mapfile]==false
+      # mapfile
+      if options[:verbose]==true
+        puts "writing #{mapfilename}"
+      end
+      unless options[:dryrun]==true
+        File.open(mapfilename,"w") { |f|
+          f << maplines
+        }
+      end
     end
   end
   
@@ -325,33 +337,14 @@ class Font
       @mapenc
     end
   end
-  # You can set only one .map-encoding
   def mapenc=(enc) # :nodoc:
-    @mapenc=nil
-    
-    # nil is perfectly valid
-    return if enc == nil
-    
-    if enc.instance_of?(ENC)
-      @mapenc = enc
-    else
-      enc.find { |e|
-        if e.instance_of?(String)
-          e = e.chomp(".enc") + ".enc"
-          @kpse.open_file(e,"enc") { |f|
-            @mapenc = ENC.new(f)
-          }
-        elsif e.instance_of?(ENC)
-          @mapenc = e
-        end
-      }
-    end
+    set_mapenc(enc)
   end
 
   def texenc=(enc) # :nodoc:
     @texenc=[]
     if enc
-      set_enc(enc,@texenc)
+      set_encarray(enc,@texenc)
     end
   end
   def texenc  # :nodoc:
@@ -379,6 +372,7 @@ class Font
   # Copy glyphs from one font to the default font. _fontnumber_ is the
   # number that is returned from load_variant, _glyphlist_ is whatever
   # you want to copy.
+  # *needs testing*
   def copy(fontnumber,glyphlist)
     tocopy=[]
     case glyphlist
@@ -387,21 +381,20 @@ class Font
     when Array
       tocopy=glyphlist
     end
-    @defaultfm.chars.update_uc_lc_list
-    @defaultfm.chars.each { |glyphname,char|
-      if char.is_lowercase?
-        tocopy.push(glyphname)
-      end
-    }
+
     tocopy.each { |glyphname|
+      # puts "copy #{glyphname}, fontnumberis #{fontnumber}"
       @defaultfm.chars[glyphname]=@variants[fontnumber].chars[glyphname]
+      @defaultfm.chars[glyphname].fontnumber=fontnumber
       # @defaultfm.chars[glyphname].mapto=@defaultfm.chars[glyphname].uc
       # puts "copying #{glyphname}"
     }
     @defaultfm.chars['germandbls'].mapto=nil
   end
 
-  # Return an array with all used fonts loaded with load_variant. 
+  # Return an array with all used fontnumbers loaded with
+  # load_variant. If, for example, fontnubmer 0 and 3 are used,
+  # find_used_fonts would return [0,3].
   def find_used_fonts
     fonts=Set.new
     @defaultfm.chars.each{ |glyph,data|
@@ -420,9 +413,9 @@ class Font
     mapenc_loc=mapenc
     if mapenc_loc
       # use the one in mapenc_loc
-      tex_fontname(mapenc,varnumber) + "-orig"
+      tex_fontname(mapenc,varnumber) + @origsuffix 
     else
-      tex_fontname(texenc,varnumber) + "-orig"
+      tex_fontname(texenc,varnumber) + @origsuffix
     end
   end
   
