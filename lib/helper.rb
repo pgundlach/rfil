@@ -3,7 +3,7 @@
 # Module helper.
 
 module Helper
-  def set_enc(enc,where)
+  def set_encarray(enc,where)
     if enc.instance_of?(ENC)
       where.push(enc)
     else
@@ -15,6 +15,27 @@ module Helper
           f.close
         elsif e.instance_of?(ENC)
           where.push(e)
+        end
+      }
+    end
+  end
+  def set_mapenc(enc)
+    @mapenc=nil
+    
+    # nil is perfectly valid
+    return if enc == nil
+    
+    if enc.instance_of?(ENC)
+      @mapenc = enc
+    else
+      enc.find { |e|
+        if e.instance_of?(String)
+          e = e.chomp(".enc") + ".enc"
+          @kpse.open_file(e,"enc") { |f|
+            @mapenc = ENC.new(f)
+          }
+        elsif e.instance_of?(ENC)
+          @mapenc = e
         end
       }
     end
@@ -43,4 +64,6 @@ module Helper
       Dir.mkdir(dirname)
     end
   end
+    # You can set only one .map-encoding
+  
 end
