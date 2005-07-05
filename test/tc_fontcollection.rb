@@ -8,17 +8,22 @@ require 'fontcollection'
 require 'font'
 
 class TestFontCollection < Test::Unit::TestCase
-  
-  def test_startup
-    fc=FontCollection.new('Helvetica')
+
+  def setup
+    @fc=FontCollection.new('Helvetica')
   end
   def test_register
-    fc=FontCollection.new('Helvetica')
     # needs font object
     assert_raise(ArgumentError) {
-      fc.register_font("foo")
+      @fc.register_font("foo")
     }
-    f=Font.new(fc)
-    # p fc.write_mapfile
+  end
+  def test_encodings
+    @fc.mapenc="8r"
+    @fc.texenc=["ec","texnansi"]
+    assert_equal("TeXBase1Encoding",@fc.mapenc.encname)
+    @fc.texenc.each {|enc|
+      assert(["ECEncoding","TeXnANSIEncoding"].member?(enc.encname))
+    }
   end
 end

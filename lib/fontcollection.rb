@@ -1,5 +1,5 @@
 # fontcollection.rb
-# Last Change: Sun Jul  3 23:41:18 2005
+# Last Change: Wed Jul  6 00:03:00 2005
 
 require 'helper'
 
@@ -9,6 +9,7 @@ require 'helper'
 
 class FontCollection
   include Helper
+
   # Name of the font collection
   attr_accessor :name
   
@@ -27,12 +28,10 @@ class FontCollection
   # hash of directories for writing files. Default to current working
   # directory. The setting in the Font object overrides the setting here.  
   attr_accessor :dirs
-  
+
   def initialize(name)
     @kpse=Kpathsea.new
     @name=name
-    @mapenc=[]
-    @texenc=[]
     @fonts=[]
     @dirs={}
     set_dirs(Dir.getwd)
@@ -55,29 +54,29 @@ class FontCollection
     }
     m
   end
-  # You can set only one .map-encoding
   def mapenc=(enc) # :nodoc:
-    @mapenc=nil
-    if enc.instance_of?(ENC)
-      @mapenc = enc
-    else
-      enc.find { |e|
-        if e.instance_of?(String)
-          @kpse.open_file(e,"enc") { |f|
-            @mapenc = ENC.new(f)
-          }
-          elsif e.instance_of?(ENC)
-          @mapenc = ENC
-        end
-      }
-    end
-    # set_enc(enc,@mapenc)
+    set_mapenc(enc)
   end
   def texenc=(enc) # :nodoc:
     @texenc=[]
-    set_enc(enc,@texenc)
+    set_encarray(enc,@texenc)
   end
   def get_dir(type)
     @dirs[type]
+  end
+  def write_files(options={})
+    mapdir=get_dir(:map); ensure_dir(mapdir)
+    
+    mapfile=[]
+    @fonts.each {|font|
+      font.write_files(:mapfile => false)
+      mapfile << font.maplines
+    }
+    mapfilename=File.join(mapdir,@name+".map")
+    unless options[:dryrun]==true
+      File.open(mapfilename, "w") {|file|
+        file << mapfile.to_s
+      }
+    end
   end
 end
