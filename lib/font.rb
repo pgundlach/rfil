@@ -1,7 +1,7 @@
 # font.rb - Implements Font. See that class for documentaton.
-# 
-# Last Change: Tue Jul  5 23:58:33 2005
-
+#-- 
+# Last Change: Wed Jul  6 19:45:32 2005
+#++
 require 'set'
 
 require 'helper'
@@ -126,10 +126,10 @@ class Font
     pl.designsize=10.0
     pl.designunits=1
     pl.fontdimen=@defaultfm
-    enc.encvector.each_with_index{ |char,i|
+    enc.each_with_index{ |char,i|
       next if char==".notdef"
       next unless @defaultfm.chars[char]
-      pl.charentry(char,i,enc.glyph_index,@defaultfm.chars)
+      pl.add_charentry(char,i,enc.glyph_index,@defaultfm.chars)
     }
     pl
   end
@@ -141,6 +141,9 @@ class Font
   # may be the same.
   
   def vpl(mapenc,texenc)
+#    p "mapenc=#{mapenc}"
+#    p "texenc=#{texenc.methods}"
+    
     raise ArgumentError, "mapenc must be an ENC object" unless mapenc.respond_to? :encname
     raise ArgumentError, "texenc must be an ENC object" unless texenc.respond_to? :encname
     @defaultfm.chars.fix_height(@defaultfm.xheight)
@@ -166,7 +169,7 @@ class Font
     vpl.mapfont=vararray
     ligplist=PL::Plist.new
     charh=texenc.glyph_index.dup
-    texenc.encvector.each_with_index{ |char,i|
+    texenc.each_with_index{ |char,i|
       # we delete all glyphs that we look at from charh[]. We can
       # encounter the same glyphs more then once. So if we have
       # already come across this glyph, no need to put it twice into the
@@ -203,7 +206,7 @@ class Font
     }
     vpl.ligtable=ligplist
 
-    texenc.encvector.each_with_index { |char,i|
+    texenc.each_with_index { |char,i|
       next if char==".notdef"
 
       # ignore those not in dest 
@@ -211,7 +214,7 @@ class Font
 
       # next if this glyph is unknown
       next unless @defaultfm.chars[char]
-      vpl.charentry(char,i,mapenc.glyph_index,@defaultfm.chars)
+      vpl.add_charentry(char,i,mapenc.glyph_index,@defaultfm.chars)
     }
 
     vpl
@@ -237,7 +240,6 @@ class Font
       texenc_loc=[ENC.new(f)]
       f.close
     end
-    
     ret=[]
     encodings=Set.new
     texenc.each { |te|
@@ -254,7 +256,9 @@ class Font
         ret.push str 
       }
     }
-    ret
+    # FIXME: remove duplicate lines in a more sensible way
+    # no fontname (first entry) should appear twice!
+    ret.uniq
   end
 
   # Creates all the necessary files to use the font. This is mainly a
@@ -342,9 +346,14 @@ class Font
   end
 
   def texenc=(enc) # :nodoc:
+    #    p enc.class
     @texenc=[]
     if enc
       set_encarray(enc,@texenc)
+    end
+    if @texenc.size ==2
+      #p @texenc[0].encname
+      #p @texenc[1].encname
     end
   end
   def texenc  # :nodoc:
@@ -405,7 +414,6 @@ class Font
 
 
 
-  private
 
   # return the name of the font in the mapline
 
@@ -433,6 +441,7 @@ class Font
       "#{texencname}-#{fontname}"
     end
   end 
+  private
 
 end
 __END__

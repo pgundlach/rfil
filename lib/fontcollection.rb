@@ -1,5 +1,5 @@
 # fontcollection.rb
-# Last Change: Wed Jul  6 00:03:00 2005
+# Last Change: Wed Jul  6 00:48:21 2005
 
 require 'helper'
 
@@ -46,13 +46,11 @@ class FontCollection
   end
 
   def mapfile
-    m=""
-    @fonts.each{ |font|
-      font.maplines.each{ |ml|
-        m << ml << "\n"
-      }
+    mapfile=[]
+    @fonts.each {|font|
+      mapfile << font.maplines
     }
-    m
+    mapfile.flatten
   end
   def mapenc=(enc) # :nodoc:
     set_mapenc(enc)
@@ -67,7 +65,7 @@ class FontCollection
   def write_files(options={})
     mapdir=get_dir(:map); ensure_dir(mapdir)
     
-    mapfile=[]
+    
     @fonts.each {|font|
       font.write_files(:mapfile => false)
       mapfile << font.maplines

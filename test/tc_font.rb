@@ -13,10 +13,10 @@ require 'kpathsea'
 class TestFont < Test::Unit::TestCase
   def setup
     @kpse=Kpathsea.new
-    f=@kpse.open_file("ec.enc","enc") { |f|
+    @kpse.open_file("ec.enc","enc") { |f|
       @ecenc=ENC.new(f)
     }
-    f=@kpse.open_file("texnansi.enc","enc") { |f|
+    @kpse.open_file("texnansi.enc","enc") { |f|
       @texnansienc=ENC.new(f)
     }
   end
@@ -57,31 +57,31 @@ class TestFont < Test::Unit::TestCase
     font=Font.new
     a=ENC.new()
     a.encname="mapenc"
-    a.encvector[0]=".notdef"
-    a.encvector[1]="A"
-    a.encvector[2]="b"
-    a.encvector[3]="germandbls"
-    a.encvector[4]="ae"
-    a.encvector[5]="AE"
-    a.encvector[6]="dotlessi"
-    a.encvector[7]="hyphen"
-    a.encvector[8]="hyphen"
-    a.encvector[9]="copyright"
-    a.encvector[10]="c"
+    a[0]=".notdef"
+    a[1]="A"
+    a[2]="b"
+    a[3]="germandbls"
+    a[4]="ae"
+    a[5]="AE"
+    a[6]="dotlessi"
+    a[7]="hyphen"
+    a[8]="hyphen"
+    a[9]="copyright"
+    a[10]="c"
     a.update_glyph_index
     a.filename="minienc"
     b=ENC.new()
     b.encname="texenc"
-    b.encvector[10]="c"
-    b.encvector[11]="A"
-    b.encvector[12]="b"
-    b.encvector[13]="germandbls"
-    b.encvector[14]="ae"
-    b.encvector[15]="AE"
-    b.encvector[16]="dotlessi"
-    b.encvector[17]="hyphen"
-    b.encvector[18]="hyphen"
-    b.encvector[19]="registered"
+    b[10]="c"
+    b[11]="A"
+    b[12]="b"
+    b[13]="germandbls"
+    b[14]="ae"
+    b[15]="AE"
+    b[16]="dotlessi"
+    b[17]="hyphen"
+    b[18]="hyphen"
+    b[19]="registered"
     b.update_glyph_index
     b.filename="minienc2"
 
@@ -174,17 +174,17 @@ class TestFont < Test::Unit::TestCase
     font=Font.new
     a=ENC.new()
     a.encname="mapenc"
-    a.encvector[0]=".notdef"
-    a.encvector[1]="A"
-    a.encvector[2]="b"
-    a.encvector[3]="germandbls"
-    a.encvector[4]="ae"
-    a.encvector[5]="AE"
-    a.encvector[6]="dotlessi"
-    a.encvector[7]="hyphen"
-    a.encvector[8]="hyphen"
-    a.encvector[9]="copyright"
-    a.encvector[10]="c"
+    a[0]=".notdef"
+    a[1]="A"
+    a[2]="b"
+    a[3]="germandbls"
+    a[4]="ae"
+    a[5]="AE"
+    a[6]="dotlessi"
+    a[7]="hyphen"
+    a[8]="hyphen"
+    a[9]="copyright"
+    a[10]="c"
     a.update_glyph_index
     a.filename="minienc"
     font.load_variant("savorg__.afm")
@@ -261,8 +261,9 @@ class TestFont < Test::Unit::TestCase
     fontmaplines=font.maplines
     mapline=["texnansi-savorg__-orig Savoy-Regular <texnansi.enc <savorg__.pfb\n",
       "ec-savorg__-orig Savoy-Regular <EC.enc <savorg__.pfb\n"]
-    mapline.each { |m|
-      assert(fontmaplines.member?(m), "'#{m}' is not in : " + fontmaplines.join(" - ") )
+    assert_equal(mapline.size,fontmaplines.size)
+    fontmaplines.each { |fm|
+      assert(mapline.member?(fm))
     }
 end
   

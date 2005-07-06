@@ -1,6 +1,6 @@
 # pl.rb - TeX Property List accessor class
 #
-# Last Change: Tue Jul  5 17:10:11 2005
+# Last Change: Wed Jul  6 13:36:40 2005
 
 
 FARRAY = ['MRR','MIR','BRR','BIR','LRR','LIR','MRC','MIC','BRC','BIC',
@@ -38,8 +38,8 @@ class PL
   #  (FACE F MRR)
   class Plist < Array
 
-    # Formats the plist with ( and ) so that the pltotf and vptovf
-    # programs can interpret the output. 
+    # Return a string representation of the plist with parenthesis, so
+    # that the pltotf and vptovf programs can interpret the output.
     def to_s(level=0)
       tmp = level > 0 ? "\n" : ""
       self.each { |node|
@@ -325,7 +325,7 @@ class PL
   # the position it maps to, _glyph_index_ is to check if a mapping is
   # needed, _allglyphs_ is a Glyphlist. _variants_ is an array with
   # all variants used, for example [0,1,3].
-  def charentry (glyphname,slot,glyph_index,allglyphs)
+  def add_charentry (glyphname,slot,glyph_index,allglyphs)
     thisglyph=allglyphs[glyphname]
     mapnum=if thisglyph.mapto != nil
              glyph_index[thisglyph.mapto][0]

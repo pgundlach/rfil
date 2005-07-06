@@ -121,8 +121,9 @@ EOS
     f.close
     encv=[".notdef", "dotaccent", "fi", "fl", "fraction", "hungarumlaut", "Lslash", "lslash", "ogonek", "ring", ".notdef", "breve", "minus", ".notdef", "Zcaron", "zcaron", "caron", "dotlessi", "dotlessj", "ff", "ffi", "ffl", "notequal", "infinity", "lessequal", "greaterequal", "partialdiff", "summation", "product", "pi", "grave", "quotesingle", "space", "exclam", "quotedbl", "numbersign", "dollar", "percent", "ampersand", "quoteright", "parenleft", "parenright", "asterisk", "plus", "comma", "hyphen", "period", "slash", "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "colon", "semicolon", "less", "equal", "greater", "question", "at", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "bracketleft", "backslash", "bracketright", "asciicircum", "underscore", "quoteleft", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "braceleft", "bar", "braceright", "asciitilde", ".notdef", "Euro", "integral", "quotesinglbase", "florin", "quotedblbase", "ellipsis", "dagger", "daggerdbl", "circumflex", "perthousand", "Scaron", "guilsinglleft", "OE", "Omega", "radical", "approxequal", ".notdef", ".notdef", ".notdef", "quotedblleft", "quotedblright", "bullet", "endash", "emdash", "tilde", "trademark", "scaron", "guilsinglright", "oe", "Delta", "lozenge", "Ydieresis", ".notdef", "exclamdown", "cent", "sterling", "currency", "yen", "brokenbar", "section", "dieresis", "copyright", "ordfeminine", "guillemotleft", "logicalnot", "hyphen", "registered", "macron", "degree", "plusminus", "twosuperior", "threesuperior", "acute", "mu", "paragraph", "periodcentered", "cedilla", "onesuperior", "ordmasculine", "guillemotright", "onequarter", "onehalf", "threequarters", "questiondown", "Agrave", "Aacute", "Acircumflex", "Atilde", "Adieresis", "Aring", "AE", "Ccedilla", "Egrave", "Eacute", "Ecircumflex", "Edieresis", "Igrave", "Iacute", "Icircumflex", "Idieresis", "Eth", "Ntilde", "Ograve", "Oacute", "Ocircumflex", "Otilde", "Odieresis", "multiply", "Oslash", "Ugrave", "Uacute", "Ucircumflex", "Udieresis", "Yacute", "Thorn", "germandbls", "agrave", "aacute", "acircumflex", "atilde", "adieresis", "aring", "ae", "ccedilla", "egrave", "eacute", "ecircumflex", "edieresis", "igrave", "iacute", "icircumflex", "idieresis", "eth", "ntilde", "ograve", "oacute", "ocircumflex", "otilde", "odieresis", "divide", "oslash", "ugrave", "uacute", "ucircumflex", "udieresis", "yacute", "thorn", "ydieresis"]
     instructions=["space l =: lslash", "space L =: Lslash", "question quoteleft =: questiondown", "exclam quoteleft =: exclamdown", "hyphen hyphen =: endash", "endash hyphen =: emdash", "quoteleft quoteleft =: quotedblleft", "quoteright quoteright =: quotedblright", "space {} *", "* {} space", "zero {} *", "* {} zero", "one {} *", "* {} one", "two {} *", "* {} two", "three {} *", "* {} three", "four {} *", "* {} four", "five {} *", "* {} five", "six {} *", "* {} six", "seven {} *", "* {} seven", "eight {} *", "* {} eight", "nine {} *", "* {} nine", "comma comma =: quotedblbase", "less less =: guillemotleft", "greater greater =: guillemotright"]
-    assert_equal(a.encvector,encv)
-    assert_equal(a.encname,"TeStencoding")
+    assert_equal(encv.size,a.size)
+    assert_equal(encv,a)
+    assert_equal("TeStencoding",a.encname)
     
     # order should not be important
     a.ligkern_instructions.each { |i|
@@ -185,22 +186,22 @@ EOS
 enc
     a=ENC.new(strenc)
     assert_equal("TeXtext",a.encname)
-    assert_equal("space",a.encvector[32])
+    assert_equal("space",a[32])
     assert_equal([24],a.glyph_index['cedilla'])
   end
 
   def test_build_enc
     a=ENC.new()
     a.encname="Minienc"
-    a.encvector[0]=".notdef"
-    a.encvector[1]="A"
-    a.encvector[2]="b"
-    a.encvector[3]="germandbls"
-    a.encvector[4]="ae"
-    a.encvector[5]="AE"
-    a.encvector[6]="dotlessi"
-    a.encvector[7]="hyphen"
-    a.encvector[8]="hyphen"
+    a[0]=".notdef"
+    a[1]="A"
+    a[2]="b"
+    a[3]="germandbls"
+    a[4]="ae"
+    a[5]="AE"
+    a[6]="dotlessi"
+    a[7]="hyphen"
+    a[8]="hyphen"
     a.update_glyph_index
     assert_equal({"dotlessi"=>[6], "germandbls"=>[3], "A"=>[1],
                    "b"=>[2], "AE"=>[5], "ae"=>[4],

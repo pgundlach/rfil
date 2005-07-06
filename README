@@ -3,7 +3,9 @@
 These files should help you (a programmer) to create a font installer
 for TeX. 
 
-== Example usage to install a single font:
+== Installing a single font
+
+=== Example usage to install a single font:
  font=Font.new
  font.load_variant("savorg__.afm")
  font.texenc=["ec","texnansi"]
@@ -12,6 +14,19 @@ for TeX.
 
 This will create virtual fonts for _ec_ and _texnansi_ encoding that
 map to <em>8r</em> encoding, +tfm+ files for the _raw_ fonts and a +map+-file.
+
+=== Synthesize small caps
+Create a second variant, synthesize small caps and copy the relevant part
+to the main font.
+ f=Font.new
+ f.texenc="ec"
+ f.load_variant("savorg__.afm")
+ fc = f.load_variant("savorg__.afm")
+ f.fake_caps(fc,0.8)
+ f.copy(fc,:lowercase)
+ f.defaultfm.chars.apply_ligkern_instructions(RFI::STDLIGKERN)
+ f.write_files
+
 
 
 == Creating the documentation

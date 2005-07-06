@@ -1,9 +1,15 @@
 #!/usr/bin/env ruby
-
-# Last Change: Wed Jul  6 16:44:09 2005
-
-# Reimplementation of afm2tfm, as shipped with dvips
-# This is not the reimplementation I mentioned at the 35th NTG meeting
+#--
+# Last Change: Wed Jul  6 17:09:04 2005
+#++
+# == afm2tfm using the ruby font installer library
+# This is a re-implementation of afm2tfm that is part of dvips. This
+# does not aim for a 100% compatible output, since that would be too
+# hard to implement. For example, the absence of the <tt>-u</tt>-switch in
+# afm2tfm introduces some randomnes, so we assume that <tt>-u</tt> is
+# always given.
+#
+# Remark: this is not the reimplementation I mentioned at the 35th NTG meeting
 
 require 'optparse'
 require 'ostruct'
@@ -65,15 +71,11 @@ ARGV.options { |opt|
   # assume that this is not in the font. afm2tfm does now O 200 -> O 4
   # (fraction), for whatever reason. If fraction is not in the font,
   # afm2tfm does O 200 -> O 252 (ordfeminine). Why? Because.
-  #opt.on("-u","output only characters from encodings, nothing extra") {
-  #  mixencodings=false
-  #}
+  opt.on("-u","(ignored option)")
   opt.on("-v FILE[.vpl]", String, "make a VPL file for conversion to VF") { |v|
-    options.writevf=true
     options.vffile=v
   }
   opt.on("-V SCFILE[.vpl]","like -v, but synthesize smallcaps as lowercase") { |v|
-    writevf=true
     options.vffile=v
     options.fakecaps=true
   }
@@ -115,21 +117,10 @@ if options.fakecaps
   font.copy(fc,:lowercase)
 end
 
-vf=File.join(font.get_dir(:vf),options.vffile+".vf")
-tfm=File.join(font.get_dir(:tfm),options.vffile+ ".tfm")
-font.vpl(font.mapenc,font.texenc[0]).write_vf(vf,tfm)
-
-
-# puts font.vpl(font.mapenc,font.texenc[0]).to_s
-
-                          exit
-
-a.read
-# inenc, outenc and font are set
-a.mixencodings if mixencodings
-a.create_tfm
-#puts a.create_pl
-if writevf
-  a.create_vpl
+if options.vffile
+  vf=File.join(font.get_dir(:vf),options.vffile+".vf")
+  tfm=File.join(font.get_dir(:tfm),options.vffile+ ".tfm")
+  font.vpl(font.mapenc,font.texenc[0]).write_vf(vf,tfm)
 end
-puts a.mapline
+puts font.maplines
+

@@ -29,19 +29,19 @@ class TestFontFontCollection < Test::Unit::TestCase
     assert_equal(nil,font.mapenc)
     font.mapenc="ec.enc"
     font.texenc="ec.enc"
-    assert(font.mapenc.encvector==@ecenc.encvector)
-    assert(font.texenc[0].encvector==@ecenc.encvector)
+    assert(font.mapenc==@ecenc)
+    assert(font.texenc[0]==@ecenc)
     # we now define encodings only in the fontcollection
     fc=FontCollection.new('foo')
     fc.mapenc="ec.enc"
     fc.texenc="ec.enc"
-    assert(fc.mapenc.encvector==@ecenc.encvector)
-    assert(fc.texenc[0].encvector==@ecenc.encvector)
+    assert(fc.mapenc==@ecenc)
+    assert(fc.texenc[0]==@ecenc)
     font=Font.new(fc)
-    assert(font.mapenc.encvector==@ecenc.encvector)
-    assert(font.texenc[0].encvector==@ecenc.encvector)
+    assert(font.mapenc==@ecenc)
+    assert(font.texenc[0]==@ecenc)
     font.mapenc=@texnansienc
-    assert(font.mapenc.encvector==@texnansienc.encvector)
+    assert(font.mapenc==@texnansienc)
   end
 
   def test_dirs
