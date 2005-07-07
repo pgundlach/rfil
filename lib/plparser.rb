@@ -1,9 +1,10 @@
-# Last Change: Sat Jul  2 22:48:22 2005
+# Last Change: Fri Jul  8 00:09:22 2005
 
 class PL
   @@syntax = { 
     :comment => [:string ],
     :codingscheme => [:string ],
+    :sevenbitsafeflag => [:string ],
     :checksum  => [:num ],
     :designsize => [:num ],
     :designunits => [:num ],
@@ -59,6 +60,7 @@ class PL
     @source = plstring
     @len    = @source.length
     @plist=get_plist(0)
+    self
   end
 
   def get_num (pos)
