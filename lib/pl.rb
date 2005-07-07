@@ -1,7 +1,8 @@
 # pl.rb - TeX Property List accessor class
 #
-# Last Change: Thu Jul  7 18:23:06 2005
+# Last Change: Thu Jul  7 20:45:06 2005
 
+require 'rfi'
 
 FARRAY = ['MRR','MIR','BRR','BIR','LRR','LIR','MRC','MIC','BRC','BIC',
   'LRC','LIC','MRE','MIE','BRE','BIE','LRE','LIE'] 
@@ -171,6 +172,28 @@ class PL
   # The top plist of the property list. 
   attr_accessor :plist
 
+  # The family entry for the vf (used??)
+  attr_accessor :family
+
+  # The vtitle entry for the vf 
+  attr_accessor :vtitle
+
+  # the codingscheme of the pl
+  attr_accessor :codingscheme
+
+  # the designsize
+  attr_accessor :designsize
+
+  # A hash where each key is the index of the glyph (encoding
+  # specific!) and the value is an array of two arrays: a kern and a
+  # lig array. The kern array looks like: [[17, 24],[18, 24],[12,
+  # 15]], so the first element is the destination slot and the second
+  # element is the kern amount. The lig array looks similar, where the
+  # first element denotes the next glyph and the second the
+  # resulting glyph. Note that the lig array will change and use LIG
+  # elements to handle more complex ligatures.
+  attr_accessor :ligtable
+  
   # Return a new Node representing a comment with contents of _comment_.
   def PL.comment (comment)
     Node.new(:comment,comment)
@@ -216,15 +239,15 @@ class PL
   # [:charht] one value allowed: the height of the char
   # [:chardp] one value allowed: the depth of the char
   # [:charic] one value allowed: the italic correction of the char
-  # [:lig] an array of arrays as described somewhere else
-  # [:krn] an array of arrays as described somewhere else
+  # [:lig] an array of LIG objects.
+  # [:krn] an array of arrays like [destchar, amount].
   def []= (charnumber,value)
     lt=ligtable
     lt[charnumber]=[value[:krn],value[:lig]]
     # why do I need self here?
     self.ligtable=(lt)
     # build node
-    n = self.find {|node|
+    n = @plist.find {|node|
       node.type==:character and node.contents[0].value==charnumber
     }
     unless n
@@ -234,7 +257,6 @@ class PL
     end
     n.value=Num.new(charnumber,"CO")
     subplist=Plist.new
-    # value.each { |type,contents|
     [:charwd, :charht, :chardp, :charic].each { |sym|
       if value[sym]
         subplist << Node.new(sym, Num.new(value[sym]))
@@ -246,7 +268,7 @@ class PL
 
   # Return a hash 
   def [] (charnumber)
-    a = self.find {|node|
+    a = @plist.find {|node|
       node.type==:character and node.contents[0].value==charnumber
     }
     return nil unless a
@@ -275,12 +297,6 @@ class PL
     @plist << node
   end
 
-  # Interator over the top property list.
-  def each
-    @plist.each do |node|
-      yield node      
-    end
-  end
 
   # Nice (+vptovf+ and +pltotf+ compatible) output of the complete
   # property list.
@@ -288,37 +304,7 @@ class PL
     @plist.to_s
   end
 
-  def method_missing (symbol, *args)
-    if symbol.to_s[-1,1] == "="
-      insert_or_change(symbol.to_s[0..-2].to_sym, args)
-    else
-      # not assignment
-      n = @plist.find { |node|
-        node.type==symbol.to_s[0..-1].to_sym
-      }
-      n ? n.contents[0] : nil
-    end
-  end
-
-
-  def insert_or_change (type, value)
-    n = self.find { |node|
-      node.type==type
-    }
-    if n
-      n.value=value
-    else
-      @plist.push Node.new(type,value)
-    end
-  end
-  def designsize=(num)
-    insert_or_change(:designsize,designsize=PL::Num.new(num))
-  end
-  def designsize
-    n = @plist.find { |node|
-      node.type==:designsize
-    }.contents[0].value
-  end
+  
   def fontat (num)
     PL::Node.new(:fontat,PL::Num.new(num))
   end
@@ -334,7 +320,7 @@ class PL
   end
   
   def fontdimen
-    n = self.find { |node|
+    n = @plist.find { |node|
       node.type==:fontdimen
     }
     ret={}
@@ -432,7 +418,7 @@ class PL
   
   def get_charentries
     ret=[]
-    n = self.find_all { |node|
+    n = @plist.find_all { |node|
       node.type==:character
     }
     n.each { |node|
@@ -486,7 +472,7 @@ class PL
   # Return the mapfont section of the vpl. 
   def mapfont
     ret={}
-    n = self.find_all { |node|
+    n = @plist.find_all { |node|
       node.type==:mapfont
     }
     n.each { |mapfontnode|
@@ -512,30 +498,28 @@ class PL
     insert_or_change(:ligtable,plist)
   end
 
-  # Return a hash where each key is the index of the glyph (encoding
-  # specific!) and the value is an array of two arrays: a kern and a
-  # lig array. The kern array looks like: [[17, 24],[18, 24],[12,
-  # 15]], so the first element is the destination slot and the second
-  # element is the kern amount. The lig array looks similar, where the
-  # first element denotes the next glyph and the second the
-  # resulting glyph. Note that the lig array will change and use LIG
-  # elements to handle more complex ligatures.
-  def ligtable
-    plist = self.find { |node|
+  def ligtable  # :nodoc:
+    plist = @plist.find { |node|
       node.type==:ligtable
     }.contents[0]
+    # puts plist.to_s
     ret={}
     current_slots=[]
     krn=[]
     lig=[]
+    current_charno=nil
     plist.each{ |node|
       case node.type
       when :label
-        current_slots.push node.contents[0].value
+        current_charno=node.contents[0].value
+        current_slots.push current_charno
       when :krn
         krn.push [node.contents[0].value,node.contents[1].value]
       when :lig
-        lig.push [node.contents[0].value,node.contents[1].value]
+        lig.push RFI::LIG.new(current_charno,
+                              node.contents[0].value,
+                              node.contents[1].value,
+                              node.type)
       when :stop
         current_slots.each { |slot|
           ret[slot]=[krn,lig]
@@ -543,6 +527,11 @@ class PL
         krn=[]
         lig=[]
         current_slots=[]
+        current_charno=nil
+      when :comment
+        # ignore
+      else
+        raise "unknown type: #{node.type}"
       end
     }
     ret
@@ -550,14 +539,17 @@ class PL
 
   # Set the ligtable to the _lighash_. _lighash_ has the same format
   # that results from ligtable.
-  def ligtable=(lighash)
+  def ligtable=(lighash) # :nodoc:
     ligplist=Plist.new
     lighash.sort.each {|slot,ligentry|
       ligplist << PL.label(slot)
       krn,lig=ligentry
-      lig.sort {|a,b| a[0] <=> b[0] }.each { |other,result|
+      #lig.sort {|a,b| a[0] <=> b[0] }.each { |other,result|
         # puts "kernnode: #{other}, #{amount}"
-        ligplist << PL.lignode(other,result)
+       # ligplist << PL.lignode(other,result)
+     # }
+      lig.each { |lig|
+        ligplist << PL.lignode(lig.right,lig.result)
       }
       krn.sort {|a,b| a[0] <=> b[0] }.each { |other,amount|
         # puts "kernnode: #{other}, #{amount}"
@@ -567,6 +559,7 @@ class PL
     }
     # puts ligplist.to_s
     set_ligtable(ligplist)
+    lighash
   end
   
   # Write out a tfm-file for the current pl. _tfmlocation_ is a full
@@ -593,7 +586,60 @@ class PL
     raise ScriptError, "error running vptovf" unless $?.success?
   end
 
+  def vtitle=(title)       #:nodoc:
+    insert_or_change(:vtitle,title)
+  end
+  def vtitle                #:nodoc:
+    n=find_node(:vtitle)
+    return nil unless n
+    n.contents[0]
+  end
+  def family=(title)        #:nodoc:
+    insert_or_change(:family,title)
+  end
+  def family                #:nodoc:
+    n=find_node(:family)
+    return nil unless n
+    n.contents[0]
+  end
+  def codingscheme=(title)   #:nodoc:
+    insert_or_change(:codingscheme,title)
+  end
+  def codingscheme           #:nodoc:
+    n=find_node(:codingscheme)
+    return nil unless n
+    n.contents[0]
+  end
+  
+  def designsize=(num)       #:nodoc: 
+    insert_or_change(:designsize,designsize=PL::Num.new(num))
+  end
+  def designsize             #:nodoc:
+    n = find_node(:designsize)
+    return nil unless n
+    n.contents[0].value
+  end
+
   private
+
+  # Find the first occurance of node of type _nodetype_ in main plist.
+  # Returns a node.
+  def find_node(nodetype)
+    @plist.find { |node|
+      node.type==nodetype
+    }
+  end
+
+  def insert_or_change (type, value)
+    n = @plist.find { |node|
+      node.type==type
+    }
+    if n
+      n.value=value
+    else
+      @plist.push Node.new(type,value)
+    end
+  end
 
   def _round(value) # should be named 'remove .0' or alike
     if value.round - value != 0
@@ -604,3 +650,15 @@ class PL
   end
 
 end
+__END__
+#   def method_missing (symbol, *args)
+#     if symbol.to_s[-1,1] == "="
+#       insert_or_change(symbol.to_s[0..-2].to_sym, args)
+#     else
+#       # not assignment
+#       n = @plist.find { |node|
+#         node.type==symbol.to_s[0..-1].to_sym
+#       }
+#       n ? n.contents[0] : nil
+#     end
+#   end
