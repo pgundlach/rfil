@@ -130,6 +130,97 @@ EOS
       assert(instructions.member?(i))
     }
     assert_equal(a.glyph_index['hyphen'],[45,173])
+    strenc= <<enc
+% LIGKERN space l =: lslash ;
+% LIGKERN space L =: Lslash ;
+% LIGKERN question quoteleft =: questiondown ;
+% LIGKERN exclam quoteleft =: exclamdown ;
+% LIGKERN hyphen hyphen =: endash ;
+% LIGKERN endash hyphen =: emdash ;
+% LIGKERN quoteleft quoteleft =: quotedblleft ;
+% LIGKERN quoteright quoteright =: quotedblright ;
+% LIGKERN space {} * ;
+% LIGKERN * {} space ;
+% LIGKERN zero {} * ;
+% LIGKERN * {} zero ;
+% LIGKERN one {} * ;
+% LIGKERN * {} one ;
+% LIGKERN two {} * ;
+% LIGKERN * {} two ;
+% LIGKERN three {} * ;
+% LIGKERN * {} three ;
+% LIGKERN four {} * ;
+% LIGKERN * {} four ;
+% LIGKERN five {} * ;
+% LIGKERN * {} five ;
+% LIGKERN six {} * ;
+% LIGKERN * {} six ;
+% LIGKERN seven {} * ;
+% LIGKERN * {} seven ;
+% LIGKERN eight {} * ;
+% LIGKERN * {} eight ;
+% LIGKERN nine {} * ;
+% LIGKERN * {} nine ;
+% LIGKERN comma comma =: quotedblbase ;
+% LIGKERN less less =: guillemotleft ;
+% LIGKERN greater greater =: guillemotright ;
+%
+/TeStencoding [
+% 0
+/.notdef /dotaccent /fi /fl /fraction /hungarumlaut /Lslash /lslash
+/ogonek /ring /.notdef /breve /minus /.notdef /Zcaron /zcaron
+% 16
+/caron /dotlessi /dotlessj /ff /ffi /ffl /notequal /infinity
+/lessequal /greaterequal /partialdiff /summation /product /pi /grave /quotesingle
+% 32
+/space /exclam /quotedbl /numbersign /dollar /percent /ampersand /quoteright
+/parenleft /parenright /asterisk /plus /comma /hyphen /period /slash
+% 48
+/zero /one /two /three /four /five /six /seven
+/eight /nine /colon /semicolon /less /equal /greater /question
+% 64
+/at /A /B /C /D /E /F /G
+/H /I /J /K /L /M /N /O
+% 80
+/P /Q /R /S /T /U /V /W
+/X /Y /Z /bracketleft /backslash /bracketright /asciicircum /underscore
+% 96
+/quoteleft /a /b /c /d /e /f /g
+/h /i /j /k /l /m /n /o
+% 112
+/p /q /r /s /t /u /v /w
+/x /y /z /braceleft /bar /braceright /asciitilde /.notdef
+% 128
+/Euro /integral /quotesinglbase /florin /quotedblbase /ellipsis /dagger /daggerdbl
+/circumflex /perthousand /Scaron /guilsinglleft /OE /Omega /radical /approxequal
+% 144
+/.notdef /.notdef /.notdef /quotedblleft /quotedblright /bullet /endash /emdash
+/tilde /trademark /scaron /guilsinglright /oe /Delta /lozenge /Ydieresis
+% 160
+/.notdef /exclamdown /cent /sterling /currency /yen /brokenbar /section
+/dieresis /copyright /ordfeminine /guillemotleft /logicalnot /hyphen /registered /macron
+% 176
+/degree /plusminus /twosuperior /threesuperior /acute /mu /paragraph /periodcentered
+/cedilla /onesuperior /ordmasculine /guillemotright /onequarter /onehalf /threequarters /questiondown
+% 192
+/Agrave /Aacute /Acircumflex /Atilde /Adieresis /Aring /AE /Ccedilla
+/Egrave /Eacute /Ecircumflex /Edieresis /Igrave /Iacute /Icircumflex /Idieresis
+% 208
+/Eth /Ntilde /Ograve /Oacute /Ocircumflex /Otilde /Odieresis /multiply
+/Oslash /Ugrave /Uacute /Ucircumflex /Udieresis /Yacute /Thorn /germandbls
+% 224
+/agrave /aacute /acircumflex /atilde /adieresis /aring /ae /ccedilla
+/egrave /eacute /ecircumflex /edieresis /igrave /iacute /icircumflex /idieresis
+% 240
+/eth /ntilde /ograve /oacute /ocircumflex /otilde /odieresis /divide
+/oslash /ugrave /uacute /ucircumflex /udieresis /yacute /thorn /ydieresis
+] def
+enc
+    assert_equal(strenc,a.to_s)
+    # now we read this to_s output back in as an encoding
+    # should we also rely on filename to have assert_equal be true?
+    b = ENC.new(strenc)
+    assert_equal(a,b)
   end
   def test_stringenc
     strenc= <<enc
@@ -210,6 +301,5 @@ enc
     assert_equal("minienc.enc",a.filename)
     a.filename="minienc.enc"
     assert_equal("minienc.enc",a.filename)
-    
   end
 end

@@ -1,6 +1,6 @@
 #--
 # enc.rb - read and parse TeX's encoding files
-# Last Change: Thu Jul  7 11:37:08 2005
+# Last Change: Thu Jul  7 12:20:22 2005
 #++
 # See the class ENC for the api description.
 # == Example usage (read an encoding file)
@@ -22,14 +22,15 @@
 require 'strscan'
 require 'delegate'
 
-# Read a TeX encoding vector (<tt>.enc</tt>-file) and associated
-# ligkern instructions. The encoding slot are accessible via [], just
-# like an Array. 
-
 #--
 # dont't subclass Array directly, it might be a bad idea. See for
 # example [ruby-talk:147327]
 #++
+
+# Read a TeX encoding vector (<tt>.enc</tt>-file) and associated
+# ligkern instructions. The encoding slot are accessible via [], just
+# like an Array. 
+
 class ENC < DelegateClass(Array)
 
   # _encname_ is the PostScript name of the encoding vector.
@@ -85,6 +86,26 @@ class ENC < DelegateClass(Array)
   def filename=(fn) # :nodoc:
     @filename=File.basename(fn.chomp(".enc")+".enc")
   end
+  
+  # Return a string representation of the encoding that is compatible
+  # with dvips and alike
+  def to_s
+    str = ""
+    @ligkern_instructions.each { |instr|
+      str << "% LIGKERN #{instr} ;\n"
+    }
+    str << "%\n"
+    str << "/#@encname [\n"
+    @encvector.each_with_index { |glyphname,i|
+      str << "% #{i}\n" if (i % 16 == 0)
+      str << " " unless (i % 8 == 0)
+      str << "/#{glyphname}"
+      str << "\n" if (i % 8 == 7)
+    }
+    str << "] def\n"
+    str
+  end
+
   private
 
   def tok(s)
