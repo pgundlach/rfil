@@ -1,6 +1,6 @@
 # pl.rb - TeX Property List accessor class
 #
-# Last Change: Thu Jul  7 20:45:06 2005
+# Last Change: Thu Jul  7 21:57:08 2005
 
 require 'rfi'
 
@@ -499,9 +499,11 @@ class PL
   end
 
   def ligtable  # :nodoc:
-    plist = @plist.find { |node|
+    ret = @plist.find { |node|
       node.type==:ligtable
-    }.contents[0]
+    }
+    return {} unless ret
+    plist=ret.contents[0]
     # puts plist.to_s
     ret={}
     current_slots=[]
@@ -650,15 +652,3 @@ class PL
   end
 
 end
-__END__
-#   def method_missing (symbol, *args)
-#     if symbol.to_s[-1,1] == "="
-#       insert_or_change(symbol.to_s[0..-2].to_sym, args)
-#     else
-#       # not assignment
-#       n = @plist.find { |node|
-#         node.type==symbol.to_s[0..-1].to_sym
-#       }
-#       n ? n.contents[0] : nil
-#     end
-#   end
