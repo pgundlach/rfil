@@ -1,6 +1,6 @@
 # rfi.rb -- general use classes
 #
-# Last Change: Tue Jul  5 16:01:37 2005
+# Last Change: Thu Jul  7 20:37:27 2005
 
 
 # This class contains methods and other classes that are pretty much
@@ -249,6 +249,15 @@ class RFI
       @right=right
       @result=result
       @type=type
+    end
+    def ==(lig)
+      @left=lig.left and
+        @right=lig.right and
+        @result=lig.result and
+        @type=lig.type
+    end
+    def inspect
+      "(#{@type.to_s.upcase} #@right #@result)"
     end
   end
 
