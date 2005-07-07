@@ -33,12 +33,14 @@ class TestPL < Test::Unit::TestCase
   end
   def test_writer
     pl=PL.new(false)
-    pl.insert_or_change(:family,"foo")
+    pl.family="foo"
     npl=PL.new(false)
     npl.parse(pl.to_s)
     assert_equal("foo",npl.family)
+    npl.family="fam"
+    assert_equal("fam",npl.family)
     
-    pl.insert_or_change(:family,"bar")
+    pl.family="bar"
     npl=PL.new(false)
     npl.parse(pl.to_s)
     assert_equal("bar",npl.family)
@@ -117,10 +119,16 @@ class TestPL < Test::Unit::TestCase
         [116, -24.0],
         [65, 21.0],
         [97, 10.5]],
-       :lig=> [[45, 21], [127, 21]]}
+       :lig=>
+        [ RFI::LIG.new(127,45,21,:lig),
+          RFI::LIG.new(127,127,21,:lig)]} 
     assert_equal(a,pl[127])
     a[:charwd]=400
     pl[127]=a
     assert_equal(400,pl[127][:charwd])
+    #roundtrip check, pl.ligtable= might have some errors
+    a=pl.ligtable
+    pl.ligtable=a
+    assert_equal(a,pl.ligtable)
   end
 end
