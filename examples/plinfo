@@ -1,0 +1,55 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+
+# $: is the ruby input path - add the lib/ subdir
+$:.unshift File.join(File.dirname(__FILE__), "..", "lib")
+
+require 'pl'
+require 'plparser'
+
+if ARGV.size < 1
+  puts "#{File.basename($0)}: Need at least one file argument."
+  puts "Try `#{File.basename($0)} --help' for more information."
+  exit 0
+end
+
+def dump_maininfo(filename)
+  puts "General font information:"
+  puts "========================="
+  print "filename=#{File.basename(filename)} "
+  puts @isvpl ? "(vpl)" : "(pl)"
+  puts "Family: #{@pl.family}"
+  puts "Designsize: #{@pl.designsize}"
+  puts "Codingscheme: #{@pl.codingscheme}"
+  puts "Fontdimen:"
+  @pl.fontdimen.each {|key,value|
+    puts "  #{key} = #{value}"
+  }
+end
+
+def dump_charsinfo
+  stdformat="%7s|"
+  count=0
+  0.upto(255)  { |i|
+    if count % 20 == 0
+      puts "slot   | width |height | depth | ic    | kern? | lig?  | extra "
+      puts "-------|-------|-------|-------|-------|-------|-------|-------"
+    end
+    if c=@pl[i]
+      has_krn= c[:krn] ? "yes" : "no"
+      has_lig= c[:lig] ? "yes" : "no"
+      puts sprintf(stdformat*7, "#{i}","#{c[:charwd]}","#{c[:charht]}","#{c[:chardp]}","#{c[:charic]}", has_krn,has_lig)
+      count += 1
+    end
+  }
+end
+
+ARGV.each { |plfilename|
+  f=File.open(plfilename)
+  @pl=PL.new().parse(f.read)
+  f.close
+  @isvpl= plfilename =~ /\.vpl$/
+  dump_maininfo(plfilename)
+  dump_charsinfo
+}

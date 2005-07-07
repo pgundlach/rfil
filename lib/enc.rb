@@ -1,6 +1,6 @@
 #--
 # enc.rb - read and parse TeX's encoding files
-# Last Change: Thu Jul  7 12:20:22 2005
+# Last Change: Thu Jul  7 13:15:39 2005
 #++
 # See the class ENC for the api description.
 # == Example usage (read an encoding file)
@@ -41,7 +41,6 @@ class ENC < DelegateClass(Array)
   # "quoteright quoteright =: quotedblright"
   # "* {} space"
   attr_accessor :ligkern_instructions
-
 
   # hash: key is glyph name, value is array of indexes
   # example: glyph_index['hyphen']=[45,127] in ec.enc
