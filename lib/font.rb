@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Wed Jul  6 19:45:32 2005
+# Last Change: Thu Jul  7 16:36:34 2005
 #++
 require 'set'
 
@@ -204,7 +204,7 @@ class Font
       }
       ligplist << PL.stop
     }
-    vpl.ligtable=ligplist
+    vpl.set_ligtable(ligplist)
 
     texenc.each_with_index { |char,i|
       next if char==".notdef"

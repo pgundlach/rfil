@@ -1,6 +1,6 @@
 # pl.rb - TeX Property List accessor class
 #
-# Last Change: Wed Jul  6 13:36:40 2005
+# Last Change: Thu Jul  7 18:23:06 2005
 
 
 FARRAY = ['MRR','MIR','BRR','BIR','LRR','LIR','MRC','MIC','BRC','BIC',
@@ -204,12 +204,72 @@ class PL
 
   # If <em>is_vpl</em> is set to true, we assume that a virtual
   # property list for a virtual font should be generated.
-  def initialize(is_vpl)
+  def initialize(is_vpl=false)
     @is_vpl=is_vpl
     @plist=Plist.new
     @co="CO"
   end
+  # Sets the charentry and the ligtable according to the information
+  # in _value_. _value_ is a hash, with the following keys:
+  # [:comment] is a ignored additional information
+  # [:charwd] one value allowed: the width of the char
+  # [:charht] one value allowed: the height of the char
+  # [:chardp] one value allowed: the depth of the char
+  # [:charic] one value allowed: the italic correction of the char
+  # [:lig] an array of arrays as described somewhere else
+  # [:krn] an array of arrays as described somewhere else
+  def []= (charnumber,value)
+    lt=ligtable
+    lt[charnumber]=[value[:krn],value[:lig]]
+    # why do I need self here?
+    self.ligtable=(lt)
+    # build node
+    n = self.find {|node|
+      node.type==:character and node.contents[0].value==charnumber
+    }
+    unless n
+      n = Node.new(:character)
+      # todo: find the correct place to insert the char
+      @plist << n
+    end
+    n.value=Num.new(charnumber,"CO")
+    subplist=Plist.new
+    # value.each { |type,contents|
+    [:charwd, :charht, :chardp, :charic].each { |sym|
+      if value[sym]
+        subplist << Node.new(sym, Num.new(value[sym]))
+      end
+    }
+    n.push subplist
+    value
+  end
 
+  # Return a hash 
+  def [] (charnumber)
+    a = self.find {|node|
+      node.type==:character and node.contents[0].value==charnumber
+    }
+    return nil unless a
+    a=a.contents[1]
+    ret={}
+    comment=""
+    a.each { |node|
+      case node.type
+      when :comment
+        comment << node.contents[0]
+        ret[:comment]=comment
+      when :charwd,:charht,:charic,:chardp
+        ret[node.type]=node.contents[0].value
+      end
+    }
+    lt=ligtable[charnumber]
+    if lt
+      ret[:krn]=lt[0]
+      ret[:lig]=lt[1]
+    end
+    ret
+  end
+  
   # Add Node _node_ to the top property list.
   def <<(node)
     @plist << node
@@ -447,8 +507,9 @@ class PL
   end
 
   # Set the ligtable to _plist_. 
-  def ligtable=(plist)
-    @plist.push(Node.new(:ligtable,plist))
+  def set_ligtable(plist)
+    # @plist.push(Node.new(:ligtable,plist))
+    insert_or_change(:ligtable,plist)
   end
 
   # Return a hash where each key is the index of the glyph (encoding
@@ -487,6 +548,27 @@ class PL
     ret
   end
 
+  # Set the ligtable to the _lighash_. _lighash_ has the same format
+  # that results from ligtable.
+  def ligtable=(lighash)
+    ligplist=Plist.new
+    lighash.sort.each {|slot,ligentry|
+      ligplist << PL.label(slot)
+      krn,lig=ligentry
+      lig.sort {|a,b| a[0] <=> b[0] }.each { |other,result|
+        # puts "kernnode: #{other}, #{amount}"
+        ligplist << PL.lignode(other,result)
+      }
+      krn.sort {|a,b| a[0] <=> b[0] }.each { |other,amount|
+        # puts "kernnode: #{other}, #{amount}"
+        ligplist << PL.kernnode(other,amount)
+      }
+      ligplist << PL.stop
+    }
+    # puts ligplist.to_s
+    set_ligtable(ligplist)
+  end
+  
   # Write out a tfm-file for the current pl. _tfmlocation_ is a full
   # path to the to be created tfm file. The directory must be
   # writable.
