@@ -1,6 +1,6 @@
 #--
 # enc.rb - read and parse TeX's encoding files
-# Last Change: Wed Jul  6 20:06:10 2005
+# Last Change: Thu Jul  7 11:37:08 2005
 #++
 # See the class ENC for the api description.
 # == Example usage (read an encoding file)
@@ -15,19 +15,23 @@
 # == Create an encoding
 #  enc=ENC.new
 #  enc.encname="Exampleenc"
-#  enc.encvector[0]="grave"
+#  enc[0]="grave"
 #  ....
 #  enc.update_glyph_index
 
 require 'strscan'
+require 'delegate'
 
 # Read a TeX encoding vector (<tt>.enc</tt>-file) and associated
-# ligkern instructions. The encoding slot are accessible via []
+# ligkern instructions. The encoding slot are accessible via [], just
+# like an Array. 
+
 #--
-# Perhaps inheriting from Array is a bad idea? see: [ruby-talk:147327]
-#  --pg
+# dont't subclass Array directly, it might be a bad idea. See for
+# example [ruby-talk:147327]
 #++
-class ENC < Array
+class ENC < DelegateClass(Array)
+
   # _encname_ is the PostScript name of the encoding vector.
   attr_accessor :encname
 
@@ -54,25 +58,22 @@ class ENC < Array
     @ligkern_instructions=[]
     # File, Tempfile, IO respond to read
     if enc
+      @encvector=[]
       string = enc.respond_to?(:read) ? enc.read : enc
       if enc.respond_to?(:path)
         self.filename= enc.path
       end
       parse(string)
     else
-      #Array.new(256,".notdef")
-      # better solution:
-      #0.upto(255) {|num|
-      #  self[num]=".notdef"
-      #}
-      super(256,".notdef")
+      @encvector=Array.new(256,".notdef")
     end
+    super(@encvector)
   end
 
   # creates the glyph_index from the encvector. Use this method after
   # you made changes to the encvector.
   def update_glyph_index
-    self.each_with_index { |name,i|
+    @encvector.each_with_index { |name,i|
       next if name==".notdef"
       if @glyph_index[name]
         @glyph_index[name].push i
@@ -111,20 +112,17 @@ class ENC < Array
       when "["
         # ignore
       when "]"
-        unless self.size == 256
+        unless @encvector.size == 256
           raise "Unexpected size of encoding. It should contain 256 entries, but has #{@encvector.size} entries."
         end
         update_glyph_index
         return
       else
         name = t[1,t.length-1]
-        self.push(name)
+        @encvector.push(name)
       end
     end
     # never reached
     raise "Internal ENC error"
-  end
-  def hash
-    @encname.hash
   end
 end
