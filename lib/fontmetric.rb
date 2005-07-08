@@ -1,5 +1,5 @@
 # fontmetric.rb - superclass for different font metric formats
-# Last Change: Sun Jul  3 17:13:06 2005
+# Last Change: Fri Jul  8 17:04:39 2005
 
 # FontMetric is the superclass for font metrics. All information that
 # is not specific to a certain kind of file format is accessible via
@@ -34,6 +34,8 @@ class FontMetric
 
   attr_accessor :weight
 
+  # natural width of a space
+  attr_reader :space
   
   attr_accessor :italicangle
 
@@ -60,6 +62,9 @@ class FontMetric
     @slantfactor=0.0
   end
 
+  def space  # :nodoc:
+    chars['space'].wx
+  end
   # This one is documented in the 'attributes' section. If the global
   # variable is unset, just use @filename, perhaps change afm to pfb
   def fontfilename # :nodoc:
