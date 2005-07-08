@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Fri Jul  8 20:52:09 2005
+# Last Change: Fri Jul  8 22:43:10 2005
 #++
 require 'set'
 
@@ -12,7 +12,8 @@ require 'pl'
 
 # Main class to manipulate and combine font metrics.
 class Font
-
+  include Helper
+  
   # The encoding that the PDF/PS expects (what is put before
   # "ReEncodeFont" in the mapfile). If not set, use the setting from
   # the fontcollection. You can specify at most one encoding. If you
@@ -37,7 +38,6 @@ class Font
   # override settings in the fontcollection.
 
   
-  include Helper
 
   def initialize (fontcollection=nil)
     # we are part of a fontcollection
@@ -125,6 +125,7 @@ class Font
     pl.codingscheme=enc.encname
     pl.designsize=10.0
     pl.designunits=1000
+
     fd={}
     fd[:slant]=@defaultfm.slantfactor - @defaultfm.efactor * Math::tan(@defaultfm.italicangle * Math::PI / 180.0)
     fd[:space]=@defaultfm.space
@@ -443,11 +444,7 @@ class Font
     fonts.to_a.sort
   end
 
-
-
-
-  # return the name of the font in the mapline
-
+  # Return the name of the font in the mapline. 
   def map_fontname (texenc,varnumber=0)
     mapenc_loc=mapenc
     if mapenc_loc
@@ -472,91 +469,5 @@ class Font
       "#{texencname}-#{fontname}"
     end
   end 
-  private
 
 end
-__END__
-
-  def is_upper?(glyph)
-    @upper_lower.has_key?(glyph)
-  end
-
-  # Return true if glyph is a lowercase char, such as germandbls, but
-  # not hyphen. Only usable if the mapping has been generated, by
-  # calling a method such as fake_caps that makes use of these methods
-  
-  def is_lower?(glyph)
-    @lower_upper.has_key?(glyph)
-  end
-
-  # Return the uppercase variant of the glyph. Undefined behaviour if
-  # glyph cannot be uppercased. Only usable
-  # if the mapping has been generated, by calling a method such as
-  # fake_caps that makes use of these methods.
-  
-  def capitalize(glyph)
-    @lower_upper[glyph]
-  end
-
-  # Return the lowercase variant of the glyph. Undefined behaviour if
-  # glyph cannot be lowercased. Only usable
-  # if the mapping has been generated, by calling a method such as
-  # fake_caps that makes use of these methods
-  def downcase(glyph)
-    @upper_lower[glyph]
-  end
-
- def vpl
-   ...
-         # --------------------------------------
-    ligplist=PL::Plist.new
-    charh=texenc.glyph_index.dup
-
-    texenc.each_with_index{ |char,i|
-      # we delete all glyphs that we look at from charh[]. We can
-      # encounter the same glyphs more then once. So if we have
-      # already come across this glyph, no need to put it twice into the
-      # ligature list.
-      next unless charh[char]
-      # igore glyphs not present in the font and those without kerndata
-      next unless @defaultfm.chars[char]
-      next unless @defaultfm.chars[char].has_ligkern?(texenc.glyph_index)
-
-      # find *all* occurances of the chracter. ec.enc for example has
-      # hyphen in slots O55 (45dec) and O177 (127dec)
-      charh[char].each { |i|
-        ligplist << PL.label(i)
-      }
-
-      charh.delete(char)
-      ligplist << PL.comment(char)
-
-      # this needs testing!
-      @defaultfm.chars[char].ligs.each { |lig|
-        texenc.glyph_index[lig.right].each { |index|
-          ligplist << PL.lignode(index,texenc.glyph_index[lig.result][0])
-        }
-      }
-      
-      @defaultfm.chars[char].x_kerns.each { |key,value|
-        if texenc.glyph_index[key]
-          texenc.glyph_index[key].each { |slot|
-            ligplist << PL.kernnode(slot,value)
-          }
-        end
-      }
-      ligplist << PL.stop
-    }
-    vpl.set_ligtable(ligplist)
-    texenc.each_with_index { |char,i|
-      next if char==".notdef"
-
-      # ignore those not in dest 
-      next unless mapenc.glyph_index[char]
-
-      # next if this glyph is unknown
-      next unless @defaultfm.chars[char]
-      vpl.add_charentry(char,i,mapenc.glyph_index,@defaultfm.chars)
-    }
-
-    vpl

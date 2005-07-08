@@ -2,7 +2,7 @@
 
 # Module helper.
 
-module Helper
+module Helper # :nodoc:
   def set_encarray(enc,where)
     if enc.instance_of?(ENC)
       where.push(enc)

@@ -1,26 +1,13 @@
+#--
 # pl.rb - TeX Property List accessor class
-#
-# Last Change: Fri Jul  8 20:55:45 2005
+# Last Change: Fri Jul  8 22:46:08 2005
+#++
+# See the PL class for a detailed description on its usage.
 
 require 'rfi'
-
 FARRAY = ['MRR','MIR','BRR','BIR','LRR','LIR','MRC','MIC','BRC','BIC',
   'LRC','LIC','MRE','MIE','BRE','BIE','LRE','LIE'] 
 
-# Represents a property list. You can get a nicely formatted property
-# list with the to_s method. 
-#
-# There are entries that may appear only once in a pl file, such as
-# _vtitle_ or _fontdimen_ and there are others that can appear
-# anywhere, such as _comment_. The << method adds an entry that may
-# appear in any place, while methods such as fontdimen= replace old
-# entries if necessary (not implemented yet). Class methods create a
-# Node that may be used by the << method. Example:
-#
-#  pl = Plist.new
-#  pl << PL.comment("this is a comment")
-#
-# adds a comment at the top of the plist.
 
 class PL
   include Enumerable
@@ -169,6 +156,10 @@ class PL
   end # class node
 
 
+  # The scale factor for most of the numbers in the property list.
+  # One em is divided into _designunits_ units.
+  attr_accessor :designunits
+  
   # The top plist of the property list. 
   attr_accessor :plist
 
@@ -335,17 +326,17 @@ class PL
   end
 
   
-  def fontat (num)
-    PL::Node.new(:fontat,PL::Num.new(num))
+  def designunits # :nodoc:
+    if n=find_node(:designunits)
+      n.contents[0].value
+    else
+      nil
+    end
   end
-
-  
-  def designunits=(du)
-    @pl_designunits=du
-    @pl_factor=(du/1000.0)
+  def designunits=(du) #:nodoc:
     # is the following correct?
     if du != 1
-      @plist.push Node.new(:designunits,PL::Num.new(@pl_designunits,"R"))
+      @plist.push Node.new(:designunits,PL::Num.new(du,"R"))
     end
   end
   
@@ -559,60 +550,6 @@ class PL
     n.contents[0].value
   end
 
-
-
-  # obsolete section
-
-  # Create a slot that describes the metrics (and additional
-  # information) of a glyph. _glyphname_ should be clear, _slot_ is
-  # the position it maps to, _glyph_index_ is to check if a mapping is
-  # needed, _allglyphs_ is a Glyphlist. _variants_ is an array with
-  # all variants used, for example [0,1,3].
-  def add_charentry (glyphname,slot,glyph_index,allglyphs) #  :nodoc:
-    thisglyph=allglyphs[glyphname]
-    mapnum=if thisglyph.mapto != nil
-             glyph_index[thisglyph.mapto][0]
-           else
-             glyph_index[glyphname][0]
-           end
-    
-    subplist=Plist.new
-    raise "@fontmapping is not defined" unless @fontmapping
-    fontnumber = @is_vpl ? @fontmapping.index(thisglyph.fontnumber) : 0
-
-    # do I need a (MAP (...))?
-    map_needed=((fontnumber != 0) or
-                      (not glyph_index[glyphname].member?(slot))==true)
-
-    subplist.push Node.new(:comment,glyphname)
-
-    # charwd
-    n=_round(thisglyph.charwd * @pl_factor)
-    subplist.push Node.new(:charwd,Num.new(n,"R")) if n != 0
-
-    # charht
-    n=_round(thisglyph.charht * @pl_factor)
-    subplist.push Node.new(:charht,Num.new(n,"R")) if n != 0
-  
-    # chardp
-    n = _round(thisglyph.chardp * @pl_factor )
-    subplist.push Node.new(:chardp,Num.new(n,"R")) if n != 0
-  
-    # charic
-    n= _round(thisglyph.charic * @pl_factor)
-    subplist.push Node.new(:charic,Num.new(n,"R")) if n != 0
-
-    # p @variants[fontnumber].index(fontnumber)
-    if map_needed
-      mapplist=Plist.new
-      if fontnumber != 0
-        mapplist.push Node.new(:selectfont,Num.new(fontnumber))
-      end
-      mapplist.push Node.new(:setchar,Num.new(mapnum,"D"))
-      subplist.push Node.new(:map,mapplist)
-    end
-    @plist.push(Node.new(:character,Num.new(slot,"D"),subplist))
-  end
 
   # Set the ligtable to _plist_. 
   def set_ligtable(plist)  # :nodoc:
@@ -655,6 +592,7 @@ class PL
 
   private
 
+ 
   # Find the first occurance of node of type _nodetype_ in main plist.
   # Returns a node.
   def find_node(nodetype)
@@ -683,64 +621,3 @@ class PL
   end
 
 end
-
-__END__
-  # obsolete, use fontdimen=(fd)
-  def set_fontdimen(fm) # :nodoc:
-    # incorrect. use global data in Font
-    subplist=Plist.new
-    # slant
-    n = fm.slantfactor - fm.efactor * Math::tan(fm.italicangle * Math::PI / 180.0)
-    subplist.push Node.new(:slant,Num.new(n)) if n != 0
-
-    # space
-    space = _round(fm.chars['space'].wx * @pl_factor)
-    subplist.push Node.new(:space,Num.new(space))
-
-    # stretch
-    s = @is_vpl ?  fm.transform(200,0) : 300
-    n=_round(fm.isfixedpitch ? 0 : s * @pl_factor )
-    subplist.push Node.new(:stretch,Num.new(n))
-
-    # shrink
-    s = @is_vpl ? 100 : fm.transform(100,0)
-    n=_round(fm.isfixedpitch ? 0 : fm.transform(100,0) * @pl_factor )
-    subplist.push Node.new(:shrink,Num.new(n))
-
-    # xheight
-    n=_round(fm.xheight * @pl_factor)
-    subplist.push Node.new(:xheight,Num.new(n))
-
-    # quad
-    n=_round(fm.transform(1000,0) * @pl_factor)
-    subplist.push Node.new(:quad,Num.new(n))
-
-    # extraspace
-    if @is_vpl
-      n=_round(fm.isfixedpitch ? space : @pl_factor * fm.transform(111,0))
-      subplist.push Node.new(:extraspace,Num.new(n))
-    end
-    @plist.push(Node.new(:fontdimen,subplist))
-  end #set_fontdimen
-  # obsolete
-  # Variants is an array like [FontMetric0,nil,FontMetric2]
-  def set_mapfont(variants)  # :nodoc: 
-    @variants=variants
-    # fontmapping would look like this in the example above: [0,2]. So
-    # you can say @variants[2] to get the font that maps to fontnumber
-    # 1. Stupid, isn't it?
-    @fontmapping=[]
-    @variants.each_with_index { |variant,index|
-      next if variant == nil
-      @fontmapping.push index
-      
-      subplist=Plist.new
-      subplist.push(Node.new(:fontname,variant.mapto))
-      if variant.fontat != 1
-        fa = _round(variant.fontat * @pl_factor * 1000)
-        subplist.push(Node.new(:fontat,Num.new(fa)))
-      end
-      @plist.push(Node.new(:mapfont,Num.new(index),subplist))
-    }
-  end
-

@@ -1,4 +1,37 @@
-# Last Change: Fri Jul  8 00:09:22 2005
+#--
+# Last Change: Fri Jul  8 22:45:29 2005
+#++
+# == Accessing PL (property lists)
+# The PL class and its subclasses are helpful if you want to read or
+# write pl and vpl files. The pl files are the _source_ of the tfm
+# files, that are used by TeX to get the metric information about a
+# font. 
+# == Example usage
+# === Parsing an existing pl file
+# You have to include +plparser+ and after creation of an instance of
+# the PL class, you call the method #parse.
+# Now you can access the nodes in the plist just as normal attributes.
+# Some nodes might return a more complex data structure, such as
+# +fontmetric+
+# === Creating a property list
+# After instantiating the PL class, you can fill the empty @plist with
+# the class methods such as PL.comment and object methods such as
+# #ligtable. After you are done, either write out the pl file with
+# #write_tfm or #write_vf, or get a +pltotf+ and +vpltovf+ compatible
+# string representation with #to_s.
+# 
+# There are entries that may appear only once in a pl file, such as
+# _vtitle_ or _fontdimen_ and there are others that can appear
+# anywhere, such as _comment_. The << method adds an entry that may
+# appear in any place, while methods such as fontdimen= replace old
+# entries if necessary (not implemented yet). Class methods create a
+# Node that may be used by the << method. Example:
+#
+#  pl = Plist.new
+#  pl << PL.comment("this is a comment")
+#
+# adds a comment at the top of the plist.
+#
 
 class PL
   @@syntax = { 
@@ -55,7 +88,9 @@ class PL
     :push       => [],
     :pop        => [],
   }
-  
+
+  # Read _plstring_ that contains a property list as output by
+  # +tftopl+ or +vftovp+. The result is stored in @plist. Returns self.
   def parse (plstring)
     @source = plstring
     @len    = @source.length
@@ -63,6 +98,8 @@ class PL
     self
   end
 
+  private
+  
   def get_num (pos)
     lookingat =  @source[pos,pos+100] 
     m = lookingat.match(/\A\s*(?:(C)\s+(\S)|(D)\s+([+-]?\d+)|(F)\s+([A-Z]+)|(O)\s+(\d+)|(H)\s+([:xdigit:]+)|(R)\s+([+-]?[0-9.]+))/)
