@@ -49,8 +49,18 @@ class TestFont < Test::Unit::TestCase
     font.mapenc="8r"
     font.texenc="ec"
     v = font.vpl(font.mapenc,font.texenc[0])
-    assert_equal({0=>{:fontname=>"8r-savorg__-orig"},
-                  1=>{:fontname=>"8r-savoscrg-orig"}},v.mapfont)
+    a=[{:fontname=>"8r-savorg__-orig"}, {:fontname=>"8r-savoscrg-orig"}]
+    assert_equal(a,v.mapfont)
+    v.mapfont=v.mapfont
+    #roundtrip
+    assert_equal(a,v.mapfont)
+    v.mapfont=[{:fontname=>"foo", :fontat=>12}]
+    b="(MAPFONT D 0
+   (FONTNAME foo)
+   (FONTAT D 12)
+   )
+"
+    assert_equal(b,v.mapfont(true).to_s)
   end
 
   def test_vpl
@@ -101,13 +111,23 @@ class TestFont < Test::Unit::TestCase
     
     assert_equal({:fontname=>"minienc-savorg__-orig"},
                  pl.mapfont[0])
-    assert_equal({ 11=>[[[17, 24],
-                         [18, 24],
-                         [12, 15],
-                         [10, -8]], []],
-                   17=>[[[11, 21]], []],
-                   18=>[[[11, 21]], []]},pl.ligtable)
-    
+    a={
+      11=>[[[17, 24],
+          [18, 24],
+          [12, 15],
+          [10, -8]], []],
+      17=>[[[11, 21]], []],
+      18=>[[[11, 21]], []]}
+    b=pl.ligtable    
+    a.each { |num,kernlig|
+      kern,lig=kernlig
+      kern.each { |k|
+        assert(b[num][0].member?(k))
+      }
+      lig.each { |l|
+        assert(b[num][1].member?(l))
+      }
+    }
     ce=[
       # c
       {:slot=>10,
@@ -195,66 +215,69 @@ class TestFont < Test::Unit::TestCase
     npl.parse(str)
     ce=[
       # A
-      {:charic=>0.012,
+      {:charic=>12,
         :slot=>1,
-        :chardp=>0.002,
-        :charwd=>0.632,
-        :charht=>0.702
+        :chardp=>2,
+        :charwd=>632,
+        :charht=>702
       },
       # b
       {:slot=>2,
-        :chardp=>0.013,
-        :charwd=>0.517,
-        :charht=>0.73
+        :chardp=>13,
+        :charwd=>517,
+        :charht=>730
       },
       # germandbls
       {:slot=>3,
-        :chardp=>0.012,
-        :charwd=>0.52,
-        :charht=>0.733
+        :chardp=>12,
+        :charwd=>520,
+        :charht=>733
       },
       # ae
       {:slot=>4,
-        :chardp=>0.013,
-        :charwd=>0.674,
-        :charht=>0.427
+        :chardp=>13,
+        :charwd=>674,
+        :charht=>427
       },
       # AE
       {
         :slot=>5,
-        :chardp=>0.002,
-        :charwd=>0.889,
-        :charht=>0.669
+        :chardp=>2,
+        :charwd=>889,
+        :charht=>669
       },
       # dotlessi
       {
         :slot=>6,
-        :chardp=>0.002,
-        :charwd=>0.246,
-        :charht=>0.436},
+        :chardp=>2,
+        :charwd=>246,
+        :charht=>436},
       # hyphen  (ht looks strange!)
       # afm2tfm (and then tftopl) leads to  be something like
       # wd: 0.207, ht: .702
       {:slot=>7,
-        :charwd=>0.207,
-        :charht=>0.24},
+        :charwd=>207,
+        :charht=>240},
       # hyphen
       {:slot=>8,
-        :charwd=>0.207,
-        :charht=>0.24},
+        :charwd=>207,
+        :charht=>240},
       # copyright
       {:slot=>9,
-        :chardp=>0.013,
-        :charwd=>0.804,
-        :charht=>0.68},
+        :chardp=>13,
+        :charwd=>804,
+        :charht=>680},
       # c
       {:slot=>10,
-        :chardp=>0.014,
-        :charwd=>0.433,
-        :charht=>0.426}]
+        :chardp=>14,
+        :charwd=>433,
+        :charht=>426}]
+    count=0
     npl.get_charentries.each_with_index { |charentry,i|
+      count += 1
       assert_equal(ce[i],charentry)
     }
+    assert_equal(ce.size,count)
     assert_equal(["minienc-savorg__-orig Savoy-Regular <minienc.enc <savorg__.pfb\n"], font.maplines)
     font.texenc=[@ecenc,@texnansienc]
     font.mapenc=nil
