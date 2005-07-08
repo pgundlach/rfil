@@ -131,4 +131,29 @@ class TestPL < Test::Unit::TestCase
     pl.ligtable=a
     assert_equal(a,pl.ligtable)
   end
+  def test_fontdimen
+    require 'font'
+    font=Font.new
+    font.load_variant("savorg__.afm")
+    font.mapenc="8r"
+    font.texenc="ec"
+    pl=PL.new(true)
+    v = font.vpl(font.mapenc,font.texenc[0])
+    assert_equal(10.0,v.designsize)
+    assert_equal({:space=>300, :stretch=>200, :shrink=>100, :xheight=>415,
+                   :quad=>1000, :extraspace=>111 },v.fontdimen)
+    v.fontdimen={:space=>100, :stretch=>200, :shrink=>300, :xheight=>400,
+                   :quad=>500, :extraspace=>600 }
+    b="(FONTDIMEN
+   (SPACE D 100)
+   (STRETCH D 200)
+   (SHRINK D 300)
+   (XHEIGHT D 400)
+   (QUAD D 500)
+   (EXTRASPACE D 600)
+   )
+"
+    assert_equal(b,v.fontdimen(true).to_s)
+  end
+
 end
