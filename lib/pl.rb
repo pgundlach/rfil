@@ -1,6 +1,6 @@
 # pl.rb - TeX Property List accessor class
 #
-# Last Change: Thu Jul  7 21:57:08 2005
+# Last Change: Fri Jul  8 20:55:45 2005
 
 require 'rfi'
 
@@ -184,6 +184,16 @@ class PL
   # the designsize
   attr_accessor :designsize
 
+  # Array of the mapfont section in the vpl. Each element is a hash
+  # where key is :fontname and alike and each value is, guess what,
+  # the value of that node.
+  attr_accessor :mapfont
+
+  # The fondimen section. This is a hash where the keys are one of
+  # :slant,:space,:stretch,:shrink,:xheight,:quad,:extraspace. The
+  # values are numbers.
+  attr_accessor :fontdimen
+  
   # A hash where each key is the index of the glyph (encoding
   # specific!) and the value is an array of two arrays: a kern and a
   # lig array. The kern array looks like: [[17, 24],[18, 24],[12,
@@ -243,7 +253,10 @@ class PL
   # [:krn] an array of arrays like [destchar, amount].
   def []= (charnumber,value)
     lt=ligtable
-    lt[charnumber]=[value[:krn],value[:lig]]
+    # p value[:krn]
+    ligkrn=[value[:krn],value[:lig]]
+#    p ligkrn
+    lt[charnumber]=ligkrn
     # why do I need self here?
     self.ligtable=(lt)
     # build node
@@ -258,10 +271,23 @@ class PL
     n.value=Num.new(charnumber,"CO")
     subplist=Plist.new
     [:charwd, :charht, :chardp, :charic].each { |sym|
-      if value[sym]
+      if value[sym] and (value[sym] != 0)
         subplist << Node.new(sym, Num.new(value[sym]))
       end
     }
+    if value[:map]
+      mapplist=Plist.new
+      value[:map].each { |instruction|
+        sym=instruction[0]
+        case sym
+        when :setchar, :selectfont
+          mapplist.push Node.new(sym,Num.new(instruction[1]))
+        else
+          raise "unknown instruction"
+        end
+      }
+      subplist.push Node.new(:map,mapplist)
+    end
     n.push subplist
     value
   end
@@ -282,6 +308,10 @@ class PL
         ret[:comment]=comment
       when :charwd,:charht,:charic,:chardp
         ret[node.type]=node.contents[0].value
+      when :map
+        p "----!"
+        node.contents[0].each { |node|
+        }        
       end
     }
     lt=ligtable[charnumber]
@@ -319,165 +349,40 @@ class PL
     end
   end
   
-  def fontdimen
+  def fontdimen(raw=false) # :nodoc:
     n = @plist.find { |node|
       node.type==:fontdimen
     }
+    return n if raw
     ret={}
     n.contents[0].each { |fd|
       ret[fd.type]=fd.contents[0].value
     }
     ret
   end
-  def fontdimen=(fm)
-    # incorrect. use global data in Font
+  def fontdimen=(fd)  # :nodoc:
     subplist=Plist.new
-    # slant
-    n = fm.slantfactor - fm.efactor * Math::tan(fm.italicangle * Math::PI / 180.0)
-    subplist.push Node.new(:slant,Num.new(n)) if n != 0
-
-    # space
-    space = _round(fm.chars['space'].wx * @pl_factor)
-    subplist.push Node.new(:space,Num.new(space))
-
-    # stretch
-    s = @is_vpl ?  fm.transform(200,0) : 300
-    n=_round(fm.isfixedpitch ? 0 : s * @pl_factor )
-    subplist.push Node.new(:stretch,Num.new(n))
-
-    # shrink
-    s = @is_vpl ? 100 : fm.transform(100,0)
-    n=_round(fm.isfixedpitch ? 0 : fm.transform(100,0) * @pl_factor )
-    subplist.push Node.new(:shrink,Num.new(n))
-
-    # xheight
-    n=_round(fm.xheight * @pl_factor)
-    subplist.push Node.new(:xheight,Num.new(n))
-
-    # quad
-    n=_round(fm.transform(1000,0) * @pl_factor)
-    subplist.push Node.new(:quad,Num.new(n))
-
-    # extraspace
-    if @is_vpl
-      n=_round(fm.isfixedpitch ? space : @pl_factor * fm.transform(111,0))
-      subplist.push Node.new(:extraspace,Num.new(n))
-    end
-    @plist.push(Node.new(:fontdimen,subplist))
-  end
-
-  # Create a slot that describes the metrics (and additional
-  # information) of a glyph. _glyphname_ should be clear, _slot_ is
-  # the position it maps to, _glyph_index_ is to check if a mapping is
-  # needed, _allglyphs_ is a Glyphlist. _variants_ is an array with
-  # all variants used, for example [0,1,3].
-  def add_charentry (glyphname,slot,glyph_index,allglyphs)
-    thisglyph=allglyphs[glyphname]
-    mapnum=if thisglyph.mapto != nil
-             glyph_index[thisglyph.mapto][0]
-           else
-             glyph_index[glyphname][0]
-           end
-    
-    subplist=Plist.new
-    fontnumber = @is_vpl ? @fontmapping.index(thisglyph.fontnumber) : 0
-
-    # do I need a (MAP (...))?
-    map_needed=((fontnumber != 0) or
-                      (not glyph_index[glyphname].member?(slot))==true)
-
-    subplist.push Node.new(:comment,glyphname)
-
-    # charwd
-    n=_round(thisglyph.charwd * @pl_factor)
-    subplist.push Node.new(:charwd,Num.new(n,"R")) if n != 0
-
-    # charht
-    n=_round(thisglyph.charht * @pl_factor)
-    subplist.push Node.new(:charht,Num.new(n,"R")) if n != 0
-  
-    # chardp
-    n = _round(thisglyph.chardp * @pl_factor )
-    subplist.push Node.new(:chardp,Num.new(n,"R")) if n != 0
-  
-    # charic
-    n= _round(thisglyph.charic * @pl_factor)
-    subplist.push Node.new(:charic,Num.new(n,"R")) if n != 0
-
-    # p @variants[fontnumber].index(fontnumber)
-    if map_needed
-      mapplist=Plist.new
-      if fontnumber != 0
-        mapplist.push Node.new(:selectfont,Num.new(fontnumber))
+    [:slant,:space,:stretch,:shrink,:xheight,:quad,:extraspace].each {|sym|
+      if fd[sym] and fd[sym] != 0
+        subplist.push Node.new(sym,Num.new(fd[sym]))
       end
-      mapplist.push Node.new(:setchar,Num.new(mapnum,"D"))
-      subplist.push Node.new(:map,mapplist)
-    end
-    @plist.push(Node.new(:character,Num.new(slot,"D"),subplist))
+    }
+    insert_or_change(:fontdimen,subplist)
   end
-  
-  def get_charentries
+
+  # Return the mapfont section of the vpl. Array of mapfonts. If _raw_
+  # is true, return the internal structure of the mapfont entries
+  def mapfont(raw=false) # :nodoc:
     ret=[]
-    n = @plist.find_all { |node|
-      node.type==:character
-    }
-    n.each { |node|
-      h={}
-      ret.push h
-      h[:slot]=node.contents[0].value
-      node.contents[1].each { |entry|
-        # entry is Node of type charwd, ...
-        case entry.type
-        when :charwd, :charht, :chardp, :charic
-          h[entry.type]=entry.contents[0].value
-        when :map
-          map=[]
-          h[:map]=map
-          subplist=entry.contents[0]
-          subplist.each { |subnode|
-            case subnode.type
-            when :setchar
-              map.push [:setchar,subnode.contents[0].value]
-            end
-          }
-        else
-          # unknown
-        end
-      }
-    }
-    ret
-  end
-
-  # Variants is an array like [FontMetric0,nil,FontMetric2]
-  def mapfont=(variants)
-    @variants=variants
-    # fontmapping would look like this in the example above: [0,2]. So
-    # you can say @variants[2] to get the font that maps to fontnumber
-    # 1. Stupid, isn't it?
-    @fontmapping=[]
-    @variants.each_with_index { |variant,index|
-      next if variant == nil
-      @fontmapping.push index
-      
-      subplist=Plist.new
-      subplist.push(Node.new(:fontname,variant.mapto))
-      if variant.fontat != 1
-        fa = _round(variant.fontat * @pl_factor * 1000)
-        subplist.push(Node.new(:fontat,Num.new(fa)))
-      end
-      @plist.push(Node.new(:mapfont,Num.new(index),subplist))
-    }
-  end
-
-  # Return the mapfont section of the vpl. 
-  def mapfont
-    ret={}
     n = @plist.find_all { |node|
       node.type==:mapfont
     }
+    if raw
+      return n
+    end
     n.each { |mapfontnode|
       mapfonth={}
-      # fontnumber
+      # fontnumber:
       c=mapfontnode.contents
       ret[c[0].value]=mapfonth 
       subnodes=c[1]
@@ -491,11 +396,38 @@ class PL
     }
     ret
   end
-
-  # Set the ligtable to _plist_. 
-  def set_ligtable(plist)
-    # @plist.push(Node.new(:ligtable,plist))
-    insert_or_change(:ligtable,plist)
+  # Input is an array of mapfont entries. For each element of the
+  # array there will be a mapfont section in the vpl file. 
+  def mapfont=(entries)  # :nodoc:
+    nodes = @plist.find_all { |node|
+      node.type == :mapfont
+    }
+    # remove all mapfont entries
+    if nodes
+      nodes.each { |node|
+        @plist.delete(node)
+      }
+    end
+    entries.each_with_index { |entry,i|
+      subplist=Plist.new
+      [:fontname].each {|sym|
+        if entry[sym]
+          subplist.push(Node.new(sym,entry[sym]))
+        end
+      }
+      [:fontat].each { |sym|
+        if entry[sym] and entry[sym] != 1000
+          subplist.push(Node.new(sym,Num.new(entry[sym])))
+        end
+      }
+      
+      [:fontdsize, :fontchecksum].each { |sym|
+        if entry[sym] and entry[sym] != 0
+          subplist.push(Node.new(sym,Num.new(entry[sym])))
+        end
+      }
+      @plist.push(Node.new(:mapfont,Num.new(i),subplist))
+    }
   end
 
   def ligtable  # :nodoc:
@@ -550,14 +482,19 @@ class PL
         # puts "kernnode: #{other}, #{amount}"
        # ligplist << PL.lignode(other,result)
      # }
-      lig.each { |lig|
-        ligplist << PL.lignode(lig.right,lig.result)
-      }
-      krn.sort {|a,b| a[0] <=> b[0] }.each { |other,amount|
-        # puts "kernnode: #{other}, #{amount}"
-        ligplist << PL.kernnode(other,amount)
-      }
-      ligplist << PL.stop
+      if lig
+        lig.each { |lig|
+          ligplist << PL.lignode(lig.right,lig.result)
+        }
+      end
+      if krn
+        krn.sort {|a,b| a[0] <=> b[0] }.each { |other,amount|
+          # puts "kernnode: #{other}, #{amount}"
+          ligplist << PL.kernnode(other,amount)
+        }
+        ligplist << PL.stop
+      end
+      
     }
     # puts ligplist.to_s
     set_ligtable(ligplist)
@@ -622,6 +559,100 @@ class PL
     n.contents[0].value
   end
 
+
+
+  # obsolete section
+
+  # Create a slot that describes the metrics (and additional
+  # information) of a glyph. _glyphname_ should be clear, _slot_ is
+  # the position it maps to, _glyph_index_ is to check if a mapping is
+  # needed, _allglyphs_ is a Glyphlist. _variants_ is an array with
+  # all variants used, for example [0,1,3].
+  def add_charentry (glyphname,slot,glyph_index,allglyphs) #  :nodoc:
+    thisglyph=allglyphs[glyphname]
+    mapnum=if thisglyph.mapto != nil
+             glyph_index[thisglyph.mapto][0]
+           else
+             glyph_index[glyphname][0]
+           end
+    
+    subplist=Plist.new
+    raise "@fontmapping is not defined" unless @fontmapping
+    fontnumber = @is_vpl ? @fontmapping.index(thisglyph.fontnumber) : 0
+
+    # do I need a (MAP (...))?
+    map_needed=((fontnumber != 0) or
+                      (not glyph_index[glyphname].member?(slot))==true)
+
+    subplist.push Node.new(:comment,glyphname)
+
+    # charwd
+    n=_round(thisglyph.charwd * @pl_factor)
+    subplist.push Node.new(:charwd,Num.new(n,"R")) if n != 0
+
+    # charht
+    n=_round(thisglyph.charht * @pl_factor)
+    subplist.push Node.new(:charht,Num.new(n,"R")) if n != 0
+  
+    # chardp
+    n = _round(thisglyph.chardp * @pl_factor )
+    subplist.push Node.new(:chardp,Num.new(n,"R")) if n != 0
+  
+    # charic
+    n= _round(thisglyph.charic * @pl_factor)
+    subplist.push Node.new(:charic,Num.new(n,"R")) if n != 0
+
+    # p @variants[fontnumber].index(fontnumber)
+    if map_needed
+      mapplist=Plist.new
+      if fontnumber != 0
+        mapplist.push Node.new(:selectfont,Num.new(fontnumber))
+      end
+      mapplist.push Node.new(:setchar,Num.new(mapnum,"D"))
+      subplist.push Node.new(:map,mapplist)
+    end
+    @plist.push(Node.new(:character,Num.new(slot,"D"),subplist))
+  end
+
+  # Set the ligtable to _plist_. 
+  def set_ligtable(plist)  # :nodoc:
+    insert_or_change(:ligtable,plist)
+  end
+  # obsolete, at least for now :)
+  def get_charentries # :nodoc:
+    ret=[]
+    n = @plist.find_all { |node|
+      node.type==:character
+    }
+    n.each { |node|
+      h={}
+      ret.push h
+      h[:slot]=node.contents[0].value
+      node.contents[1].each { |entry|
+        # entry is Node of type charwd, ...
+        case entry.type
+        when :charwd, :charht, :chardp, :charic
+          h[entry.type]=entry.contents[0].value
+        when :map
+          map=[]
+          h[:map]=map
+          subplist=entry.contents[0]
+          subplist.each { |subnode|
+            case subnode.type
+            when :setchar
+              map.push [:setchar,subnode.contents[0].value]
+            end
+          }
+        else
+          # unknown
+        end
+      }
+    }
+    ret
+  end
+ 
+
+
   private
 
   # Find the first occurance of node of type _nodetype_ in main plist.
@@ -652,3 +683,64 @@ class PL
   end
 
 end
+
+__END__
+  # obsolete, use fontdimen=(fd)
+  def set_fontdimen(fm) # :nodoc:
+    # incorrect. use global data in Font
+    subplist=Plist.new
+    # slant
+    n = fm.slantfactor - fm.efactor * Math::tan(fm.italicangle * Math::PI / 180.0)
+    subplist.push Node.new(:slant,Num.new(n)) if n != 0
+
+    # space
+    space = _round(fm.chars['space'].wx * @pl_factor)
+    subplist.push Node.new(:space,Num.new(space))
+
+    # stretch
+    s = @is_vpl ?  fm.transform(200,0) : 300
+    n=_round(fm.isfixedpitch ? 0 : s * @pl_factor )
+    subplist.push Node.new(:stretch,Num.new(n))
+
+    # shrink
+    s = @is_vpl ? 100 : fm.transform(100,0)
+    n=_round(fm.isfixedpitch ? 0 : fm.transform(100,0) * @pl_factor )
+    subplist.push Node.new(:shrink,Num.new(n))
+
+    # xheight
+    n=_round(fm.xheight * @pl_factor)
+    subplist.push Node.new(:xheight,Num.new(n))
+
+    # quad
+    n=_round(fm.transform(1000,0) * @pl_factor)
+    subplist.push Node.new(:quad,Num.new(n))
+
+    # extraspace
+    if @is_vpl
+      n=_round(fm.isfixedpitch ? space : @pl_factor * fm.transform(111,0))
+      subplist.push Node.new(:extraspace,Num.new(n))
+    end
+    @plist.push(Node.new(:fontdimen,subplist))
+  end #set_fontdimen
+  # obsolete
+  # Variants is an array like [FontMetric0,nil,FontMetric2]
+  def set_mapfont(variants)  # :nodoc: 
+    @variants=variants
+    # fontmapping would look like this in the example above: [0,2]. So
+    # you can say @variants[2] to get the font that maps to fontnumber
+    # 1. Stupid, isn't it?
+    @fontmapping=[]
+    @variants.each_with_index { |variant,index|
+      next if variant == nil
+      @fontmapping.push index
+      
+      subplist=Plist.new
+      subplist.push(Node.new(:fontname,variant.mapto))
+      if variant.fontat != 1
+        fa = _round(variant.fontat * @pl_factor * 1000)
+        subplist.push(Node.new(:fontat,Num.new(fa)))
+      end
+      @plist.push(Node.new(:mapfont,Num.new(index),subplist))
+    }
+  end
+
