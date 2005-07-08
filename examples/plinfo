@@ -1,18 +1,39 @@
 #!/usr/bin/env ruby
 
 require 'optparse'
-
+require 'ostruct'
 # $: is the ruby input path - add the lib/ subdir
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
 require 'pl'
 require 'plparser'
+require 'kpathsea'
+require 'enc'
+
+kpse=Kpathsea.new
+
+@options=OpenStruct.new
+
+ARGV.options { |opt|
+  opt.banner = "Usage: #{File.basename($0)} [@options] tfmfile.pl [file...]"
+  opt.on("--encoding enc", "-e", "set the encoding for the file") { |e|
+    kpse.open_file(e,"enc") { |f|
+      @options.encoding = ENC.new(f)
+    }
+  }
+  opt.on("--list-chars", "-l", "list all available characters") {
+    @options.listchars=true }
+  opt.on("--help", "-h", "Show this help") { puts opt; exit 0 }
+  opt.separator  ""
+  opt.parse!
+}
 
 if ARGV.size < 1
   puts "#{File.basename($0)}: Need at least one file argument."
   puts "Try `#{File.basename($0)} --help' for more information."
   exit 0
 end
+
 
 def dump_maininfo(filename)
   puts "General font information:"
@@ -33,13 +54,15 @@ def dump_charsinfo
   count=0
   0.upto(255)  { |i|
     if count % 20 == 0
-      puts "slot   | width |height | depth | ic    | kern? | lig?  | extra "
-      puts "-------|-------|-------|-------|-------|-------|-------|-------"
+      puts "\n   slot|  width| height|  depth|     ic|  kern?|   lig?|  extra| char"
+      puts "-------|-------|-------|-------|-------|-------|-------|-------|-----"
     end
     if c=@pl[i]
       has_krn= c[:krn] ? "yes" : "no"
       has_lig= c[:lig] ? "yes" : "no"
-      puts sprintf(stdformat*7, "#{i}","#{c[:charwd]}","#{c[:charht]}","#{c[:chardp]}","#{c[:charic]}", has_krn,has_lig)
+      extra = ""
+      char = @options.encoding ? @options.encoding[i] : ""
+      puts sprintf(stdformat*8+" %s", "#{i}","#{c[:charwd]}","#{c[:charht]}","#{c[:chardp]}","#{c[:charic]}", has_krn,has_lig,"",char)
       count += 1
     end
   }
@@ -51,5 +74,7 @@ ARGV.each { |plfilename|
   f.close
   @isvpl= plfilename =~ /\.vpl$/
   dump_maininfo(plfilename)
-  dump_charsinfo
+  if @options.listchars
+    dump_charsinfo
+  end
 }
