@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Thu Jul  7 16:36:34 2005
+# Last Change: Fri Jul  8 20:52:09 2005
 #++
 require 'set'
 
@@ -124,12 +124,26 @@ class Font
     pl.family=@defaultfm.familyname
     pl.codingscheme=enc.encname
     pl.designsize=10.0
-    pl.designunits=1
-    pl.fontdimen=@defaultfm
+    pl.designunits=1000
+    fd={}
+    fd[:slant]=@defaultfm.slantfactor - @defaultfm.efactor * Math::tan(@defaultfm.italicangle * Math::PI / 180.0)
+    fd[:space]=@defaultfm.space
+    fd[:stretch]=@defaultfm.isfixedpitch ? 0 : 300
+    fd[:shrink]=@defaultfm.isfixedpitch ? 0 : @defaultfm.transform(100,0)
+    fd[:xheight]=@defaultfm.xheight
+    fd[:quad]=@defaultfm.transform(1000,0)
+
+    pl.fontdimen=fd
     enc.each_with_index{ |char,i|
       next if char==".notdef"
-      next unless @defaultfm.chars[char]
-      pl.add_charentry(char,i,enc.glyph_index,@defaultfm.chars)
+      thisglyph=@defaultfm.chars[char]
+      next unless thisglyph
+      glyphhash={}
+      glyphhash[:comment]=char
+      [:charwd, :charht, :chardp, :charic].each { |sym|
+        glyphhash[sym]=thisglyph.send(sym)
+      }
+      pl[i]=glyphhash
     }
     pl
   end
@@ -155,69 +169,86 @@ class Font
     vpl.codingscheme=mapenc.encname + " + " + texenc.encname
     vpl.designsize=10.0
     vpl.designunits=1000
-    vpl.fontdimen=@defaultfm
-    vararray=[]
-    find_used_fonts.each {|varnumber|
-      @variants[varnumber].mapto=map_fontname(mapenc,varnumber)
-      # p @variants[varnumber].mapto
-      vararray[varnumber]=@variants[varnumber]
-    }
-    # vararray can look like this: [0,1,3]
-    # this would mean that the variants 0,1 and 3 are actually used.
+    fm=@defaultfm
+    fd={}
+    fd[:slant]=fm.slantfactor - fm.efactor * Math::tan(fm.italicangle * Math::PI / 180.0)
     
-    # p vararray
-    vpl.mapfont=vararray
-    ligplist=PL::Plist.new
-    charh=texenc.glyph_index.dup
-    texenc.each_with_index{ |char,i|
-      # we delete all glyphs that we look at from charh[]. We can
-      # encounter the same glyphs more then once. So if we have
-      # already come across this glyph, no need to put it twice into the
-      # ligature list.
-      next unless charh[char]
-      # igore glyphs not present in the font and those without kerndata
-      next unless @defaultfm.chars[char]
-      next unless @defaultfm.chars[char].has_ligkern?(texenc.glyph_index)
+    fd[:space]=fm.space
+    fd[:stretch]=fm.isfixedpitch ? 0 : fm.transform(200,0)
+    fd[:shrink]=fm.isfixedpitch ? 0 : fm.transform(100,0)
+    fd[:xheight]=fm.xheight
+    fd[:quad]=fm.transform(1000,0)
+    fd[:extraspace]=fm.isfixedpitch ? fm.space : fm.transform(111,0)
+    vpl.fontdimen=fd
 
-      # find *all* occurances of the chracter. ec.enc for example has
-      # hyphen in slots O55 (45dec) and O177 (127dec)
-      charh[char].each { |i|
-        ligplist << PL.label(i)
-      }
-
-      charh.delete(char)
-      ligplist << PL.comment(char)
-
-      # this needs testing!
-      @defaultfm.chars[char].ligs.each { |lig|
-        texenc.glyph_index[lig.right].each { |index|
-          ligplist << PL.lignode(index,texenc.glyph_index[lig.result][0])
-        }
-      }
-      
-      @defaultfm.chars[char].x_kerns.each { |key,value|
-        if texenc.glyph_index[key]
-          texenc.glyph_index[key].each { |slot|
-            ligplist << PL.kernnode(slot,value)
-          }
-        end
-      }
-      ligplist << PL.stop
+    map=[]
+    fontmapping=find_used_fonts()
+    fontmapping.each_with_index { |fontnumber,i|
+      maph={}
+      maph[:fontname]=map_fontname(mapenc,fontnumber)
+      if @variants[fontnumber].fontat != 1
+        maph[:fontat]=@variants[fontnumber].fontat * 1000
+      end
+      map.push(maph)
     }
-    vpl.set_ligtable(ligplist)
-
-    texenc.each_with_index { |char,i|
-      next if char==".notdef"
-
+    vpl.mapfont=map
+    
+    # now for the ligatures
+    # we should ignore duplicate ligature/kern entries in the future!
+    texenc.each_with_index  { |char,i|
+      next if char == ".notdef"
+      
       # ignore those not in dest 
       next unless mapenc.glyph_index[char]
 
       # next if this glyph is unknown
       next unless @defaultfm.chars[char]
-      vpl.add_charentry(char,i,mapenc.glyph_index,@defaultfm.chars)
-    }
 
-    vpl
+      thischar=@defaultfm.chars[char]
+      charentry={}
+
+      # lig
+      
+      thischar.lig_data.each_value { |lig|
+        if (texenc.glyph_index.has_key? lig.right) and
+            (texenc.glyph_index.has_key? lig.result)
+          if charentry[:lig]
+            charentry[:lig].push lig
+          else
+            charentry[:lig]=[lig]
+          end
+        end
+      }
+
+      # kern
+      thischar.kern_data.each { |dest,kern|
+        if (texenc.glyph_index.has_key? dest)
+          texenc.glyph_index[dest].each { |slot|
+            
+            tmp=[slot,kern[0]]
+            if charentry[:krn]
+              charentry[:krn].push(tmp)
+            else
+              charentry[:krn]=[tmp]
+            end
+          }
+        end
+      }
+      
+      # charinfo
+      [:charwd, :charht, :chardp, :charic].each { |sym|
+        charentry[sym]=thischar.send(sym)
+      }
+
+      # map
+      if thischar.fontnumber != 0 or
+          (mapenc.glyph_index[char].member?(i)==false)
+        charentry[:map]=[[:setchar,mapenc.glyph_index[char][0]]]
+      end
+      vpl[i]=charentry
+    }
+    
+    return vpl
   end
 
   # Return a string or an array of strings that should be put in a mapfile.
@@ -475,3 +506,57 @@ __END__
     @upper_lower[glyph]
   end
 
+ def vpl
+   ...
+         # --------------------------------------
+    ligplist=PL::Plist.new
+    charh=texenc.glyph_index.dup
+
+    texenc.each_with_index{ |char,i|
+      # we delete all glyphs that we look at from charh[]. We can
+      # encounter the same glyphs more then once. So if we have
+      # already come across this glyph, no need to put it twice into the
+      # ligature list.
+      next unless charh[char]
+      # igore glyphs not present in the font and those without kerndata
+      next unless @defaultfm.chars[char]
+      next unless @defaultfm.chars[char].has_ligkern?(texenc.glyph_index)
+
+      # find *all* occurances of the chracter. ec.enc for example has
+      # hyphen in slots O55 (45dec) and O177 (127dec)
+      charh[char].each { |i|
+        ligplist << PL.label(i)
+      }
+
+      charh.delete(char)
+      ligplist << PL.comment(char)
+
+      # this needs testing!
+      @defaultfm.chars[char].ligs.each { |lig|
+        texenc.glyph_index[lig.right].each { |index|
+          ligplist << PL.lignode(index,texenc.glyph_index[lig.result][0])
+        }
+      }
+      
+      @defaultfm.chars[char].x_kerns.each { |key,value|
+        if texenc.glyph_index[key]
+          texenc.glyph_index[key].each { |slot|
+            ligplist << PL.kernnode(slot,value)
+          }
+        end
+      }
+      ligplist << PL.stop
+    }
+    vpl.set_ligtable(ligplist)
+    texenc.each_with_index { |char,i|
+      next if char==".notdef"
+
+      # ignore those not in dest 
+      next unless mapenc.glyph_index[char]
+
+      # next if this glyph is unknown
+      next unless @defaultfm.chars[char]
+      vpl.add_charentry(char,i,mapenc.glyph_index,@defaultfm.chars)
+    }
+
+    vpl
