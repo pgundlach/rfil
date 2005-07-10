@@ -58,8 +58,12 @@ def dump_charsinfo
       puts "-------|-------|-------|-------|-------|-------|-------|-------|-----"
     end
     if c=@pl[i]
-      has_krn= c[:krn] ? "yes" : "no"
-      has_lig= c[:lig] ? "yes" : "no"
+      if c[:ligkern]
+        has_krn= c[:ligkern][:krn] ? "yes" : "no"
+        has_lig= c[:ligkern][:lig] ? "yes" : "no"
+      else
+        has_krn=has_lig="no"
+        end
       extra = ""
       char = @options.encoding ? @options.encoding[i] : ""
       puts sprintf(stdformat*8+" %s", "#{i}","#{c[:charwd]}","#{c[:charht]}","#{c[:chardp]}","#{c[:charic]}", has_krn,has_lig,"",char)

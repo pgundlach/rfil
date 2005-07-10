@@ -234,5 +234,46 @@ class TestPL < Test::Unit::TestCase
     assert_equal(127,lt[:lig][0].left)
     assert_equal(28,lt[:krn][0][0])
   end
+  def test_lig_kern_combinations
+    pl=PL.new
+    pl.parse("(LIGTABLE
+   (LABEL O 4)
+   (KRN O 34 R -33) (comment fi)
+   (KRN C Y R -85)
+   (KRN C y R -42.5)
+   (STOP)
+   (LABEL O 5)
+   (LIG D 4 D 99)
+   (KRN O 1 R 1) (comment fi)
+   (KRN C Y R -2)
+   (KRN C y R 3)
+   (STOP)
+   (LABEL O 6)
+   (LIG D 4 D 50)
+   (STOP)
+)
+(CHARACTER O 4
+   (CHARWD R 500)
+   (CHARHT R 654)
+   )
+(CHARACTER O 5
+   (CHARWD R 10)
+   (CHARHT R 20)
+   )
+(CHARACTER O 6
+   (CHARWD R 30)
+   (CHARHT R 40)
+   )
+")
+    assert_equal([[28, -33.0], [89, -85.0], [121, -42.5]],pl[4][:ligkern][:krn])
+    assert_equal(nil,pl[4][:ligkern][:lig])
+
+    assert_equal([RFI::LIG.new(5,4,99,:lig)],pl[5][:ligkern][:lig])
+    assert_equal([[1, 1.0], [89, -2.0], [121, 3.0]],pl[5][:ligkern][:krn])
+
+    assert_equal([RFI::LIG.new(6,4,50,:lig)],pl[6][:ligkern][:lig])
+    assert_equal(nil,pl[6][:ligkern][:krn])
+      
+  end
 
 end

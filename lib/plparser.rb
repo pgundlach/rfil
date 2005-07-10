@@ -1,5 +1,5 @@
 #--
-# Last Change: Sun Jul 10 07:34:07 2005
+# Last Change: Sun Jul 10 22:25:35 2005
 #++
 # == Accessing PL (property lists)
 # The PL class and its subclasses are helpful if you want to read or
@@ -20,18 +20,6 @@
 # #write_tfm or #write_vf, or get a +pltotf+ and +vpltovf+ compatible
 # string representation with #to_s.
 # 
-# There are entries that may appear only once in a pl file, such as
-# _vtitle_ or _fontdimen_ and there are others that can appear
-# anywhere, such as _comment_. The << method adds an entry that may
-# appear in any place, while methods such as fontdimen= replace old
-# entries if necessary (not implemented yet). Class methods create a
-# Node that may be used by the << method. Example:
-#
-#  pl = PL.new
-#  pl << PL.comment("this is a comment")
-#
-# adds a comment at the top of the plist.
-#
 
 class PL
   @@syntax = { 
@@ -194,4 +182,93 @@ class PL
     pos +=1 
     return node,pos
   end # get_node (pos)
+
+  def update_cache
+    # plist just filled with contents, by parse()
+    # we need to update the @ligs ligtable and the @chars char array
+    # puts @plist.to_s
+    n = @plist.find {|node|
+      node.type==:ligtable
+    }
+    if n
+      # analyze ligtable
+      lig=[]
+      krn=[]
+      comment=""
+      currentchar=[]
+      n.contents[0].each { |node|
+        case node.type
+        when :label
+          currentchar.push(node.contents[0].value)
+        when :krn
+          krn.push([node.contents[0].value,node.contents[1].value])
+        when :lig
+          # warning: for multiple :labels, we only store the first
+          # value in the LIG obj
+          lig.push(RFI::LIG.new(currentchar[0],
+                                node.contents[0].value,
+                                node.contents[1].value,
+                                node.type))
+        when :comment
+          comment << node.contents[0]
+        when :stop
+          pos=currentchar.shift
+          @ligs[pos]=LigKern.new
+          @ligs[pos][:comment]=comment
+          @ligs[pos][:krn]=krn if krn.size > 0
+          @ligs[pos][:lig]=lig if lig.size > 0
+
+          currentchar.each { |otherpos|
+            if @ligs[pos][:alias]
+              @ligs[pos][:alias].add(otherpos)
+            else
+              @ligs[pos][:alias] = Set.new().add(otherpos)
+            end
+            @ligs[otherpos]=pos
+          }
+          lig=[]
+          krn=[]
+          comment=""
+          currentchar=[]
+        else
+          raise "Unknown entry in LIGTABLE: #{node.type}" 
+        end
+      }
+
+    end
+
+    n = @plist.find_all { |node|
+      node.type==:character
+    }
+    
+    n.each { |charnode|
+      charnum=charnode.contents[0].value
+      ret={}
+      @chars[charnum]=ret
+      comment=""
+   
+      charnode.contents[1].each { |node|
+        case node.type
+        when :comment
+          comment << node.contents[0]
+          ret[:comment]=comment
+        when :charwd,:charht,:charic,:chardp
+          ret[node.type]=node.contents[0].value
+        when :map
+          map=[]
+          ret[:map]=map
+          node.contents[0].each { |node|
+            case node.type
+            when :selectfont, :setchar
+              map.push [node.type, node.contents[0].value]
+            else
+              raise "unknown instruction: #{node.type}"
+            end
+          }        
+        end
+      }
+    }
+    # Now @ligs and @chars represent the state in @plist.
+  end # update_cache
+
 end
