@@ -50,7 +50,15 @@ class TestRFI < Test::Unit::TestCase
     assert_equal(lig.left,"hyphen")
     assert_equal(lig.right,"endash")
     assert_equal(lig.result,"emdash")
-    assert_equal(lig.type,:"=:")    
+    assert_equal(lig.type,:"=:")
+    newlig=RFI::LIG.new(lig)
+    assert_equal(lig,newlig)
+    lig=RFI::LIG.new(:left=>"hyphen",:right=>"endash",:result=>"emdash",:type=>:"=:")
+    assert_equal(lig.left,"hyphen")
+    assert_equal(lig.right,"endash")
+    assert_equal(lig.result,"emdash")
+    assert_equal(lig.type,:"=:")
+
   end
   def test_glyphlist
     gl=RFI::Glyphlist.new

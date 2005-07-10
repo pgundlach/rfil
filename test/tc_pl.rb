@@ -30,6 +30,7 @@ class TestPL < Test::Unit::TestCase
     pl=PL.new(false)
     pl.parse(str)
     assert_equal("a vtitle",pl.vtitle)
+    assert_equal(1000,pl.designunits)
   end
   def test_writer
     pl=PL.new(false)
@@ -45,6 +46,52 @@ class TestPL < Test::Unit::TestCase
     npl.parse(pl.to_s)
     assert_equal("bar",npl.family)
   end
+  def test_cache
+    pl=PL.new
+    hyphen1={:ligkern=>PL::LigKern.new({:lig=>[RFI::LIG.new(45,45,21,:lig),
+                                       RFI::LIG.new(45,127,21,:lig)],:krn =>
+                                       [[28,11.0], [89, -42.0]]}),
+      :charwd=>207.0, :comment=>"hyphen", :charht=>240.0}
+    hyphen2={:ligkern=>45 ,:charwd=>207.0, :comment=>"hyphen", :charht=>240.0}
+    hyphen3={:ligalias=>45, :charwd=>207.0, :comment=>"hyphen", :charht=>240.0}
+    otherchar={:charwd=>207.0, :comment=>"other", :charht=>240.0}
+
+    pl[0]=otherchar
+    pl[45]=hyphen1
+    pl[127]=hyphen2
+    pl[1]=hyphen3
+    assert_equal(pl[1][:ligkern],pl[45][:ligkern])
+    assert_equal(45,pl[1][:ligalias])
+    assert_equal(nil,pl[0][:ligkern])
+    assert_equal(otherchar,pl[0])
+    assert_equal("(LIGTABLE
+   (LABEL O 55)
+   (LABEL O 55)
+   (KRN O 34 R 11.0)
+   (KRN C Y R -42.0)
+   (LIG O 55 O 25)
+   (LIG O 177 O 25)
+   (STOP)
+   )
+(CHARACTER O 0
+   (CHARWD R 207.0)
+   (CHARHT R 240.0)
+   )
+(CHARACTER O 1
+   (CHARWD R 207.0)
+   (CHARHT R 240.0)
+   )
+(CHARACTER O 55
+   (CHARWD R 207.0)
+   (CHARHT R 240.0)
+   )
+(CHARACTER O 177
+   (CHARWD R 207.0)
+   (CHARHT R 240.0)
+   )
+",pl.to_s)
+  end
+
   def test_array
     str="(VTITLE Created by afm2tfm savorg__.afm -T ec.enc -V foo.vpl -c 0.5)
 (COMMENT Please edit that VTITLE if you edit this file)
@@ -105,23 +152,28 @@ class TestPL < Test::Unit::TestCase
 "
     pl = PL.new
     pl.parse(str)
+    s=Set.new()
+    s.add(127)
     a={:charht=>240.0,
-       :charwd=>207.0,
-       :comment=>"hyphen",
-       :krn=> [[28, 11.0],
-        [89, -42.0],
-        [121, -21.0],
-        [87, -31.0],
-        [119, -15.5],
-        [86, -23.0],
-        [118, -11.5],
-        [84, -48.0],
-        [116, -24.0],
-        [65, 21.0],
-        [97, 10.5]],
-       :lig=>
-        [ RFI::LIG.new(127,45,21,:lig),
-          RFI::LIG.new(127,127,21,:lig)]} 
+      :charwd=>207.0,
+      :ligalias=>45,
+      :comment=>"hyphen",
+      :ligkern=> PL::LigKern.new(:alias=>s,
+                                 :comment=>"hyphenhyphenfi",
+                                 :lig=>[ RFI::LIG.new(127,45,21,:lig),
+                                   RFI::LIG.new(127,127,21,:lig)],
+                                 :krn=>[[28, 11.0],
+                                   [89, -42.0],
+                                   [121, -21.0],
+                                   [87, -31.0],
+                                   [119, -15.5],
+                                   [86, -23.0],
+                                   [118, -11.5],
+                                   [84, -48.0],
+                                   [116, -24.0],
+                                   [65, 21.0],
+                                   [97, 10.5]])}
+      
     assert_equal(a,pl[127])
     a[:charwd]=400
     pl[127]=a
@@ -130,6 +182,9 @@ class TestPL < Test::Unit::TestCase
     a=pl.ligtable
     pl.ligtable=a
     assert_equal(a,pl.ligtable)
+    # mutate ligtable, this must not affect the original one
+    a[45][:krn][0][0]=9999
+    assert_equal(28,pl.ligtable[45][:krn][0][0])
   end
   def test_fontdimen
     require 'font'
@@ -154,6 +209,30 @@ class TestPL < Test::Unit::TestCase
    )
 "
     assert_equal(b,v.fontdimen(true).to_s)
+  end
+  def test_ligkern
+    lt=PL::LigKern.new()
+    lt[:lig]=[ RFI::LIG.new(127,45,21,:lig),
+      RFI::LIG.new(127,127,21,:lig)]
+    
+    lt[:krn]=[[28, 11.0],
+      [89, -42.0],
+      [121, -21.0],
+      [87, -31.0],
+      [119, -15.5],
+      [86, -23.0],
+      [118, -11.5],
+      [84, -48.0],
+      [116, -24.0],
+      [65, 21.0],
+      [97, 10.5]]
+    lt2=lt.dup
+    assert(lt2==lt)
+    lt2[:krn][0][0]=-1
+    lt2[:lig][0].left=99
+    assert(lt2!=lt)
+    assert_equal(127,lt[:lig][0].left)
+    assert_equal(28,lt[:krn][0][0])
   end
 
 end

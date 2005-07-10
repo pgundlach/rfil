@@ -1,6 +1,6 @@
 # rfi.rb -- general use classes
 #
-# Last Change: Thu Jul  7 21:07:18 2005
+# Last Change: Sun Jul 10 12:04:13 2005
 
 
 # This class contains methods and other classes that are pretty much
@@ -244,11 +244,39 @@ class RFI
     # <tt>[LIG, /LIG, /LIG>, LIG/, LIG/>, /LIG/, /LIG/>, /LIG/>>]</tt>
     attr_accessor :type
 
-    def initialize(left,right,result,type)
-      @left=left
-      @right=right
-      @result=result
-      @type=type
+    # call-seq:
+    #   new
+    #   new(left,[right,[result,[type]]])
+    #   new(hash)
+    #   new(otherlig)
+    # 
+    # When called with left, right, result or type parameters, take
+    # these settings for the LIG object. When called with a hash as an
+    # argument, the keys should look like: :left,:right,:result,:type.
+    # When called with an existing LIG object, the values are taken
+    # from the old object.
+    def initialize(left=nil,right=nil,result=nil,type=nil)
+      case left
+      when Hash
+        [:left,:right,:result,:type].each { |sym|
+          if left.has_key?(sym)
+            self.send((sym.to_s+"=").to_sym,left[sym])
+          end
+        }
+      when LIG
+        [:left,:right,:result,:type].each { |sym|
+          self.send((sym.to_s+"=").to_sym,left.send(sym))
+        }
+        # warning!!!!! LIG accepts a String as well as Fixnum as
+        # parameters, this might have side effects!?
+      when Fixnum,nil,String
+        @left=left
+        @right=right
+        @result=result
+        @type=type
+      else
+        raise "unknown argument for new() in LIG: #{left}"
+      end
     end
     def ==(lig)
       @left=lig.left and

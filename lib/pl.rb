@@ -1,13 +1,22 @@
 #--
 # pl.rb - TeX Property List accessor class
-# Last Change: Fri Jul  8 22:46:08 2005
+# Last Change: Sun Jul 10 17:23:11 2005
 #++
 # See the PL class for a detailed description on its usage.
+
+require 'set' 
 
 require 'rfi'
 FARRAY = ['MRR','MIR','BRR','BIR','LRR','LIR','MRC','MIC','BRC','BIC',
   'LRC','LIC','MRE','MIE','BRE','BIE','LRE','LIE'] 
 
+#--
+# @ligs
+#   :comment
+#   :krn
+#   :lig
+#   :alias
+#++          
 
 class PL
   include Enumerable
@@ -154,15 +163,55 @@ class PL
       tmp
     end
   end # class node
-
+
+  require 'forwardable'
+  
+  class LigKern
+    extend Forwardable
+    def initialize(h={})
+      @h=h
+    end
+    def_delegators(:@h, :each)
+    def_delegators(:@h, :each_key)
+    def_delegators(:@h, :[])
+    def_delegators(:@h, :[]=)
+    def_delegators(:@h, :has_key?)
+    
+    def initialize_copy(obj)
+      tmp={}
+      if obj[:lig]
+        tmp[:lig]=Array.new
+        obj[:lig].each { |elt|
+          tmp[:lig].push(elt.dup)
+        }
+      end
+      if obj[:krn]
+        tmp[:krn]=Array.new
+        obj[:krn].each { |elt|
+         # p "dupping elt #{elt}"
+          tmp[:krn].push(elt.dup)
+        }
+        @h=tmp
+      end
+    end
+    def ==(obj)
+      obj.each { |key,value|
+        #p @h[key]==value
+        return false unless @h[key]==value
+      }
+      true
+    end
+  end
+  
 
   # The scale factor for most of the numbers in the property list.
   # One em is divided into _designunits_ units.
   attr_accessor :designunits
-  
-  # The top plist of the property list. 
-  attr_accessor :plist
 
+  # The top plist of the property list. Do not use this in your
+  # program, unless you know what you do.
+  attr_accessor :plist
+  
   # The family entry for the vf (used??)
   attr_accessor :family
 
@@ -195,43 +244,49 @@ class PL
   # elements to handle more complex ligatures.
   attr_accessor :ligtable
   
-  # Return a new Node representing a comment with contents of _comment_.
-  def PL.comment (comment)
-    Node.new(:comment,comment)
-  end
-
-  # Return a new Node <tt>(STOP)</tt>
-  def self.stop
-    Node.new(:stop)
-  end
-  
-  # Return a new Node <tt>(LABEL </tt> _num_<tt>)</tt>
-  def PL.label (num)
-    PL::Node.new(:label,PL::Num.new(num,"D"))
-  end
-  
-  # Return a new Node <tt>(LIG </tt> _i_ _result_<tt>)</tt>, where _i_
-  # is the slot of the second glyph in the ligature and _result_ is
-  # the slot of the resulting ligature. *warning:* this method will
-  # change to reflect the 8 different kind of ligatures possible in
-  # TeX. 
-  def PL.lignode(i,result)
-    PL::Node.new(:lig,PL::Num.new(i,"CO"),PL::Num.new(result,"CO"))
-  end
-
-  # Return a new Node <tt>(KRN </tt> _slot_ _value_<tt>)</tt>, where
-  # _slot_ is the slot of the second glyph in the kerning pair and
-  # _value_ is the amount of adjustment (0=no adjustment).
-  def PL.kernnode (slot,value)
-    PL::Node.new(:krn,PL::Num.new(slot,"D"),PL::Num.new(value))
-  end
-
   # If <em>is_vpl</em> is set to true, we assume that a virtual
   # property list for a virtual font should be generated.
   def initialize(is_vpl=false)
     @is_vpl=is_vpl
     @plist=Plist.new
-    @co="CO"
+    @chars=Array.new(256)
+    @ligs=Array.new(256)
+  end
+
+  # Return a hash 
+  def [] (i)
+    ret={}
+    [:comment,:charwd,:charht,:charic,:chardp,:map].each { |sym|
+      if @chars[i][sym]
+        ret[sym] = @chars[i][sym]
+      end
+    }
+    return ret unless @ligs[i]
+    case @ligs[i][:lig]
+    when Fixnum
+      n=@ligs[i]
+      #puts "slot #{i}: alias found: #{n}"
+      # look at other slot
+      ret[:ligalias]=n
+      # change the left side in lig
+      newligs=@ligs[n][:lig].collect { |lig|
+        newlig=RFI::LIG.new(lig)
+        newlig.left=i
+        newlig
+      }
+      @ligs[n][:lig]=newligs
+      ret[:ligkern]=@ligs[n]
+    when Hash
+      ligentry=i
+    when nil
+      # ignore
+    when Array
+      #      ret[:ligkern]=[@ligs[ligentry][:lig],@ligs[ligentry][:krn]]
+      ret[:ligkern]=@ligs[i][:lig].dup
+    else
+      raise "Unknown type for @ligs[#{i}]"
+    end
+    return ret
   end
   # Sets the charentry and the ligtable according to the information
   # in _value_. _value_ is a hash, with the following keys:
@@ -240,91 +295,59 @@ class PL
   # [:charht] one value allowed: the height of the char
   # [:chardp] one value allowed: the depth of the char
   # [:charic] one value allowed: the italic correction of the char
-  # [:lig] an array of LIG objects.
-  # [:krn] an array of arrays like [destchar, amount].
-  def []= (charnumber,value)
-    lt=ligtable
-    # p value[:krn]
-    ligkrn=[value[:krn],value[:lig]]
-#    p ligkrn
-    lt[charnumber]=ligkrn
-    # why do I need self here?
-    self.ligtable=(lt)
-    # build node
-    n = @plist.find {|node|
-      node.type==:character and node.contents[0].value==charnumber
+  # [:ligkern] Two arrays or a Fixnum. If Fixnum, then the ligkern
+  # section in the ligtable is the same as the one denoted by the
+  # Fixnum. If arrays:  the first array is the lig array (LIG objects),
+  # the second array is the kern ([destchar, amount]) array.
+  def []= (i,value)
+    # p value
+    # if we nil out i, perhaps we have to remove all lig aliases? FIXME
+    @chars[i]={}
+    [:comment,:charwd,:charht,:charic,:chardp,:map].each { |sym|
+      @chars[i][sym]=value[sym]
     }
-    unless n
-      n = Node.new(:character)
-      # todo: find the correct place to insert the char
-      @plist << n
-    end
-    n.value=Num.new(charnumber,"CO")
-    subplist=Plist.new
-    [:charwd, :charht, :chardp, :charic].each { |sym|
-      if value[sym] and (value[sym] != 0)
-        subplist << Node.new(sym, Num.new(value[sym]))
+
+    # defining an alias for ligkern: you can either set :ligalias to a
+    # Fixnum or have :ligkern 
+    if n = (value[:ligalias] or 
+              value[:ligkern].instance_of?(Fixnum) ? value[:ligkern] : nil)
+      # puts "slot #{i}: alias2 found: #{n}"
+      raise  "@ligs[#{n}] is of wrong class: #{@ligs[n].class}. Should be LigKern" unless @ligs[n].instance_of? LigKern
+      @ligs[i]=n
+      unless @ligs[n]
+          @ligs[n]=LigKern.new
       end
-    }
-    if value[:map]
-      mapplist=Plist.new
-      value[:map].each { |instruction|
-        sym=instruction[0]
-        case sym
-        when :setchar, :selectfont
-          mapplist.push Node.new(sym,Num.new(instruction[1]))
-        else
-          raise "unknown instruction"
-        end
-      }
-      subplist.push Node.new(:map,mapplist)
+      unless @ligs[n].has_key?(:alias)
+        @ligs[n][:alias]=Set.new()
+      end
+      @ligs[n][:alias].add(n)
+    elsif lk=value[:ligkern]
+      # no aliases found, use normal ligkern op
+      # p lk[:krn]
+      unless @ligs[i]
+        @ligs[i]=LigKern.new
+      end
+      @ligs[i]=lk.dup
+      # @ligs[i][:krn]=lk[:lig]
+    else
+      # no alias and no :ligkern, do nothing
     end
-    n.push subplist
-    value
+    return value
   end
 
-  # Return a hash 
-  def [] (charnumber)
-    a = @plist.find {|node|
-      node.type==:character and node.contents[0].value==charnumber
-    }
-    return nil unless a
-    a=a.contents[1]
-    ret={}
-    comment=""
-    a.each { |node|
-      case node.type
-      when :comment
-        comment << node.contents[0]
-        ret[:comment]=comment
-      when :charwd,:charht,:charic,:chardp
-        ret[node.type]=node.contents[0].value
-      when :map
-        p "----!"
-        node.contents[0].each { |node|
-        }        
-      end
-    }
-    lt=ligtable[charnumber]
-    if lt
-      ret[:krn]=lt[0]
-      ret[:lig]=lt[1]
-    end
-    ret
-  end
   
-  # Add Node _node_ to the top property list.
-  def <<(node)
-    @plist << node
-  end
 
 
   # Nice (+vptovf+ and +pltotf+ compatible) output of the complete
   # property list.
   def to_s
+    update_plist
     @plist.to_s
   end
 
+  def add_comment(comment)
+    @plist << Node.new(:comment,comment)
+  end
   
   def designunits # :nodoc:
     if n=find_node(:designunits)
@@ -421,74 +444,30 @@ class PL
     }
   end
 
+  require 'pp'
+
+ 
   def ligtable  # :nodoc:
-    ret = @plist.find { |node|
-      node.type==:ligtable
-    }
-    return {} unless ret
-    plist=ret.contents[0]
-    # puts plist.to_s
+    return nil unless @ligs
     ret={}
-    current_slots=[]
-    krn=[]
-    lig=[]
-    current_charno=nil
-    plist.each{ |node|
-      case node.type
-      when :label
-        current_charno=node.contents[0].value
-        current_slots.push current_charno
-      when :krn
-        krn.push [node.contents[0].value,node.contents[1].value]
-      when :lig
-        lig.push RFI::LIG.new(current_charno,
-                              node.contents[0].value,
-                              node.contents[1].value,
-                              node.type)
-      when :stop
-        current_slots.each { |slot|
-          ret[slot]=[krn,lig]
-        }
-        krn=[]
-        lig=[]
-        current_slots=[]
-        current_charno=nil
-      when :comment
-        # ignore
-      else
-        raise "unknown type: #{node.type}"
-      end
+    @ligs.each_with_index{ |ligkern,i|
+      next unless ligkern
+      ret[i] = ligkern.instance_of?(Fixnum) ? ligkern : ligkern.dup
     }
-    ret
+    return ret
   end
 
   # Set the ligtable to the _lighash_. _lighash_ has the same format
   # that results from ligtable.
   def ligtable=(lighash) # :nodoc:
-    ligplist=Plist.new
-    lighash.sort.each {|slot,ligentry|
-      ligplist << PL.label(slot)
-      krn,lig=ligentry
-      #lig.sort {|a,b| a[0] <=> b[0] }.each { |other,result|
-        # puts "kernnode: #{other}, #{amount}"
-       # ligplist << PL.lignode(other,result)
-     # }
-      if lig
-        lig.each { |lig|
-          ligplist << PL.lignode(lig.right,lig.result)
-        }
+    0.upto(255) { |i|
+      if lighash[i]
+        @ligs[i]= lighash[i].instance_of?(Fixnum) ? lighash[i] : lighash[i].dup
+      else
+        @ligs[i]=nil
       end
-      if krn
-        krn.sort {|a,b| a[0] <=> b[0] }.each { |other,amount|
-          # puts "kernnode: #{other}, #{amount}"
-          ligplist << PL.kernnode(other,amount)
-        }
-        ligplist << PL.stop
-      end
-      
     }
-    # puts ligplist.to_s
-    set_ligtable(ligplist)
+    # Let's be nice and return something sensible.
     lighash
   end
   
@@ -496,9 +475,10 @@ class PL
   # path to the to be created tfm file. The directory must be
   # writable.
   def write_tfm(location)
+    update_plist
     require 'tempfile'
     tmpfile = Tempfile.new("afm2tfm.rb")
-    tmpfile << plist.to_s
+    tmpfile << @plist.to_s
     tmpfile.close
     system("pltotf #{tmpfile.path} #{location} > /dev/null")
     raise ScriptError unless $?.success?
@@ -508,6 +488,7 @@ class PL
   # _vflocation_ and _tfmlocation_ are full paths to the to be created
   # vf file and tfm file. The directories must be writable.
   def write_vf(vflocation,tfmlocation)
+    update_plist
     require 'tempfile'
     tmpfile = Tempfile.new("afm2tfm.rb")
     tmpfile << @plist.to_s
@@ -557,7 +538,15 @@ class PL
   end
   # obsolete, at least for now :)
   def get_charentries # :nodoc:
-    ret=[]
+    ret=Array.new
+    @chars.each_with_index {|char,i|
+      if char
+        c=char.dup
+        c[:slot]=i
+        ret.push(c)
+      end
+    }
+    return ret
     n = @plist.find_all { |node|
       node.type==:character
     }
@@ -592,7 +581,163 @@ class PL
 
   private
 
- 
+  # there are two states we are in:
+  # 1) @plist is up to date (just parsed) and the cache is not
+  # 2) our cache is fine, but @plist is not updated
+
+  # going from one state to the other is rather expensive, we should
+  # not do this over and over again. So there are two ways to get from
+  # 1) to 2) and back: update_cache (1->2) and update_plist (2->1).
+  # Enjoy.
+  
+  def update_cache
+    # plist just filled with contents, by parse()
+    # we need to update the @ligs ligtable and the @chars char array
+    # puts @plist.to_s
+    n = @plist.find {|node|
+      node.type==:ligtable
+    }
+    if n
+      # analyze ligtable
+      lig=[]
+      krn=[]
+      comment=""
+      currentchar=[]
+      n.contents[0].each { |node|
+        case node.type
+        when :label
+          currentchar.push(node.contents[0].value)
+        when :krn
+          krn.push([node.contents[0].value,node.contents[1].value])
+        when :lig
+          # warning: for multiple :labels, we only store the first
+          # value in the LIG obj
+          lig.push(RFI::LIG.new(currentchar[0],
+                                node.contents[0].value,
+                                node.contents[1].value,
+                                node.type))
+        when :comment
+          comment << node.contents[0]
+        when :stop
+          pos=currentchar.shift
+          # puts "stop"
+           #p krn
+          @ligs[pos]=LigKern.new
+          @ligs[pos][:comment]=comment
+          @ligs[pos][:krn]=krn
+          @ligs[pos][:lig]=lig
+          currentchar.each { |otherpos|
+            if @ligs[pos][:alias]
+              @ligs[pos][:alias].add(otherpos)
+            else
+              @ligs[pos][:alias] = Set.new().add(otherpos)
+            end
+            @ligs[otherpos]=pos
+          }
+          lig=[]
+          krn=[]
+          currentchar=[]
+        else
+          raise "Unknown entry in LIGTABLE: #{node.type}" 
+        end
+      }
+    end
+    n = @plist.find_all { |node|
+      node.type==:character
+    }
+    
+    n.each { |charnode|
+      charnum=charnode.contents[0].value
+      ret={}
+      @chars[charnum]=ret
+      comment=""
+   
+      charnode.contents[1].each { |node|
+        case node.type
+        when :comment
+          comment << node.contents[0]
+          ret[:comment]=comment
+        when :charwd,:charht,:charic,:chardp
+          ret[node.type]=node.contents[0].value
+        when :map
+          map=[]
+          ret[:map]=map
+          node.contents[0].each { |node|
+            case node.type
+            when :selectfont, :setchar
+              map.push [node.type, node.contents[0].value]
+            else
+              raise "unknown instruction: #{node.type}"
+            end
+          }        
+        end
+      }
+    }
+    # Now @ligs and @chars represent the state in @plist.
+  end # update_cache
+
+  # Before we use to_s or write_tfm/write_vpl, we have to make sure
+  # that the plist is updated.
+  def update_plist
+    # first delete the ligtable and the char list
+    @plist.delete_if { |node|
+      node.type==:ligtable or node.type==:character
+    }
+    ligplist=Plist.new
+    @ligs.each_with_index { |lighash,i|
+      next unless lighash
+      # ligentry is at some other position
+      next if lighash.instance_of?(Fixnum)
+      ligplist << PL::Node.new(:label,PL::Num.new(i,"CO"))
+      if lighash[:alias]
+        lighash[:alias].each { |otherpos|
+          ligplist << PL::Node.new(:label,PL::Num.new(otherpos,"CO"))
+        }
+      end
+      if lighash[:krn]
+        lighash[:krn].each { |kern|
+          ligplist << PL::Node.new(:krn,PL::Num.new(kern[0],"CO"),
+                                   PL::Num.new(kern[1]))
+        }
+      end
+      if lighash[:lig]
+        lighash[:lig].each { |lig|
+          ligplist << PL::Node.new(lig.type.to_s,PL::Num.new(lig.right,"CO"),
+                                   PL::Num.new(lig.result,"CO"))
+        }
+      end
+      ligplist << PL::Node.new(:stop)
+    }
+    @plist.push Node.new(:ligtable,ligplist)
+    # and now for the charlist
+    @chars.each_with_index {|char,i|
+      next unless char
+      # pp char
+      subplist=Plist.new
+      [:charwd, :charht, :chardp, :charic].each { |sym|
+        if char[sym] and (char[sym] != 0)
+          subplist << Node.new(sym, Num.new(char[sym]))
+        end
+      }
+      if char[:map]
+        mapplist=Plist.new
+        char[:map].each { |instruction|
+          sym=instruction[0]
+          case sym
+          when :setchar, :selectfont
+            mapplist.push Node.new(sym,Num.new(instruction[1]))
+          else
+            raise "unknown instruction"
+          end
+        }
+        subplist.push Node.new(:map,mapplist)
+      end
+      
+      @plist.push Node.new(:character,Num.new(i,"CO"),subplist)
+    }
+    
+  end
+
   # Find the first occurance of node of type _nodetype_ in main plist.
   # Returns a node.
   def find_node(nodetype)
@@ -621,3 +766,186 @@ class PL
   end
 
 end
+__END__
+
+  # Return a new Node representing a comment with contents of _comment_.
+  def PL.comment (comment)
+    Node.new(:comment,comment)
+  end
+
+  # Return a new Node <tt>(STOP)</tt>
+  def self.stop
+    Node.new(:stop)
+  end
+  
+  # Return a new Node <tt>(LABEL </tt> _num_<tt>)</tt>
+  def PL.label (num)
+    PL::Node.new(:label,PL::Num.new(num,"D"))
+  end
+  
+  # Return a new Node <tt>(LIG </tt> _i_ _result_<tt>)</tt>, where _i_
+  # is the slot of the second glyph in the ligature and _result_ is
+  # the slot of the resulting ligature. *warning:* this method will
+  # change to reflect the 8 different kind of ligatures possible in
+  # TeX. 
+  def PL.lignode(i,result)
+    PL::Node.new(:lig,PL::Num.new(i,"CO"),PL::Num.new(result,"CO"))
+  end
+
+  # Return a new Node <tt>(KRN </tt> _slot_ _value_<tt>)</tt>, where
+  # _slot_ is the slot of the second glyph in the kerning pair and
+  # _value_ is the amount of adjustment (0=no adjustment).
+  def PL.kernnode (slot,value)
+    PL::Node.new(:krn,PL::Num.new(slot,"D"),PL::Num.new(value))
+  end
+
+  def []= (charnumber,value)
+    @chars[charnumber]=value
+    return
+    # --------------------------------------------------
+    lt=ligtable
+    ligkrn=[value[:krn],value[:lig]]
+    lt[charnumber]=ligkrn
+    # why do I need self here?
+    self.ligtable=(lt)
+    # build node
+    n = @plist.find {|node|
+      node.type==:character and node.contents[0].value==charnumber
+    }
+    unless n
+      n = Node.new(:character)
+      # todo: find the correct place to insert the char
+      @plist << n
+    end
+    n.value=Num.new(charnumber,"CO")
+    subplist=Plist.new
+    [:charwd, :charht, :chardp, :charic].each { |sym|
+      if value[sym] and (value[sym] != 0)
+        subplist << Node.new(sym, Num.new(value[sym]))
+      end
+    }
+    if value[:map]
+      mapplist=Plist.new
+      value[:map].each { |instruction|
+        sym=instruction[0]
+        case sym
+        when :setchar, :selectfont
+          mapplist.push Node.new(sym,Num.new(instruction[1]))
+        else
+          raise "unknown instruction"
+        end
+      }
+      subplist.push Node.new(:map,mapplist)
+    end
+    n.push subplist
+    value
+  end
+
+  # Return a hash 
+  def [] (charnumber)
+    a = @plist.find {|node|
+      node.type==:character and node.contents[0].value==charnumber
+    }
+    return nil unless a
+    a=a.contents[1]
+    ret={}
+    comment=""
+    a.each { |node|
+      case node.type
+      when :comment
+        comment << node.contents[0]
+        ret[:comment]=comment
+      when :charwd,:charht,:charic,:chardp
+        ret[node.type]=node.contents[0].value
+      when :map
+        p "----!"
+        node.contents[0].each { |node|
+        }        
+      end
+    }
+    lt=ligtable[charnumber]
+    if lt
+      ret[:krn]=lt[0]
+      ret[:lig]=lt[1]
+    end
+    ret
+  end
+  def ligtable  # :nodoc:
+    return nil unless @ligs
+    ret={}
+    @ligs.each_with_index{ |ligkern,i|
+      next unless ligkern
+      ret[i]=ligkern
+    }
+    return ret
+    ret = @plist.find { |node|
+      node.type==:ligtable
+    }
+    return {} unless ret
+    plist=ret.contents[0]
+    # puts plist.to_s
+    ret={}
+    current_slots=[]
+    krn=[]
+    lig=[]
+    current_charno=nil
+    plist.each{ |node|
+      case node.type
+      when :label
+        current_charno=node.contents[0].value
+        current_slots.push current_charno
+      when :krn
+        krn.push [node.contents[0].value,node.contents[1].value]
+      when :lig
+        lig.push RFI::LIG.new(current_charno,
+                              node.contents[0].value,
+                              node.contents[1].value,
+                              node.type)
+      when :stop
+        current_slots.each { |slot|
+          ret[slot]=[lig,krn]
+        }
+        krn=[]
+        lig=[]
+        current_slots=[]
+        current_charno=nil
+      when :comment
+        # ignore
+      else
+        raise "unknown type: #{node.type}"
+      end
+    }
+    ret
+  end
+  def ligtable=(lighash) # :nodoc:
+    0.upto(255) { |i|
+      @ligs[i]=lighash[i]
+    }
+    lighash
+  end
+    lighash.each { |i,ligkern|
+      @ligs[i]
+    ligplist=Plist.new
+    lighash.sort.each {|slot,ligentry|
+      ligplist << PL::Node.new(:label,PL::Num.new(slot,"D"))
+      lig,krn=ligentry
+      if lig
+        lig.each { |lig|
+          # ligplist << PL.lignode(lig.right,lig.result)
+          ligplist <<  PL::Node.new(:lig,PL::Num.new(lig.right,"CO"),
+                                    PL::Num.new(lig.result,"CO"))
+        }
+      end
+      if krn
+        krn.sort {|a,b| a[0] <=> b[0] }.each { |other,amount|
+          ligplist << PL::Node.new(:krn,PL::Num.new(other,"D"),
+                                   PL::Num.new(amount))
+        }
+        ligplist << Node.new(:stop)
+      end
+      
+    }
+    # puts ligplist.to_s
+    set_ligtable(ligplist)
+    lighash
+  end

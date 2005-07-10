@@ -118,11 +118,11 @@ class TestFont < Test::Unit::TestCase
           [10, -8]], []],
       17=>[[[11, 21]], []],
       18=>[[[11, 21]], []]}
-    b=pl.ligtable    
+    b=pl.ligtable
     a.each { |num,kernlig|
       kern,lig=kernlig
       kern.each { |k|
-        assert(b[num][0].member?(k))
+        assert(b[num][:krn].member?(k))
       }
       lig.each { |l|
         assert(b[num][1].member?(l))

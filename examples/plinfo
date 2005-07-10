@@ -15,7 +15,7 @@ kpse=Kpathsea.new
 @options=OpenStruct.new
 
 ARGV.options { |opt|
-  opt.banner = "Usage: #{File.basename($0)} [@options] tfmfile.pl [file...]"
+  opt.banner = "Usage: #{File.basename($0)} [options] tfmfile.pl [file...]"
   opt.on("--encoding enc", "-e", "set the encoding for the file") { |e|
     kpse.open_file(e,"enc") { |f|
       @options.encoding = ENC.new(f)

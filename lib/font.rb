@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Fri Jul  8 22:43:10 2005
+# Last Change: Sun Jul 10 16:32:55 2005
 #++
 require 'set'
 
@@ -156,8 +156,6 @@ class Font
   # may be the same.
   
   def vpl(mapenc,texenc)
-#    p "mapenc=#{mapenc}"
-#    p "texenc=#{texenc.methods}"
     
     raise ArgumentError, "mapenc must be an ENC object" unless mapenc.respond_to? :encname
     raise ArgumentError, "texenc must be an ENC object" unless texenc.respond_to? :encname
@@ -165,7 +163,7 @@ class Font
     
     vpl=PL.new(true)
     vpl.vtitle="Installed with rfi library"
-    vpl << PL.comment(" Please edit that VTITLE if you edit this file")
+    vpl.add_comment(" Please edit that VTITLE if you edit this file")
     vpl.family=@defaultfm.familyname
     vpl.codingscheme=mapenc.encname + " + " + texenc.encname
     vpl.designsize=10.0
@@ -209,14 +207,16 @@ class Font
       charentry={}
 
       # lig
+      ligkern=PL::LigKern.new
+      
       
       thischar.lig_data.each_value { |lig|
         if (texenc.glyph_index.has_key? lig.right) and
             (texenc.glyph_index.has_key? lig.result)
-          if charentry[:lig]
-            charentry[:lig].push lig
+          if ligkern[:lig]
+            ligkern[:lig].push lig
           else
-            charentry[:lig]=[lig]
+            ligkern[:lig]=[lig]
           end
         end
       }
@@ -227,14 +227,20 @@ class Font
           texenc.glyph_index[dest].each { |slot|
             
             tmp=[slot,kern[0]]
-            if charentry[:krn]
-              charentry[:krn].push(tmp)
+            if ligkern[:krn]
+              ligkern[:krn].push(tmp)
             else
-              charentry[:krn]=[tmp]
+              ligkern[:krn]=[tmp]
             end
           }
         end
       }
+
+      if (ligkern[:krn] and ligkern[:krn].size!=0) or
+          (ligkern[:lig] and ligkern[:lig].size!=0)
+        charentry[:ligkern]=ligkern
+      end
+        
       
       # charinfo
       [:charwd, :charht, :chardp, :charic].each { |sym|
@@ -242,8 +248,9 @@ class Font
       }
 
       # map
-      if thischar.fontnumber != 0 or
-          (mapenc.glyph_index[char].member?(i)==false)
+      mapneeded=(thischar.fontnumber != 0 or (mapenc.glyph_index[char].member?(i)==false))
+      if mapneeded
+        #        puts "mapneeded"
         charentry[:map]=[[:setchar,mapenc.glyph_index[char][0]]]
       end
       vpl[i]=charentry
@@ -378,14 +385,9 @@ class Font
   end
 
   def texenc=(enc) # :nodoc:
-    #    p enc.class
     @texenc=[]
     if enc
       set_encarray(enc,@texenc)
-    end
-    if @texenc.size ==2
-      #p @texenc[0].encname
-      #p @texenc[1].encname
     end
   end
   def texenc  # :nodoc:

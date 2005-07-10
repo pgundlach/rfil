@@ -3,6 +3,12 @@
 These files should help you (a programmer) to create a font installer
 for TeX. 
 
+The library is currently in alpha state, it is slow and inefficient.
+The interface might change, but a lot of basic classes and methods are
+available. See the example programs in the examples directory on how
+to use the library. Also take a look at the Kpathsea and ENC classes
+on how to make use of these.
+
 == Installing a single font
 
 === Example usage to install a single font:
@@ -34,9 +40,10 @@ to the main font.
 You can generate the documentation of the classes and methods by
 running Rdoc like this:
 
- rdoc --title "Ruby Font Installer Library" README lib/*rb
+ rdoc --title "Ruby Font Installer Library" README lib/*rb 
 
 This creates a directory +doc+ and a lot of html files. Open
 +doc/index.html+ in your browser and voila, all classes and methods
 documented. 
 
+There is a +Makefile+ that takes care of generating the documentation.

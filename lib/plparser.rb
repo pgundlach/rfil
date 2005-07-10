@@ -1,5 +1,5 @@
 #--
-# Last Change: Fri Jul  8 22:45:29 2005
+# Last Change: Sun Jul 10 07:34:07 2005
 #++
 # == Accessing PL (property lists)
 # The PL class and its subclasses are helpful if you want to read or
@@ -27,7 +27,7 @@
 # entries if necessary (not implemented yet). Class methods create a
 # Node that may be used by the << method. Example:
 #
-#  pl = Plist.new
+#  pl = PL.new
 #  pl << PL.comment("this is a comment")
 #
 # adds a comment at the top of the plist.
@@ -95,6 +95,7 @@ class PL
     @source = plstring
     @len    = @source.length
     @plist=get_plist(0)
+    update_cache
     self
   end
 
