@@ -3,11 +3,18 @@
 These files should help you (a programmer) to create a font installer
 for TeX. 
 
-The library is currently in alpha state, it is slow and inefficient.
-The interface might change, but a lot of basic classes and methods are
-available. See the example programs in the examples directory on how
-to use the library. Also take a look at the Kpathsea and ENC classes
-on how to make use of these.
+The library is currently in alpha state. The interface might change,
+but a lot of basic classes and methods are available. See the example
+programs in the examples directory on how to use the library. Also
+take a look at the Kpathsea and ENC classes on how to make use of
+these.
+
+== Roadmap
+
+Accessing Encodings:: See the ENC class to read and write <tt>.enc</tt>-files.
+Accessing Property Lists:: Use the  PL class to read and write (virtual) property lists 
+Reading a font metric:: See the FontMetric class and the subclass AFM to access the font files
+Installing a font(set):: See below for examples.
 
 == Installing a single font
 
@@ -47,3 +54,13 @@ This creates a directory +doc+ and a lot of html files. Open
 documented. 
 
 There is a +Makefile+ that takes care of generating the documentation.
+
+---
+==Other Stuff
+
+Author:: Patrick Gundlach <patrickg@despammed.com>
+Project Page::  https://foundry.supelec.fr/projects/rfil
+Homepage:: (Documentation) https://rfil.groups.foundry.supelec.fr
+License::  Copyright (c) 2005 Patrick Gundlach.
+           Released under the terms of the GNU General Public License
+
