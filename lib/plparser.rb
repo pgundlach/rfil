@@ -1,5 +1,5 @@
 #--
-# Last Change: Sun Jul 10 22:25:35 2005
+# Last Change: Mon Jul 11 23:24:28 2005
 #++
 # == Accessing PL (property lists)
 # The PL class and its subclasses are helpful if you want to read or
@@ -222,7 +222,7 @@ class PL
             if @ligs[pos][:alias]
               @ligs[pos][:alias].add(otherpos)
             else
-              @ligs[pos][:alias] = Set.new().add(otherpos)
+              @ligs[pos][:alias] = Set.new([otherpos])
             end
             @ligs[otherpos]=pos
           }
