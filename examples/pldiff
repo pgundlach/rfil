@@ -1,0 +1,102 @@
+#!/usr/bin/env ruby -w
+
+#--
+# Last Change: Mon Jul 11 20:26:23 2005
+#++
+# == pldiff shows the differences between to (v)pl files.
+# This is very imcomplete yet.
+
+require 'optparse'
+require 'ostruct'
+
+require 'pp'
+
+$:.unshift File.join(File.dirname(__FILE__),"..","lib")
+
+require 'pl'
+require 'plparser'
+
+def plopen(filename)
+  case filename
+  when /\.tfm$/
+    return `tftopl #{filename}`
+  when /\.v?pl$/
+    str=nil
+    File.open(filename) { |f|
+      str = f.read
+    }
+    return str
+  else
+    puts "Unknown format: #{filename}"
+    exit 1
+  end
+end
+
+@options=OpenStruct.new
+
+ARGV.options { |opt|
+  opt.banner = "Usage: #{File.basename($0)} [options] tfmfile1.(pl|tfm) tfmfile1.(pl|tfm) "
+  #opt.on("--list-chars", "-l", "list all available characters") {
+  #  @options.listchars=true }
+  opt.on("--help", "-h", "Show this help") { puts opt; exit 0 }
+  opt.separator  ""
+  opt.parse!
+}
+
+ARGV.push("test/file1.pl")
+ARGV.push("test/file2.pl")
+
+if ARGV.size != 2
+  puts "#{File.basename($0)}: Need exactly two file arguments."
+  puts "Try `#{File.basename($0)} --help' for more information."
+  exit 0
+end
+
+
+p1 = PL.new
+p1.parse(plopen(ARGV[0]))
+p2 = PL.new
+p2.parse(plopen(ARGV[1]))
+
+[:family,:codingscheme,:designunits,:designsize].each { |sym|
+  if p1.send(sym) != p2.send(sym)
+    puts "#{sym} differ: #{p1.send(sym)} vs #{p2.send(sym)}"
+  end
+}
+# fontdimen
+if (a = p1.fontdimen) != (b= p2.fontdimen)
+  puts "--------------------"
+  puts "fondimen difference:"
+  [:space, :stretch, :shrink, :xheight, :quad, :slant, :extraspace].each { |dim|
+    if a[dim] !=  b[dim]
+      puts "Difference in #{dim}: #{a[dim]} vs. #{b[dim]}" 
+    end
+  }
+  puts "--------------------"
+end
+
+puts "Character entries:"
+puts "------------------"
+0.upto(255) do |i|
+  # puts "at char: #{i}"
+  a=p1[i]
+  b=p2[i]
+  if a != b
+    
+    puts "#{i}:"
+    [:charwd, :charht, :chardp, :charic].each { |dim|
+      if a[dim] !=  b[dim]
+        puts "  Difference in #{dim}: #{a[dim]} vs. #{b[dim]}" 
+      end
+    }
+    if a[:lig] != b[:lig]
+      puts "  Difference in lig information"
+    end
+    if a[:krn] != b[:krn]
+      puts "  Difference in kern information"
+    end
+    if a[:comment] != b[:comment]
+      puts "  Difference in comment"
+    end
+  end
+end
