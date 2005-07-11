@@ -1,5 +1,5 @@
 # fontmetric.rb - superclass for different font metric formats
-# Last Change: Mon Jul 11 23:26:03 2005
+# Last Change: Mon Jul 11 23:30:32 2005
 
 # FontMetric is the superclass for font metrics. All information that
 # is not specific to a certain kind of file format is accessible via
@@ -9,8 +9,10 @@ require 'rfi'
 
 class FontMetric
   # to make Rdoc and Ruby happy: [ruby-talk:147778]
-  def self.documented_as_accessor(*args); end
-  def self.documented_as_reader(*args); end
+  def self.documented_as_accessor(*args) # :nodoc:
+  end 
+  def self.documented_as_reader(*args)   # :nodoc:
+  end
 
   # Hash of glyphs in the font. 
   attr_accessor :chars

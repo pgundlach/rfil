@@ -1,6 +1,6 @@
 #--
 # pl.rb - TeX Property List accessor class
-# Last Change: Mon Jul 11 23:21:55 2005
+# Last Change: Mon Jul 11 23:32:22 2005
 #++
 # See the PL class for a detailed description on its usage.
 
@@ -205,8 +205,9 @@ class PL
   end
 
   # to make Rdoc and Ruby happy: [ruby-talk:147778]
-  def self.documented_as_accessor(*args); end
-   
+  def self.documented_as_accessor(*args)  #:nodoc:
+  end
+  
   # The scale factor for most of the numbers in the property list.
   # One em is divided into _designunits_ units.
   documented_as_accessor :designunits
