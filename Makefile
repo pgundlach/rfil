@@ -5,4 +5,4 @@ examples=examples/afm2tfm.rb examples/plinfo
 all : doc
 
 doc :
-	rdoc --title "Ruby Font Installer Library" README lib/*rb $(examples)
+	rdoc -A documented_as_accessor=RW --title "Ruby Font Installer Library" README lib/*rb $(examples)
