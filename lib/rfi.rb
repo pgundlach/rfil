@@ -1,6 +1,6 @@
 # rfi.rb -- general use classes
 #
-# Last Change: Sun Jul 10 12:04:13 2005
+# Last Change: Mon Jul 11 20:30:24 2005
 
 
 # This class contains methods and other classes that are pretty much
@@ -33,6 +33,9 @@ class RFI
   # Metric information about a glyph. Does not contain the glyph
   # (outlines) itself.
   class Char
+    # to make Rdoc and Ruby happy: [ruby-talk:147778]
+    def self.documented_as_accessor(*args); end
+
     # Glyphname
     attr_accessor :name
 
@@ -59,16 +62,16 @@ class RFI
     attr_accessor :pcc_data
 
     # Upper right x value of glyph.
-    attr_accessor :urx
+    documented_as_accessor :urx
     
     # Upper right y value of glyph.
-    attr_accessor :ury
+    documented_as_accessor :ury
 
     # Lower left x value of glyph.
-    attr_accessor :llx
+    documented_as_accessor :llx
 
     # Lower left y value of glyph.
-    attr_accessor :lly
+    documented_as_accessor :lly
 
     # fontnumber is used in Font class
     attr_accessor :fontnumber
