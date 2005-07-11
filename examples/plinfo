@@ -1,9 +1,30 @@
 #!/usr/bin/env ruby
+#--
+# Last Change: Mon Jul 11 23:13:56 2005
+#++
+=begin rdoc
+== plinfo -- output information about a (v)pl file.
+
+  Usage: plinfo [options] tfmfile.pl [file...]
+      -e, --encoding enc               set the encoding for the file
+      -l, --list-chars                 list all available characters
+      -h, --help                       Show this help
+  
+
+---
+Author:: Patrick Gundlach <patrickg@despammed.com>
+License::  Copyright (c) 2005 Patrick Gundlach.
+           Released under the terms of the GNU General Public License
+=end
+
+
+# :enddoc:
 
 require 'optparse'
 require 'ostruct'
 # $: is the ruby input path - add the lib/ subdir
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
+
 
 require 'pl'
 require 'plparser'

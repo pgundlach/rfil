@@ -1,4 +1,26 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env ruby -w
+#--
+# Last Change: Mon Jul 11 23:15:13 2005
+#++
+=begin rdoc
+
+== afminfo - print out information about an afm file
+
+ Usage: afminfo [options] afm-file[.afm]
+   -m, --metrics                    show global metrics information
+   -v, --verbose                    verbose output
+       --[no-]info                  list general information (default)
+   -l, --list-glyphs                list all available glyphs
+   -g, --glyphinfo g                information about a specific glyph
+   -h, --help                       Show this help
+
+---
+Author:: Patrick Gundlach <patrickg@despammed.com>
+License::  Copyright (c) 2005 Patrick Gundlach.
+           Released under the terms of the GNU General Public License
+=end
+
+# :enddoc:
 
 require 'optparse'
 
@@ -9,7 +31,7 @@ require 'afm'
 
 
 # sorry for german - one day I'll change that into engish. --pg
-class TextTable
+class TextTable # :nodoc:
   def initialize (data,maxchars=80)
     raise "Data must be an array of strings" unless data.kind_of? Array
     @data = data
@@ -19,7 +41,6 @@ class TextTable
     @data.each { |elt|
       @maxwidth = @maxwidth > elt.length ? @maxwidth : elt.length
     }
-    @maxwidth
     @spalten = (@maxchars/(@maxwidth + 1)).floor
   end
   
@@ -64,7 +85,7 @@ class TextTable
   end
 end
 
-class AFMinfo
+class AFMinfo # :nodoc:
   def initialize (afm)
     @afm = afm
     @uppercase_letters = ('A'..'Z').collect { |l|  l }

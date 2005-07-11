@@ -1,15 +1,38 @@
 #!/usr/bin/env ruby
 #--
-# Last Change: Wed Jul  6 17:09:04 2005
+# Last Change: Mon Jul 11 23:10:24 2005
 #++
-# == afm2tfm using the ruby font installer library
-# This is a re-implementation of afm2tfm that is part of dvips. This
-# does not aim for a 100% compatible output, since that would be too
-# hard to implement. For example, the absence of the <tt>-u</tt>-switch in
-# afm2tfm introduces some randomnes, so we assume that <tt>-u</tt> is
-# always given.
-#
-# Remark: this is not the reimplementation I mentioned at the 35th NTG meeting
+=begin rdoc
+== afm2tfm using the ruby font installer library
+This is a re-implementation of afm2tfm that is part of dvips. This
+does not aim for a 100% compatible output, since that would be too
+hard to implement. For example, the absence of the <tt>-u</tt>-switch in
+afm2tfm introduces some randomnes, so we assume that <tt>-u</tt> is
+always given.
+
+ Usage: afm2tfm.rb [options] FILE[.afm] ... [FILE[.tfm]]
+     -c REAL                          use REAL for height of small caps made with -V [0.8]
+     -e REAL                          widen (extend) characters by a factor of REAL
+     -p ENCFILE                       read/download ENCFILE for the PostScript encoding
+     -s REAL                          oblique (slant) characters by REAL, generally <<1
+     -t ENCFILE                       read ENCFILE for the encoding of the vpl file
+     -T ENCFILE                       equivalent to -p ENCFILE -t ENCFILE
+     -u                               (ignored option)
+     -v FILE[.vpl]                    make a VPL file for conversion to VF
+     -V SCFILE[.vpl]                  like -v, but synthesize smallcaps as lowercase
+         --help                       print this message and exit.
+         --version                    print version number and exit.
+
+---
+Remark: this is not the reimplementation I mentioned at the 35th NTG meeting
+
+Author:: Patrick Gundlach <patrickg@despammed.com>
+License::  Copyright (c) 2005 Patrick Gundlach.
+           Released under the terms of the GNU General Public License
+=end 
+
+
+# :enddoc:
 
 require 'optparse'
 require 'ostruct'
@@ -23,7 +46,7 @@ options=OpenStruct.new
 options.capheight = 0.8
 
 ARGV.options { |opt|
-  opt.banner = "Usage: #{File.basename($0)} FILE[.afm] [options] ... [FILE[.tfm]]"
+  opt.banner = "Usage: #{File.basename($0)} [options] FILE[.afm] ... [FILE[.tfm]]"
   opt.on("-c REAL", Float,
          "use REAL for height of small caps made with -V [0.8]") {|c|
     if c and c >= 0.01
