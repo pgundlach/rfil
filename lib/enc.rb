@@ -1,8 +1,23 @@
 #--
 # enc.rb - read and parse TeX's encoding files
-# Last Change: Thu Jul  7 13:15:39 2005
+# Last Change: Tue Jul 12 01:03:08 2005
 #++
 # See the class ENC for the api description.
+
+require 'strscan'
+require 'set'
+require 'forwardable'
+#require 'delegate'
+
+
+# = ENC -- Access encoding files
+#
+# == General information
+#
+# Read a TeX encoding vector (<tt>.enc</tt>-file) and associated
+# ligkern instructions. The encoding slot are accessible via #[]
+# and #[]=, just like an Array.
+#
 # == Example usage (read an encoding file)
 #  filename = "/opt/tetex/3.0/texmf/fonts/enc/dvips/base/EC.enc"
 #  File.open(filename) { |encfile|
@@ -18,21 +33,20 @@
 #  enc[0]="grave"
 #  ....
 #  enc.update_glyph_index
-
-require 'strscan'
-require 'delegate'
-
+#
+#  # write encoding to <tt>new.enc</tt>
+#  File.open("new.enc") do |f|
+#     f << enc.to_s
+#  end
 #--
 # dont't subclass Array directly, it might be a bad idea. See for
 # example [ruby-talk:147327]
 #++
 
-# Read a TeX encoding vector (<tt>.enc</tt>-file) and associated
-# ligkern instructions. The encoding slot are accessible via [], just
-# like an Array. 
+class ENC # < DelegateClass(Array)
+  extend Forwardable
 
-class ENC < DelegateClass(Array)
-
+  def_delegators(:@encvector, :size, :[],:each, :each_with_index)
   # _encname_ is the PostScript name of the encoding vector.
   attr_accessor :encname
 
@@ -67,25 +81,35 @@ class ENC < DelegateClass(Array)
     else
       @encvector=Array.new(256,".notdef")
     end
-    super(@encvector)
+    # super(@encvector)
   end
 
-  # creates the glyph_index from the encvector. Use this method after
-  # you made changes to the encvector.
-  def update_glyph_index
-    @encvector.each_with_index { |name,i|
-      next if name==".notdef"
-      if @glyph_index[name]
-        @glyph_index[name].push i
-      else
-        @glyph_index[name]=[i]
-      end
-    }
-  end
   def filename=(fn) # :nodoc:
     @filename=File.basename(fn.chomp(".enc")+".enc")
   end
-  
+  # compare encname and array
+  def ==(obj)
+    #    return true
+    return false if obj==nil
+    if obj.instance_of?(ENC)
+      return false unless @encname==obj.encname
+    end
+    
+    0.upto(255) { |i|
+      return false if @encvector[i]!=obj[i]
+    }
+    true
+  end
+  def []=(i,obj)
+    if obj==nil and @encvector[i] != nil
+      @glyph_index.delete(@encvector[i])
+      return obj
+    end
+    
+    @encvector[i]=obj
+    addtoindex(obj,i)
+    return obj
+  end
   # Return a string representation of the encoding that is compatible
   # with dvips and alike
   def to_s
@@ -106,6 +130,24 @@ class ENC < DelegateClass(Array)
   end
 
   private
+
+    # creates the glyph_index from the encvector. Use this method after
+  # you made changes to the encvector.
+  def update_glyph_index
+    @encvector.each_with_index { |name,i|
+      next if name==".notdef"
+      addtoindex(name,i)
+    }
+  end
+
+  def addtoindex(obj,i)
+    return if obj==".notdef"
+    if @glyph_index[obj]
+      @glyph_index[obj].add i
+    else
+      @glyph_index[obj]=Set.new([i])
+    end
+  end
 
   def tok(s)
     unless s.peek(1) == "/"

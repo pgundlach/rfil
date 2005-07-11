@@ -78,7 +78,7 @@ class TestFont < Test::Unit::TestCase
     a[8]="hyphen"
     a[9]="copyright"
     a[10]="c"
-    a.update_glyph_index
+#    a.update_glyph_index
     a.filename="minienc"
     b=ENC.new()
     b.encname="texenc"
@@ -92,7 +92,7 @@ class TestFont < Test::Unit::TestCase
     b[17]="hyphen"
     b[18]="hyphen"
     b[19]="registered"
-    b.update_glyph_index
+#    b.update_glyph_index
     b.filename="minienc2"
 
     font.load_variant("savorg__.afm")
@@ -205,7 +205,7 @@ class TestFont < Test::Unit::TestCase
     a[8]="hyphen"
     a[9]="copyright"
     a[10]="c"
-    a.update_glyph_index
+#    a.update_glyph_index
     a.filename="minienc"
     font.load_variant("savorg__.afm")
     font.mapenc=a
@@ -308,6 +308,7 @@ end
 
     # mapenc can only be 0 or one
     font.mapenc=[@ecenc,@texnansienc]
+    #p font.mapenc.encname
     assert_equal(@ecenc,font.mapenc)
     font.mapenc=nil
     assert_equal(nil,font.mapenc)

@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Sun Jul 10 16:32:55 2005
+# Last Change: Tue Jul 12 00:48:27 2005
 #++
 require 'set'
 
@@ -198,7 +198,8 @@ class Font
       next if char == ".notdef"
       
       # ignore those not in dest 
-      next unless mapenc.glyph_index[char]
+      # next unless mapenc.glyph_index[char]
+      next unless mapenc.glyph_index.include?(char)
 
       # next if this glyph is unknown
       next unless @defaultfm.chars[char]
@@ -250,8 +251,11 @@ class Font
       # map
       mapneeded=(thischar.fontnumber != 0 or (mapenc.glyph_index[char].member?(i)==false))
       if mapneeded
-        #        puts "mapneeded"
-        charentry[:map]=[[:setchar,mapenc.glyph_index[char][0]]]
+        # destchar
+        smallest = mapenc.glyph_index[char].inject { |memo,num|
+          memo < num ? memo : num
+        }
+        charentry[:map]=[[:setchar,smallest]]
       end
       vpl[i]=charentry
     }
