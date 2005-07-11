@@ -61,7 +61,10 @@ class TestPL < Test::Unit::TestCase
     pl[45]=hyphen1
     pl[127]=hyphen2
     pl[1]=hyphen3
-    assert_equal(pl[1][:ligkern],pl[45][:ligkern])
+    # 45 is 1 + :alias
+    assert_equal(pl[1][:ligkern][:krn],pl[45][:ligkern][:krn])
+    assert_equal(pl[1][:ligkern][:lig],pl[45][:ligkern][:lig])
+    assert_equal(Set.new([45]),pl[45][:ligkern][:alias])
     assert_equal(45,pl[1][:ligalias])
     assert_equal(nil,pl[0][:ligkern])
     assert_equal(otherchar,pl[0])
@@ -253,7 +256,7 @@ class TestPL < Test::Unit::TestCase
    (LIG D 4 D 50)
    (STOP)
    (LABEL O 7)
-   (LABEL O 10)
+   (LABEL D 8)
    (KRN O 34 R -33)
    (KRN C Y R -85)
    (KRN C y R -42.5)
@@ -324,16 +327,23 @@ class TestPL < Test::Unit::TestCase
     assert_equal([[28, -33.0], [89, -85.0], [121, -42.5]],pl[8][:ligkern][:krn])
     assert_equal(nil,pl[7][:ligkern][:lig])
     assert_equal(nil,pl[8][:ligkern][:lig])
+    assert_equal(Set.new([8]), pl[7][:ligkern][:alias])
+    assert_equal(7,pl[8][:ligalias])
 
     assert_equal([l1],pl[9][:ligkern][:lig])
     assert_equal([l1],pl[10][:ligkern][:lig])
     assert_equal([[1, 1.0], [89, -2.0], [121, 3.0]],pl[9][:ligkern][:krn])
     assert_equal([[1, 1.0], [89, -2.0], [121, 3.0]],pl[10][:ligkern][:krn])
+    assert_equal(Set.new([10]), pl[9][:ligkern][:alias])
+    assert_equal(9,pl[10][:ligalias])
 
+    
     assert_equal([l2],pl[11][:ligkern][:lig])
     assert_equal([l2],pl[12][:ligkern][:lig])
     assert_equal(nil,pl[11][:ligkern][:krn])
     assert_equal(nil,pl[12][:ligkern][:krn])
-  end
+    assert_equal(Set.new([12]), pl[11][:ligkern][:alias])
+    assert_equal(11,pl[12][:ligalias])
+end
 
 end
