@@ -1,5 +1,5 @@
 # fontmetric.rb - superclass for different font metric formats
-# Last Change: Fri Jul  8 17:04:39 2005
+# Last Change: Mon Jul 11 22:51:19 2005
 
 # FontMetric is the superclass for font metrics. All information that
 # is not specific to a certain kind of file format is accessible via
@@ -8,6 +8,9 @@
 require 'rfi'
 
 class FontMetric
+  # to make Rdoc and Ruby happy: [ruby-talk:147778]
+  def self.documented_as_accessor(*args); end
+  def self.documented_as_reader(*args); end
 
   # Hash of glyphs in the font. 
   attr_accessor :chars
@@ -19,7 +22,7 @@ class FontMetric
   # to be put into the pdf-file). The .tt or the .pfb file. If unset
   # use the value of filename, but changed to the correct extension in
   # case of Type 1 fonts.
-  attr_accessor :fontfilename
+  documented_as_accessor :fontfilename
 
   # Some unique name of the font. Use the filename of the font or a
   # name after the KB naming schema. Do not add an extension such as
@@ -35,7 +38,7 @@ class FontMetric
   attr_accessor :weight
 
   # natural width of a space
-  attr_reader :space
+  documented_as_reader :space
   
   attr_accessor :italicangle
 
