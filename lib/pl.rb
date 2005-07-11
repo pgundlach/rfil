@@ -1,6 +1,6 @@
 #--
 # pl.rb - TeX Property List accessor class
-# Last Change: Mon Jul 11 20:29:02 2005
+# Last Change: Mon Jul 11 23:21:55 2005
 #++
 # See the PL class for a detailed description on its usage.
 
@@ -189,8 +189,11 @@ class PL
         obj[:krn].each { |elt|
           tmp[:krn].push(elt.dup)
         }
-        @h=tmp
       end
+      if obj[:alias]
+        tmp[:alias]=obj[:alias].dup
+      end
+      @h=tmp
     end
     # Compare this object to another object of the same class.
     def ==(obj)
