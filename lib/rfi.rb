@@ -1,11 +1,13 @@
 # rfi.rb -- general use classes
-#
-# Last Change: Mon Jul 11 20:30:24 2005
-
+#--
+# Last Change: Mon Jul 11 23:36:17 2005
+#++
+# = RFI
+# Everything that does not fit somewhere else gets included in the
+# wrapper class RFI.
 
 # This class contains methods and other classes that are pretty much
 # useless of their own or are accessed in different classes.
-
 
 class RFI
 
@@ -34,8 +36,9 @@ class RFI
   # (outlines) itself.
   class Char
     # to make Rdoc and Ruby happy: [ruby-talk:147778]
-    def self.documented_as_accessor(*args); end
-
+    def self.documented_as_accessor(*args) #:nodoc:
+    end
+    
     # Glyphname
     attr_accessor :name
 
@@ -490,17 +493,5 @@ class RFI
         end
       }
     end # fix_height
-
   end # class Glyphlist
-end
-
-
-__END__
-    # Return true if the char has ligature or kerning information
-    # attached to it.
-    # (It looks as if this method is not used. --> *REMOVE*!)
-    def has_ligkern? (char)
-      raise "Unknown glyph:" + char unless self[char]
-      not (self[char].lig_data == {} and self[char].kern_data=={})
-    end
-    
+end # class RFI
