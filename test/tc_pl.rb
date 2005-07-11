@@ -1,9 +1,10 @@
-#!/opt/ruby/1.8/bin/ruby
+#!/opt/ruby/1.8/bin/ruby 
 
 require 'test/unit'
 
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
+require 'pp'
 require 'pl'
 require 'plparser'
 
@@ -238,17 +239,34 @@ class TestPL < Test::Unit::TestCase
     pl=PL.new
     pl.parse("(LIGTABLE
    (LABEL O 4)
-   (KRN O 34 R -33) (comment fi)
+   (KRN O 34 R -33)
    (KRN C Y R -85)
    (KRN C y R -42.5)
    (STOP)
    (LABEL O 5)
    (LIG D 4 D 99)
-   (KRN O 1 R 1) (comment fi)
+   (KRN O 1 R 1)
    (KRN C Y R -2)
    (KRN C y R 3)
    (STOP)
    (LABEL O 6)
+   (LIG D 4 D 50)
+   (STOP)
+   (LABEL O 7)
+   (LABEL O 10)
+   (KRN O 34 R -33)
+   (KRN C Y R -85)
+   (KRN C y R -42.5)
+   (STOP)
+   (LABEL O 11)
+   (LABEL O 12)
+   (LIG D 4 D 99)
+   (KRN O 1 R 1)
+   (KRN C Y R -2)
+   (KRN C y R 3)
+   (STOP)
+   (LABEL O 13)
+   (LABEL O 14)
    (LIG D 4 D 50)
    (STOP)
 )
@@ -264,16 +282,58 @@ class TestPL < Test::Unit::TestCase
    (CHARWD R 30)
    (CHARHT R 40)
    )
+(CHARACTER O 7
+   (CHARWD R 30)
+   (CHARHT R 40)
+   )
+(CHARACTER O 10
+   (CHARWD R 30)
+   (CHARHT R 40)
+   )
+(CHARACTER O 11
+   (CHARWD R 30)
+   (CHARHT R 40)
+   )
+(CHARACTER O 12
+   (CHARWD R 30)
+   (CHARHT R 40)
+   )
+(CHARACTER O 13
+   (CHARWD R 30)
+   (CHARHT R 40)
+   )
+(CHARACTER O 14
+   (CHARWD R 30)
+   (CHARHT R 40)
+   )
 ")
+    l1=RFI::LIG.new(5,4,99,:lig)
+    l2=RFI::LIG.new(6,4,50,:lig)
+    # different combinations: 1: kern only, 2: lig and kern, 3: lig only
     assert_equal([[28, -33.0], [89, -85.0], [121, -42.5]],pl[4][:ligkern][:krn])
     assert_equal(nil,pl[4][:ligkern][:lig])
 
-    assert_equal([RFI::LIG.new(5,4,99,:lig)],pl[5][:ligkern][:lig])
+    assert_equal([l1],pl[5][:ligkern][:lig])
     assert_equal([[1, 1.0], [89, -2.0], [121, 3.0]],pl[5][:ligkern][:krn])
 
-    assert_equal([RFI::LIG.new(6,4,50,:lig)],pl[6][:ligkern][:lig])
+    assert_equal([l2],pl[6][:ligkern][:lig])
     assert_equal(nil,pl[6][:ligkern][:krn])
-      
+
+    # now with aliases
+    assert_equal([[28, -33.0], [89, -85.0], [121, -42.5]],pl[7][:ligkern][:krn])
+    assert_equal([[28, -33.0], [89, -85.0], [121, -42.5]],pl[8][:ligkern][:krn])
+    assert_equal(nil,pl[7][:ligkern][:lig])
+    assert_equal(nil,pl[8][:ligkern][:lig])
+
+    assert_equal([l1],pl[9][:ligkern][:lig])
+    assert_equal([l1],pl[10][:ligkern][:lig])
+    assert_equal([[1, 1.0], [89, -2.0], [121, 3.0]],pl[9][:ligkern][:krn])
+    assert_equal([[1, 1.0], [89, -2.0], [121, 3.0]],pl[10][:ligkern][:krn])
+
+    assert_equal([l2],pl[11][:ligkern][:lig])
+    assert_equal([l2],pl[12][:ligkern][:lig])
+    assert_equal(nil,pl[11][:ligkern][:krn])
+    assert_equal(nil,pl[12][:ligkern][:krn])
   end
 
 end

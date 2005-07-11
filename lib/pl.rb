@@ -1,6 +1,6 @@
 #--
 # pl.rb - TeX Property List accessor class
-# Last Change: Mon Jul 11 00:11:55 2005
+# Last Change: Mon Jul 11 20:29:02 2005
 #++
 # See the PL class for a detailed description on its usage.
 
@@ -164,19 +164,19 @@ class PL
   end # class node
 
   require 'forwardable'
-  
+
+  # Stores information about kerning and ligature information. Allows
+  # deep copy of ligature and kerning information.
   class LigKern
     extend Forwardable
+    # Optional parameter initializes the new LigKern object.
     def initialize(h={})
       @h=h
     end
-    def_delegators(:@h, :each)
-    def_delegators(:@h, :each_key)
-    def_delegators(:@h, :[])
-    def_delegators(:@h, :[]=)
-    def_delegators(:@h, :has_key?)
     
-    def initialize_copy(obj)
+    def_delegators(:@h, :each, :[], :[]=,:each_key,:has_key?)
+    
+    def initialize_copy(obj) # :nodoc:
       tmp={}
       if obj[:lig]
         tmp[:lig]=Array.new
@@ -192,6 +192,7 @@ class PL
         @h=tmp
       end
     end
+    # Compare this object to another object of the same class.
     def ==(obj)
       obj.each { |key,value|
         return false unless @h[key]==value
@@ -199,38 +200,47 @@ class PL
       true
     end
   end
-  
 
+  # to make Rdoc and Ruby happy: [ruby-talk:147778]
+  def self.documented_as_accessor(*args); end
+   
   # The scale factor for most of the numbers in the property list.
   # One em is divided into _designunits_ units.
-  attr_accessor :designunits
+  documented_as_accessor :designunits
 
   # The top plist of the property list. Do not use this in your
   # program, unless you know what you do. Messing with it will not
   # affect the internal cache.
   attr_accessor :plist
+
+  # Internal ligkern cache. Dont't mess with it unless you know what
+  # you are doing. 
+  attr_reader :ligs
+
+  # Internal char hash. Don't touch.
+  attr_reader :chars
   
   # The family entry for the vf (used??)
-  attr_accessor :family
+  documented_as_accessor :family
 
   # The vtitle entry for the vf 
-  attr_accessor :vtitle
+  documented_as_accessor :vtitle
 
   # the codingscheme of the pl
-  attr_accessor :codingscheme
+  documented_as_accessor :codingscheme
 
   # the designsize
-  attr_accessor :designsize
+  documented_as_accessor :designsize
 
   # Array of the mapfont section in the vpl. Each element is a hash
   # where key is :fontname and alike and each value is, guess what,
   # the value of that node.
-  attr_accessor :mapfont
+  documented_as_accessor :mapfont
 
   # The fondimen section. This is a hash where the keys are one of
   # :slant,:space,:stretch,:shrink,:xheight,:quad,:extraspace. The
   # values are numbers.
-  attr_accessor :fontdimen
+  documented_as_accessor :fontdimen
   
   # A hash where each key is the index of the glyph (encoding
   # specific!) and the value is an array of two arrays: a kern and a
@@ -240,8 +250,8 @@ class PL
   # first element denotes the next glyph and the second the
   # resulting glyph. Note that the lig array will change and use LIG
   # elements to handle more complex ligatures.
-  attr_accessor :ligtable
-  
+  documented_as_accessor :ligtable
+
   # If <em>is_vpl</em> is set to true, we assume that a virtual
   # property list for a virtual font should be generated.
   def initialize(is_vpl=false)
@@ -250,9 +260,9 @@ class PL
     @chars=Array.new(256)
     @ligs=Array.new(256)
   end
-
   # Return a hash 
   def [] (i)
+    
     return nil unless @chars[i]
     ret={}
     [:comment,:charwd,:charht,:charic,:chardp,:map].each { |sym|
@@ -264,17 +274,24 @@ class PL
     ret[:ligkern]=LigKern.new
     case @ligs[i]
     when Fixnum
+      # n is now the slot where the real ligs are defined
       n=@ligs[i]
-      # look at other slot
+
+      # Tell the user that we give him some other ligkern informatio
       ret[:ligalias]=n
-      # Alias
-      newligs=@ligs[n][:lig].collect { |lig|
-        newlig=RFI::LIG.new(lig)
-        newlig.left=i
-        newlig
-      }
-      ret[:ligkern][:lig]=newligs
-      ret[:ligkern][:krn]=@ligs[n][:krn].dup
+
+      # return the ligs and kern from the 'real' slot (if present)
+      if @ligs[n][:lig]
+        newligs=@ligs[n][:lig].collect { |lig|
+          newlig=RFI::LIG.new(lig)
+          newlig.left=i
+          newlig
+        }
+        ret[:ligkern][:lig]=newligs
+      end
+      if @ligs[n][:krn]
+        ret[:ligkern][:krn]=@ligs[n][:krn].dup
+      end
     when LigKern
       ret[:ligkern]=@ligs[i].dup
     else
@@ -539,7 +556,6 @@ class PL
     return ret
   end
  
-
 
   private
 
@@ -643,64 +659,3 @@ class PL
 
 end
 __END__
-  # Return a hash 
-  def [] (i)
-    return nil unless @chars[i]
-    ret={}
-    [:comment,:charwd,:charht,:charic,:chardp,:map].each { |sym|
-      if @chars[i][sym]
-        ret[sym] = @chars[i][sym]
-      end
-    }
-    return ret unless @ligs[i]
-    ret[:ligkern]=LigKern.new
-    case @ligs[i]
-    when Fixnum
-      n=@ligs[i]
-      # look at other slot
-      ret[:ligalias]=n
-      # Alias
-      newligs=@ligs[n][:lig].collect { |lig|
-        newlig=RFI::LIG.new(lig)
-        newlig.left=i
-        newlig
-      }
-      ret[:ligkern][:lig]=newligs
-      ret[:ligkern][:krn]=@ligs[n][:krn].dup
-    when LigKern
-      ret[:ligkern]=@ligs[i].dup
-    else
-      raise "unknown class:" + @ligs[i].class.to_s
-    end
-    return ret
-#     unless  ret[:ligkern]
-#       ret[:ligkern]=LigKern.new()
-#     end
-#     # p @ligs[i][:lig]
-#     case @ligs[i][:lig]
-#     when Fixnum
-#       p "fixnum #{@ligs[i][:lig]}"
-#       n=@ligs[i]
-#       # look at other slot
-#       ret[:ligalias]=n
-#       # change the left side in lig
-#       newligs=@ligs[n][:lig].collect { |lig|
-#         newlig=RFI::LIG.new(lig)
-#         newlig.left=i
-#         newlig
-#       }
-#       @ligs[n][:lig]=newligs
-#       ret[:ligkern]=@ligs[n]
-#     when Hash
-#       ligentry=i
-#     when nil
-#       # ignore
-#     when Array
-#       #pp @ligs[i][:lig]
-#       ret[:ligkern][:lig]=@ligs[i][:lig].dup
-#     else
-#       raise "Unknown type for @ligs[#{i}]"
-#     end
-#     ret[:ligkern][:krn]=@ligs[i][:krn]
-#     return ret
-  end
