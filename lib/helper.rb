@@ -1,9 +1,12 @@
+#--
 # helper.rb Last Change: Fri Jul  1 14:29:09 2005
+#++
+# Helper module for Font and FontCollection.
 
-# Module helper.
+# Here we define methods that are used in Font and FontCollection. 
 
-module Helper # :nodoc:
-  def set_encarray(enc,where)
+module Helper
+  def set_encarray(enc,where) #:nodoc:
     if enc.instance_of?(ENC)
       where.push(enc)
     else
@@ -19,7 +22,7 @@ module Helper # :nodoc:
       }
     end
   end
-  def set_mapenc(enc)
+  def set_mapenc(enc) # :nodoc:
     @mapenc=nil
     
     # nil is perfectly valid
@@ -40,6 +43,16 @@ module Helper # :nodoc:
       }
     end
   end
+  # call-seq:
+  #   set_dirs(string)
+  #   set_dirs(hash)
+  #
+  # Set the base dir of all font related files. Acts only as a storage
+  # for the information. The automatic font installation method in
+  # Font#write_files uses this information. When a _string_ is passed,
+  # use this as the base dir for all files, when a hash is given, the
+  # keys must be one of <tt>:afm</tt>, <tt>:tfm</tt>, <tt>:vpl</tt>,
+  # <tt>:vf</tt>, <tt>:pl</tt>, <tt>:map</tt>, <tt>:pfb</tt>.
   def set_dirs(arg)
     if arg.instance_of? String
       [:afm, :tfm, :vpl, :vf, :pl, :map, :pfb].each { |sym|
@@ -51,7 +64,7 @@ module Helper # :nodoc:
       }
     end
   end
-  def ensure_dir(dirname)
+  def ensure_dir(dirname) # :nodoc:
     if File.exists?(dirname)
       if File.directory?(dirname)
         # nothing to do
@@ -64,6 +77,4 @@ module Helper # :nodoc:
       Dir.mkdir(dirname)
     end
   end
-    # You can set only one .map-encoding
-  
 end
