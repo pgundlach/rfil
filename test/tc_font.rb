@@ -278,15 +278,15 @@ class TestFont < Test::Unit::TestCase
       assert_equal(ce[i],charentry)
     }
     assert_equal(ce.size,count)
-    assert_equal(["minienc-savorg__-orig Savoy-Regular <minienc.enc <savorg__.pfb\n"], font.maplines)
+    assert_equal(["minienc-savorg__-orig Savoy-Regular \"mapenc ReEncodeFont\" <minienc.enc <savorg__.pfb\n"], font.maplines)
     font.texenc=[@ecenc,@texnansienc]
     font.mapenc=nil
     fontmaplines=font.maplines
-    mapline=["texnansi-savorg__-orig Savoy-Regular <texnansi.enc <savorg__.pfb\n",
-      "ec-savorg__-orig Savoy-Regular <EC.enc <savorg__.pfb\n"]
+    mapline=["texnansi-savorg__-orig Savoy-Regular \"TeXnANSIEncoding ReEncodeFont\" <texnansi.enc <savorg__.pfb\n",
+      "ec-savorg__-orig Savoy-Regular \"ECEncoding ReEncodeFont\" <EC.enc <savorg__.pfb\n"]
     assert_equal(mapline.size,fontmaplines.size)
     fontmaplines.each { |fm|
-      assert(mapline.member?(fm))
+      assert(mapline.member?(fm), "#{fm} is not recognized")
     }
 end
   
