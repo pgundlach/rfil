@@ -1,12 +1,18 @@
 #!/usr/bin/env ruby -w
 #--
-# Last Change: Mon Jul 11 23:17:06 2005
+# Last Change: Tue Jul 12 18:11:12 2005
 #++
 =begin rdoc
 
 == pldiff -- show the differences between two (v)pl files.
-This is very imcomplete yet.
 
+  Usage: pldiff [options] file file
+  file can be tfm, pl, vpl or vf files.
+      -d, --delta DELTA                Don't report differences whithin +/- DELTA percent
+      -c, --ignore-comments            ignore comments
+  
+      -h, --help                       Show this help
+  
 
 ---
 Author:: Patrick Gundlach <patrickg@despammed.com>
@@ -20,8 +26,6 @@ License::  Copyright (c) 2005 Patrick Gundlach.
 require 'optparse'
 require 'ostruct'
 
-require 'pp'
-
 # $: is the ruby input path - add the lib/ subdir
 $:.unshift File.join(File.dirname(__FILE__),"..","lib")
 
@@ -32,6 +36,17 @@ def plopen(filename)
   case filename
   when /\.tfm$/
     return `tftopl #{filename}`
+  when /\.vf$/
+    # bug in vftpl:
+    # change to that dir first
+    currentdir=Dir.getwd
+    dirname=File.dirname(filename)
+    Dir.chdir(dirname)
+    fn=File.basename(filename)
+    run="vftovp #{fn} #{fn.chomp("vf")}tfm"
+    pl=`#{run}`
+    Dir.chdir(currentdir)
+    return pl
   when /\.v?pl$/
     str=nil
     File.open(filename) { |f|
@@ -44,19 +59,29 @@ def plopen(filename)
   end
 end
 
-@options=OpenStruct.new
+options=OpenStruct.new
 
-ARGV.options { |opt|
-  opt.banner = "Usage: #{File.basename($0)} [options] tfmfile1.(pl|tfm) tfmfile1.(pl|tfm) "
-  #opt.on("--list-chars", "-l", "list all available characters") {
-  #  @options.listchars=true }
-  opt.on("--help", "-h", "Show this help") { puts opt; exit 0 }
-  opt.separator  ""
-  opt.parse!
+ARGV.options { |opts|
+  opts.banner = "Usage: #{File.basename($0)} [options] file file"
+  opts.separator "file can be tfm, pl, vpl or vf files."
+  
+  opts.on_tail("--help", "-h", "Show this help") { puts opts; exit 0 }
+  opts.on("--delta","-d DELTA", Float,
+         "Don't report differences whithin +/- DELTA percent") { |d|
+    options.delta=d
+  }
+  opts.on("--ignore-comments", "-c", "ignore comments") { |i|
+    options.ignore=true
+  }
+  opts.on("--skip-characters", "-s", "only look at fontdimen and main data") {|s|
+    options.skip=true
+  }
+  opts.separator  ""
+  opts.parse!
 }
 
-ARGV.push("test/file1.pl")
-ARGV.push("test/file2.pl")
+#ARGV.push("test/file1.pl")
+#ARGV.push("test/file2.pl")
 
 if ARGV.size != 2
   puts "#{File.basename($0)}: Need exactly two file arguments."
@@ -70,45 +95,87 @@ p1.parse(plopen(ARGV[0]))
 p2 = PL.new
 p2.parse(plopen(ARGV[1]))
 
-[:family,:codingscheme,:designunits,:designsize].each { |sym|
+d1= p1.designunits ? 1000.0/p1.designunits : 1000.0
+d2= p2.designunits ? 1000.0/p2.designunits : 1000.0
+
+if d1!=d2
+  puts "designunits differ: #{1000/d1} vs. #{1000/d2}"
+end
+
+percent = options.delta ? options.delta/50.0 : 0
+
+[:family,:codingscheme,:designsize].each { |sym|
   if p1.send(sym) != p2.send(sym)
     puts "#{sym} differ: #{p1.send(sym)} vs #{p2.send(sym)}"
   end
 }
+
+
 # fontdimen
-if (a = p1.fontdimen) != (b= p2.fontdimen)
+fd1 = p1.fontdimen
+fd2 = p2.fontdimen
+str = ""
+[:space, :stretch, :shrink, :xheight, :quad, :slant, :extraspace].each { |dim|
+  next if fd1[dim] == fd2[dim]
+  if fd1[dim]==nil 
+    str << "Difference in #{dim}: nil vs. #{fd2[dim]}" << "\n"
+  elsif fd2[dim]==nil
+    str << "Difference in #{dim}: #{fd2[dim]} vs. nil" << "\n"
+  elsif (fd1[dim] * d1 - fd2[dim] * d2).abs > fd1[dim] * d1 * percent
+    str << "Difference in #{dim}: #{fd1[dim]*d1} vs. #{fd2[dim]*d2}" << "\n" 
+  end
+}
+if str.size > 0
   puts "--------------------"
   puts "fondimen difference:"
-  [:space, :stretch, :shrink, :xheight, :quad, :slant, :extraspace].each { |dim|
-    if a[dim] !=  b[dim]
-      puts "Difference in #{dim}: #{a[dim]} vs. #{b[dim]}" 
-    end
-  }
+  puts str
   puts "--------------------"
 end
 
-puts "Character entries:"
-puts "------------------"
+exit if options.skip==true
+str= ""
 0.upto(255) do |i|
-  # puts "at char: #{i}"
   a=p1[i]
   b=p2[i]
-  if a != b
-    
-    puts "#{i}:"
+  next if a==b
+  # puts "at char: #{i}"
+  if p1[i]==nil
+    str << "#{i}: no character at this slot in font 1" << "\n"
+  elsif p2[i]==nil
+    str << "#{i}: no character at this slot in font 2" << "\n"
+  else
+    chr=""
     [:charwd, :charht, :chardp, :charic].each { |dim|
-      if a[dim] !=  b[dim]
-        puts "  Difference in #{dim}: #{a[dim]} vs. #{b[dim]}" 
+      next if a[dim]==b[dim]
+      if a[dim]==nil 
+        chr << "  Difference in #{dim}: nil vs. #{b[dim]}" << "\n"
+      elsif b[dim]==nil
+        chr << "  Difference in #{dim}: #{b[dim]} vs. nil" << "\n"
+      elsif (a[dim] * d1 - b[dim] * d2).abs > a[dim] * d1 *percent
+        chr << "  Difference in #{dim}: #{a[dim]*d1} vs. #{b[dim]*d2}" << "\n"
       end
     }
     if a[:lig] != b[:lig]
-      puts "  Difference in lig information"
+      chr << "  Difference in lig information"  << "\n"
     end
     if a[:krn] != b[:krn]
-      puts "  Difference in kern information"
+      chr << "  Difference in kern information" << "\n"
     end
-    if a[:comment] != b[:comment]
-      puts "  Difference in comment"
+    if ( a[:comment] != b[:comment] ) and ( options.ignore != true)
+      chr << "  Difference in comment" << "\n"
+      chr << a[:comment].to_s
+      chr << "\nvs.\n"
+      chr << b[:comment].to_s
+      chr << "\n"
+    end
+    if chr.length > 0
+      str << "#{i}:"  << "\n"
+      str << chr
     end
   end
+end
+if str.length > 0
+  puts "Character entries:"
+  puts  "------------------"
+  puts str
 end
