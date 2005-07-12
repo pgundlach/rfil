@@ -1,13 +1,12 @@
 #--
 # enc.rb - read and parse TeX's encoding files
-# Last Change: Tue Jul 12 01:03:08 2005
+# Last Change: Tue Jul 12 12:18:53 2005
 #++
 # See the class ENC for the api description.
 
 require 'strscan'
 require 'set'
 require 'forwardable'
-#require 'delegate'
 
 
 # = ENC -- Access encoding files
@@ -15,10 +14,12 @@ require 'forwardable'
 # == General information
 #
 # Read a TeX encoding vector (<tt>.enc</tt>-file) and associated
-# ligkern instructions. The encoding slot are accessible via #[]
-# and #[]=, just like an Array.
+# ligkern instructions. The encoding slot are accessible via <em>[]</em>
+# and <em>[]=</em>, just like an Array.
 #
-# == Example usage (read an encoding file)
+# == Example usage
+#
+# === Read an encoding file
 #  filename = "/opt/tetex/3.0/texmf/fonts/enc/dvips/base/EC.enc"
 #  File.open(filename) { |encfile|
 #     enc=ENC.new(encfile)
@@ -27,17 +28,19 @@ require 'forwardable'
 #     enc.filename  # => "EC.enc"
 #     enc.ligkern_instructions  # => ["space l =: lslash","space L =: Lslash",... ]
 #  }
-# == Create an encoding
+# === Create an encoding
 #  enc=ENC.new
 #  enc.encname="Exampleenc"
 #  enc[0]="grave"
+#  # all undefined slots are ".notdef"
 #  ....
-#  enc.update_glyph_index
 #
 #  # write encoding to <tt>new.enc</tt>
 #  File.open("new.enc") do |f|
 #     f << enc.to_s
 #  end
+# ---
+# Remark: This interface is pretty much fixed.
 #--
 # dont't subclass Array directly, it might be a bad idea. See for
 # example [ruby-talk:147327]
@@ -56,9 +59,11 @@ class ENC # < DelegateClass(Array)
   # "* {} space"
   attr_accessor :ligkern_instructions
 
-  # hash: key is glyph name, value is array of indexes
-  # example: glyph_index['hyphen']=[45,127] in ec.enc
-  attr_accessor :glyph_index
+  # Hash: key is glyph name, value is a Set of indexes. 
+  # Example: glyph_index['hyphen']=#<Set: {45, 127}> in
+  # <tt>ec.enc</tt>. Automatically updated when changing the encoding
+  # vector via <em>[]=</em>.
+  attr_reader :glyph_index
 
   # Filename of the encoding vector. Used for creating mapfile
   # entries. Always ends with ".enc" if read (unless it is unset).
@@ -87,9 +92,10 @@ class ENC # < DelegateClass(Array)
   def filename=(fn) # :nodoc:
     @filename=File.basename(fn.chomp(".enc")+".enc")
   end
-  # compare encname and array
+
+  # Return true if the encoding name and the encoding Array are the
+  # same. If _obj_ is an Array, only compare the Array elements.
   def ==(obj)
-    #    return true
     return false if obj==nil
     if obj.instance_of?(ENC)
       return false unless @encname==obj.encname
@@ -100,7 +106,9 @@ class ENC # < DelegateClass(Array)
     }
     true
   end
-  def []=(i,obj)
+
+  # also updates the glyph_index
+  def []=(i,obj) # :nodoc:
     if obj==nil and @encvector[i] != nil
       @glyph_index.delete(@encvector[i])
       return obj
@@ -110,8 +118,9 @@ class ENC # < DelegateClass(Array)
     addtoindex(obj,i)
     return obj
   end
+  
   # Return a string representation of the encoding that is compatible
-  # with dvips and alike
+  # with dvips and alike.
   def to_s
     str = ""
     @ligkern_instructions.each { |instr|
@@ -128,10 +137,12 @@ class ENC # < DelegateClass(Array)
     str << "] def\n"
     str
   end
-
+  
+  #######
   private
+  #######
 
-    # creates the glyph_index from the encvector. Use this method after
+  # creates the glyph_index from the encvector. Use this method after
   # you made changes to the encvector.
   def update_glyph_index
     @encvector.each_with_index { |name,i|
@@ -140,21 +151,25 @@ class ENC # < DelegateClass(Array)
     }
   end
 
-  def addtoindex(obj,i)
-    return if obj==".notdef"
-    if @glyph_index[obj]
-      @glyph_index[obj].add i
+  # Adds position i to glyph_index for glyph _glyph_.
+  def addtoindex(glyph,i)
+    return if glyph==".notdef"
+    if @glyph_index[glyph]
+      @glyph_index[glyph].add i
     else
-      @glyph_index[obj]=Set.new([i])
+      @glyph_index[glyph]=Set.new().add(i)
     end
   end
 
+  # return the next postscript element (e.g. /name or [ )
   def tok(s)
     unless s.peek(1) == "/"
       s.skip_until(/[^\/\[\]]+/) # not '/' '[' or ']'
     end
     s.scan(/(?:\/\.?\w+|\[|\])/)
   end
+
+  # fill Array with contents of string. 
   def parse(str)
     count=0
     s=StringScanner.new(str)
