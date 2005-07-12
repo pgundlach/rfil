@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #--
-# Last Change: Mon Jul 11 23:10:24 2005
+# Last Change: Tue Jul 12 17:50:39 2005
 #++
 =begin rdoc
 == afm2tfm using the ruby font installer library
@@ -17,7 +17,6 @@ always given.
      -s REAL                          oblique (slant) characters by REAL, generally <<1
      -t ENCFILE                       read ENCFILE for the encoding of the vpl file
      -T ENCFILE                       equivalent to -p ENCFILE -t ENCFILE
-     -u                               (ignored option)
      -v FILE[.vpl]                    make a VPL file for conversion to VF
      -V SCFILE[.vpl]                  like -v, but synthesize smallcaps as lowercase
          --help                       print this message and exit.
@@ -56,6 +55,14 @@ ARGV.options { |opt|
       exit -1
     end
   }
+  opt.on("-d DIRNAME", String, "Set the base output directory to DIRNAME") {|d|
+    if File.exists?(d) and File.directory?(d)
+      options.dirname=d
+    else
+      puts "! #{d} does not exist or is not a directory"
+      exit -1
+    end
+  }
   opt.on("-e REAL", Float, "widen (extend) characters by a factor of REAL") {|e|
     # this test should be in class AFM
     if e and e >= 0.01
@@ -88,14 +95,7 @@ ARGV.options { |opt|
     options.mapenc  = e
     options.texenc = e
   }
-  # the -u behaviour is not copied verbatim. afm2tfm introduces some
-  # randomness: for example, when going '-t ec -p 8r': O 200 (Abreve)
-  # is not in 8r encoding, so it could do O 200 -> O 200 (Euro), but
-  # assume that this is not in the font. afm2tfm does now O 200 -> O 4
-  # (fraction), for whatever reason. If fraction is not in the font,
-  # afm2tfm does O 200 -> O 252 (ordfeminine). Why? Because.
-  opt.on("-u","(ignored option)")
-  opt.on("-v FILE[.vpl]", String, "make a VPL file for conversion to VF") { |v|
+  opt.on("-v FILE[.vpl]", String, "make a VF file") { |v|
     options.vffile=v
   }
   opt.on("-V SCFILE[.vpl]","like -v, but synthesize smallcaps as lowercase") { |v|
@@ -126,7 +126,17 @@ end
 
 inputfile=(options.inputfilename.chomp(".afm") + ".afm")
 font = Font.new
-font.load_variant(inputfile)
+
+if options.dirname
+  font.set_dirs(options.dirname)
+end
+                
+begin
+  font.load_variant(inputfile)
+rescue Errno::ENOENT
+  puts "! Cannot find file #{inputfile}"
+  exit -1
+end
 
 
 font.texenc=options.texenc || "8a.enc"
