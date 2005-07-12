@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Tue Jul 12 00:48:27 2005
+# Last Change: Wed Jul 13 00:26:10 2005
 #++
 require 'set'
 
@@ -123,6 +123,7 @@ class Font
     pl=PL.new(false)
     pl.family=@defaultfm.familyname
     pl.codingscheme=enc.encname
+#    p pl.codingscheme
     pl.designsize=10.0
     pl.designunits=1000
 
@@ -165,13 +166,16 @@ class Font
     vpl.vtitle="Installed with rfi library"
     vpl.add_comment(" Please edit that VTITLE if you edit this file")
     vpl.family=@defaultfm.familyname
-    vpl.codingscheme=mapenc.encname + " + " + texenc.encname
+    vpl.codingscheme= if mapenc.encname != texenc.encname
+                        mapenc.encname + " + " + texenc.encname
+                      else
+                        mapenc.encname
+                      end
     vpl.designsize=10.0
     vpl.designunits=1000
     fm=@defaultfm
     fd={}
     fd[:slant]=fm.slantfactor - fm.efactor * Math::tan(fm.italicangle * Math::PI / 180.0)
-    
     fd[:space]=fm.space
     fd[:stretch]=fm.isfixedpitch ? 0 : fm.transform(200,0)
     fd[:shrink]=fm.isfixedpitch ? 0 : fm.transform(100,0)
@@ -249,7 +253,8 @@ class Font
       }
 
       # map
-      mapneeded=(thischar.fontnumber != 0 or (mapenc.glyph_index[char].member?(i)==false))
+      mapneeded=(thischar.fontnumber != 0 or
+                   (mapenc.glyph_index[char].member?(i)==false))
       if mapneeded
         # destchar
         smallest = mapenc.glyph_index[char].inject { |memo,num|
@@ -292,8 +297,11 @@ class Font
     encodings.each { |te|
       fontsused.each { |f|
         str=map_fontname(te,f)
-        str << " #{@variants[f].fontname}"
-        str << " <#{te.filename}" unless te.filename == "8a.enc"
+        str << " #{@variants[f].fontname} "
+        unless te.filename == "8a.enc"
+          str << "\"#{te.encname} ReEncodeFont\""
+          str << " <#{te.filename}"
+        end
         str << " <#{@variants[f].fontfilename}"
         str << "\n"
         ret.push str 
