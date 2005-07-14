@@ -1,6 +1,6 @@
 # rfi.rb -- general use classes
 #--
-# Last Change: Mon Jul 11 23:36:17 2005
+# Last Change: Wed Jul 13 20:57:53 2005
 #++
 # = RFI
 # Everything that does not fit somewhere else gets included in the
@@ -79,7 +79,8 @@ class RFI
     # fontnumber is used in Font class
     attr_accessor :fontnumber
 
-    # mapto is glyphname that should be used instead of this one
+    # If not nil, _mapto_ is the glyphname that should be used instead
+    # of the current one.
     attr_accessor :mapto
     
     # the name of the uppercase glyph (nil if there is no uppercase glyph)
@@ -232,6 +233,11 @@ class RFI
 
   # Represent the different ligatures possible in tfm.
   class LIG
+    
+    @@encligops = ["=:", "|=:", "|=:>", "=:|", "=:|>", "|=:|", "|=:|>", "|=:|>>"]
+    @@vpligops = ["LIG", "/LIG", "/LIG>", "LIG/", "LIG/>", "/LIG/",
+      "/LIG/>", "/LIG/>>"]
+
     # First glyph of a two glyph sequence before it is turned into a
     # ligature.
     attr_accessor :left
@@ -250,6 +256,8 @@ class RFI
     # <tt>[LIG, /LIG, /LIG>, LIG/, LIG/>, /LIG/, /LIG/>, /LIG/>>]</tt>
     attr_accessor :type
 
+    
+    
     # call-seq:
     #   new
     #   new(left,[right,[result,[type]]])
@@ -283,12 +291,26 @@ class RFI
       else
         raise "unknown argument for new() in LIG: #{left}"
       end
+      # test!
+      #unless @type.instance_of?(Fixnum)
+      #  raise "type must be a fixnum"
+      #end
     end
     def ==(lig)
       @left=lig.left and
         @right=lig.right and
         @result=lig.result and
         @type=lig.type
+    end
+
+    def to_pl(encoding)
+      encoding.glyph_index[@right].sort.collect { |rightslot|
+        left=encoding.glyph_index[@left].min
+        # right=encoding.glyph_index[@right].min
+        result=encoding.glyph_index[@result].min
+        type=@@vpligops[@type]
+        LIG.new(:left=>left, :right=>rightslot, :result=>result, :type=>type)
+      }
     end
     def inspect
       "[#{@type.to_s.upcase} #@left + #@right => #@result]"
