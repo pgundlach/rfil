@@ -1,6 +1,6 @@
 #--
 # pl.rb - TeX Property List accessor class
-# Last Change: Thu Jul 14 03:10:49 2005
+# Last Change: Thu Jul 14 22:47:58 2005
 #++
 # See the PL class for a detailed description on its usage.
 
@@ -198,7 +198,15 @@ class PL
     # Compare this object to another object of the same class.
     def ==(obj)
       return false unless obj.respond_to?(:each)
+      # the krn needs to be compared one by one, because they are floats
+      if obj.has_key?(:krn)
+        obj[:krn].each { |destchar,value|
+          return false unless @h[:krn].assoc(destchar)
+          return false if (value - @h[:krn].assoc(destchar)[1]).abs > 0.01
+        }
+      end
       obj.each { |key,value|
+        next if key==:krn
         return false unless @h[key]==value
       }
       true
