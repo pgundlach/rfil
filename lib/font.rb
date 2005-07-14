@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Thu Jul 14 03:10:08 2005
+# Last Change: Thu Jul 14 22:00:26 2005
 #++
 require 'set'
 
@@ -97,7 +97,8 @@ class Font
     fm.chars.each { |name,chardata|
       chardata.fontnumber=fontnumber
     }
-    
+
+    fm.chars.fix_height(fm.xheight)
     fm.fontat=1   # default scale factor
     
     fontnumber
@@ -159,7 +160,6 @@ class Font
     
     raise ArgumentError, "mapenc must be an ENC object" unless mapenc.respond_to? :encname
     raise ArgumentError, "texenc must be an ENC object" unless texenc.respond_to? :encname
-    @defaultfm.chars.fix_height(@defaultfm.xheight)
     
     vpl=PL.new(true)
     vpl.vtitle="Installed with rfi library"
@@ -281,9 +281,6 @@ class Font
 
         # cleanup!!
         if thischar.pcc_data
-          puts "constructing pcc_data for #{char}"
-          # construct pcc_data
-
           # (MAP
           #   (SELECTFONT D 1)
           #   (SETCHAR C S)
@@ -498,9 +495,10 @@ class Font
 
   # Copy glyphs from one font to the default font. _fontnumber_ is the
   # number that is returned from load_variant, _glyphlist_ is whatever
-  # you want to copy.
+  # you want to copy. _options_ is one of:
+  # [:ligkern] copy the ligature and kerning information with the glyphs stated in glyphlist. This will remove all related existing ligature and kerning information the default font.
   # *needs testing*
-  def copy(fontnumber,glyphlist)
+  def copy(fontnumber,glyphlist,options={})
     tocopy=[]
     case glyphlist
     when Symbol
@@ -510,11 +508,34 @@ class Font
     end
 
     tocopy.each { |glyphname|
-      # puts "copy #{glyphname}, fontnumber is #{fontnumber}"
       @defaultfm.chars[glyphname]=@variants[fontnumber].chars[glyphname]
       @defaultfm.chars[glyphname].fontnumber=fontnumber
     }
-    # @defaultfm.chars['germandbls'].mapto=nil
+    if options[:ligkern]==true
+      # assume: copying lowercase letters.
+      # we need to copy *all* lowercase -> * data and replace all 
+      # we need to remove all uppercase -> lowercase data first
+      # we need to copy   all uppercase -> lowercase data
+      @variants[fontnumber].chars.each { |glyphname,data|
+        if tocopy.member?(glyphname)
+          #puts "font#copy: using kern_data for #{glyphname}"
+          @defaultfm.chars[glyphname].kern_data=data.kern_data.dup
+        else
+          # delete all references to the 'tocopy'
+          @defaultfm.chars[glyphname].kern_data.each { |destchar,kern|
+            if tocopy.member?(destchar)
+              #puts "font#copy: removing kern_data for #{glyphname}->#{destchar}"
+              @defaultfm.chars[glyphname].kern_data.delete(destchar)
+            end
+          }
+          data.kern_data.each { |destchar,kern|
+            if tocopy.member?(destchar)
+              @defaultfm.chars[glyphname].kern_data[destchar]=kern
+            end
+          }
+        end
+      }
+    end
   end
 
   # Return an array with all used fontnumbers loaded with
