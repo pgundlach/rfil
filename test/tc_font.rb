@@ -9,6 +9,7 @@ require 'enc'
 require 'pl'
 require 'plparser'
 require 'kpathsea'
+require 'pp'
 
 class TestFont < Test::Unit::TestCase
   def setup
@@ -78,7 +79,6 @@ class TestFont < Test::Unit::TestCase
     a[8]="hyphen"
     a[9]="copyright"
     a[10]="c"
-#    a.update_glyph_index
     a.filename="minienc"
     b=ENC.new()
     b.encname="texenc"
@@ -92,7 +92,6 @@ class TestFont < Test::Unit::TestCase
     b[17]="hyphen"
     b[18]="hyphen"
     b[19]="registered"
-#    b.update_glyph_index
     b.filename="minienc2"
 
     font.load_variant("savorg__.afm")
@@ -312,30 +311,6 @@ end
     assert_equal(@ecenc,font.mapenc)
     font.mapenc=nil
     assert_equal(nil,font.mapenc)
-  end
-  def test_write
-    t=Time.new
-    # I want to see which files actually changed. A more clever solution?
-    sleep 1
-    
-    destdir=File.join(Dir.getwd,"output")
-    f=File.join(destdir,"savorg__.vf")
-    if File.exists? f
-      assert(File.mtime(f) < t)
-    end
-    font=Font.new
-    font.load_variant("savorg__.afm")
-    font.set_dirs(destdir)
-    font.write_files
-    assert(File.mtime(File.join(destdir,"savorg__.vf")) > t)
-    font.texenc=["ec.enc","texnansi.enc"]
-    font.write_files
-    
-    filepath=(File.join(destdir,"ec-savorg__.vf"))
-    assert(File.exists?(filepath), "I cannot find: #{filepath}")
-    assert(File.mtime(filepath) > t,
-           "The file #{filepath} did not change as I thought it would.")
-    assert(File.mtime(File.join(destdir,"texnansi-savorg__.vf")) > t)
   end
   
   def test_mapfilename
