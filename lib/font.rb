@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Wed Jul 13 00:26:10 2005
+# Last Change: Thu Jul 14 03:10:08 2005
 #++
 require 'set'
 
@@ -123,7 +123,6 @@ class Font
     pl=PL.new(false)
     pl.family=@defaultfm.familyname
     pl.codingscheme=enc.encname
-#    p pl.codingscheme
     pl.designsize=10.0
     pl.designunits=1000
 
@@ -196,6 +195,8 @@ class Font
     }
     vpl.mapfont=map
     
+    charhash=texenc.glyph_index.dup
+    
     # now for the ligatures
     # we should ignore duplicate ligature/kern entries in the future!
     texenc.each_with_index  { |char,i|
@@ -208,21 +209,37 @@ class Font
       # next if this glyph is unknown
       next unless @defaultfm.chars[char]
 
+      # ginore those chars we have already encountered
+      next unless charhash.has_key?(char)
+      
       thischar=@defaultfm.chars[char]
-      charentry={}
-
+      
+      allslots=charhash[char].sort
+      firstslot=allslots.shift
+#      puts "char=#{char}"
+      charhash.delete(char)
+      
+      # (there might be some more slots left, but let's first do the lig)
+      
+        
       # lig
       ligkern=PL::LigKern.new
-      
-      
+
+      # right must be duplicated!
+      #
+      # 127: hyphen
+      #   Difference in lig information
+      #   | [LIG 127 + 45 => 21]
+      #   | [LIG 127 + 127 => 21]
+      #   vs.
+      #   | [LIG 127 + 45 => 21]
+      # 
       thischar.lig_data.each_value { |lig|
         if (texenc.glyph_index.has_key? lig.right) and
             (texenc.glyph_index.has_key? lig.result)
-          if ligkern[:lig]
-            ligkern[:lig].push lig
-          else
-            ligkern[:lig]=[lig]
-          end
+          # lig is like "hyphen ..." but needs to be in a format like
+          # "45 .."
+            ligkern[:lig] = lig.to_pl(texenc)
         end
       }
 
@@ -241,11 +258,12 @@ class Font
         end
       }
 
+      
+      charentry={}
       if (ligkern[:krn] and ligkern[:krn].size!=0) or
           (ligkern[:lig] and ligkern[:lig].size!=0)
         charentry[:ligkern]=ligkern
       end
-        
       
       # charinfo
       [:charwd, :charht, :chardp, :charic].each { |sym|
@@ -254,20 +272,74 @@ class Font
 
       # map
       mapneeded=(thischar.fontnumber != 0 or
-                   (mapenc.glyph_index[char].member?(i)==false))
+                   (mapenc.glyph_index[char].member?(i)==false) or
+                   thischar.pcc_data
+                 )
       if mapneeded
+        # puts "mapneeded: for #{char} (thischar.mapto=#{thischar.mapto})"
         # destchar
-        smallest = mapenc.glyph_index[char].inject { |memo,num|
-          memo < num ? memo : num
-        }
-        charentry[:map]=[[:setchar,smallest]]
+
+        # cleanup!!
+        if thischar.pcc_data
+          puts "constructing pcc_data for #{char}"
+          # construct pcc_data
+
+          # (MAP
+          #   (SELECTFONT D 1)
+          #   (SETCHAR C S)
+          #   (SETCHAR C S)
+          #  )
+
+          tmp=[]
+          tmp.push [:selectfont, thischar.fontnumber]
+          thischar.pcc_data.each { |d|
+            smallest = mapenc.glyph_index[d[0]].min
+            tmp.push [:setchar,smallest]
+          }
+          charentry[:map]=tmp
+        else
+          if thischar.fontnumber > 0
+            lookat = if thischar.mapto==nil
+                       char
+                     else
+                       thischar.mapto
+                     end
+            
+            # just map it to another font
+            smallest = mapenc.glyph_index[lookat].min
+            charentry[:map]=[[:setchar,smallest]]
+            charentry[:map].unshift([:selectfont,thischar.fontnumber])
+          else
+            # map it to the same font
+            smallest = mapenc.glyph_index[char].min
+            charentry[:map]=[[:setchar,smallest]]
+            
+          end
+        end
       end
+#      puts "adding #{i}"
       vpl[i]=charentry
+      allslots.each { |otherslot|
+#        puts "adding otherslot: #{otherslot}"
+        charentry[:ligkern]=firstslot
+        vpl[otherslot]=charentry
+      }
+
     }
-    
+    #pp vpl.ligs
+
     return vpl
   end
 
+  # Todo: document and test!
+  def apply_ligkern_instructions(what)
+    @defaultfm.chars.apply_ligkern_instructions(what)
+  end  
+  def find_smallest_from_set(set)
+    set.inject { |memo,num|
+      memo < num ? memo : num
+    }
+  end
   # Return a string or an array of strings that should be put in a mapfile.
   def maplines(options={})
     # "normally" (afm2tfm)
@@ -438,13 +510,11 @@ class Font
     end
 
     tocopy.each { |glyphname|
-      # puts "copy #{glyphname}, fontnumberis #{fontnumber}"
+      # puts "copy #{glyphname}, fontnumber is #{fontnumber}"
       @defaultfm.chars[glyphname]=@variants[fontnumber].chars[glyphname]
       @defaultfm.chars[glyphname].fontnumber=fontnumber
-      # @defaultfm.chars[glyphname].mapto=@defaultfm.chars[glyphname].uc
-      # puts "copying #{glyphname}"
     }
-    @defaultfm.chars['germandbls'].mapto=nil
+    # @defaultfm.chars['germandbls'].mapto=nil
   end
 
   # Return an array with all used fontnumbers loaded with
