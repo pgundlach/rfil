@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby -w
 #--
-# Last Change: Wed Jul 13 20:06:55 2005
+# Last Change: Thu Jul 14 18:54:00 2005
 #++
 =begin rdoc
 
@@ -36,9 +36,11 @@ require 'enc'
 
 def showmap(mapary)
   str = ""
-  mapary.each { |entry|
-    str << "  |  " << entry.join(" ") << "\n"
-  }
+  if mapary
+    mapary.each { |entry|
+      str << "  |  " << entry.join(" ") << "\n"
+    }
+  end
   str
 end
 
@@ -87,10 +89,19 @@ ARGV.options { |opts|
     options.ignore_kern=true
   }
 
-  opts.on("--encoding", "-e ENC", "assume encoding ENC") {|e|
-    kpse.open_file(e,"enc") { |f|
-      options.encoding = ENC.new(f)
-    }
+  opts.on("--mapenc", "-m ENC",
+          "assume encoding ENC for destination encoding") {|e|
+    options.mapencoding=e
+  }
+
+  opts.on("--texenc", "-t ENC",
+          "assume encoding ENC for source encoding (TeX side)") {|e|
+    options.texencoding=e
+  }
+    
+  opts.on("--encoding", "-e ENC",
+          "assume encoding ENC for both in and out") {|e|
+    options.encoding=e
   }
   opts.on("--skip-characters", "-s", "only look at fontdimen and main data") {|s|
     options.skip=true
@@ -99,6 +110,27 @@ ARGV.options { |opts|
   opts.separator  ""
   opts.parse!
 }
+
+# untested:
+if options.encoding
+  kpse.open_file(options.encoding,"enc") { |f|
+    options.encoding = ENC.new(f)
+  }
+  options.mapencoding=options.encoding
+  options.texencoding=options.encoding
+end
+
+if options.mapencoding.instance_of?(String)
+  kpse.open_file(options.mapencoding,"enc") { |f|
+    options.mapencoding = ENC.new(f)
+  }
+end
+
+if options.texencoding.instance_of?(String)
+  kpse.open_file(options.texencoding,"enc") { |f|
+    options.texencoding = ENC.new(f)
+  }
+end
 
 #ARGV.push("test/file1.pl")
 #ARGV.push("test/file2.pl")
@@ -196,7 +228,11 @@ str= ""
         chr << "  Difference in kern information" << "\n"
         if a[:ligkern][:krn]
           (a[:ligkern][:krn] - b[:ligkern][:krn]).each { |lig|
-            chr << "  | " << lig.inspect << "\n"
+            if options.mapencoding
+              chr <<  "  | [#{options.mapencoding[lig[0]]} #{lig[1]}]\n"
+            else
+              chr << "  | " << lig.inspect << "\n"
+            end
           }
         else
           chr << "nil"
@@ -204,7 +240,11 @@ str= ""
         chr << "  vs.\n"
         if b[:ligkern][:krn]
           (b[:ligkern][:krn] - a[:ligkern][:krn]).each { |lig|
-            chr << "  | " << lig.inspect << "\n"
+            if options.mapencoding
+              chr <<  "  | [#{options.mapencoding[lig[0]]} #{lig[1]}]\n"
+            else
+              chr << "  | " << lig.inspect << "\n"
+            end
           }
         else
           chr << "nil"
@@ -227,8 +267,8 @@ str= ""
     end
     if chr.length > 0
       str << "#{i}: "
-      if options.encoding
-        str << options.encoding[i]
+      if options.texencoding
+        str << options.texencoding[i]
       end
       str << "\n"
       str << chr
@@ -237,7 +277,7 @@ str= ""
 end
 if str.length > 0
   puts "Character entries:"
-  puts  "------------------"
+  puts "------------------"
   puts str
 end
 
