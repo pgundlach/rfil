@@ -1,5 +1,5 @@
 #! /usr/bin/env ruby
-# Last Change: Wed Jul 13 21:15:39 2005
+# Last Change: Thu Jul 14 21:47:57 2005
 
 # test_rfi.rb
 # this file runs all test
@@ -10,6 +10,7 @@ require 'tc_enc'
 require 'tc_kpathsea'
 require 'tc_afm'
 require 'tc_fontmetric'
+require 'tc_metric'
 require 'tc_font'
 # font2 is slow
 require 'tc_font2'
