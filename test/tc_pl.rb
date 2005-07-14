@@ -64,13 +64,16 @@ class TestPL < Test::Unit::TestCase
     # 45 is 1 + :alias
     assert_equal(pl[1][:ligkern][:krn],pl[45][:ligkern][:krn])
     assert_equal(pl[1][:ligkern][:lig],pl[45][:ligkern][:lig])
-    assert_equal(Set.new([45]),pl[45][:ligkern][:alias])
+
+    assert_equal(Set.new([1,127]),pl[45][:ligkern][:alias])
+
     assert_equal(45,pl[1][:ligalias])
     assert_equal(nil,pl[0][:ligkern])
     assert_equal(otherchar,pl[0])
     assert_equal("(LIGTABLE
+   (LABEL O 1)
    (LABEL O 55)
-   (LABEL O 55)
+   (LABEL O 177)
    (KRN O 34 R 11.0)
    (KRN C Y R -42.0)
    (LIG O 55 O 25)
@@ -166,17 +169,19 @@ class TestPL < Test::Unit::TestCase
                                  :comment=>"hyphenhyphenfi",
                                  :lig=>[ RFI::LIG.new(127,45,21,:lig),
                                    RFI::LIG.new(127,127,21,:lig)],
-                                 :krn=>[[28, 11.0],
-                                   [89, -42.0],
-                                   [121, -21.0],
-                                   [87, -31.0],
-                                   [119, -15.5],
-                                   [86, -23.0],
-                                   [118, -11.5],
-                                   [84, -48.0],
-                                   [116, -24.0],
+                                 :krn=>[
+                                   [28, 11.0],
                                    [65, 21.0],
-                                   [97, 10.5]])}
+                                   [84, -48.0],
+                                   [86, -23.0],
+                                   [87, -31.0],
+                                   [89, -42.0],
+                                   [97, 10.5],
+                                   [116, -24.0],
+                                   [118, -11.5],
+                                   [119, -15.5],
+                                   [121, -21.0]
+                                 ])}
       
     assert_equal(a,pl[127])
     a[:charwd]=400
