@@ -1,5 +1,5 @@
 #--
-# Last Change: Mon Jul 11 23:24:28 2005
+# Last Change: Thu Jul 14 03:11:01 2005
 #++
 # == Accessing PL (property lists)
 # The PL class and its subclasses are helpful if you want to read or
@@ -215,7 +215,7 @@ class PL
           pos=currentchar.shift
           @ligs[pos]=LigKern.new
           @ligs[pos][:comment]=comment
-          @ligs[pos][:krn]=krn if krn.size > 0
+          @ligs[pos][:krn]=krn.sort if krn.size > 0
           @ligs[pos][:lig]=lig if lig.size > 0
 
           currentchar.each { |otherpos|
