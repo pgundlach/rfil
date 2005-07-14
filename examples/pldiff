@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby -w
 #--
-# Last Change: Tue Jul 12 18:11:12 2005
+# Last Change: Wed Jul 13 20:06:55 2005
 #++
 =begin rdoc
 
@@ -31,6 +31,16 @@ $:.unshift File.join(File.dirname(__FILE__),"..","lib")
 
 require 'pl'
 require 'plparser'
+require 'kpathsea'
+require 'enc'
+
+def showmap(mapary)
+  str = ""
+  mapary.each { |entry|
+    str << "  |  " << entry.join(" ") << "\n"
+  }
+  str
+end
 
 def plopen(filename)
   case filename
@@ -60,22 +70,32 @@ def plopen(filename)
 end
 
 options=OpenStruct.new
+kpse=Kpathsea.new
 
 ARGV.options { |opts|
   opts.banner = "Usage: #{File.basename($0)} [options] file file"
   opts.separator "file can be tfm, pl, vpl or vf files."
   
-  opts.on_tail("--help", "-h", "Show this help") { puts opts; exit 0 }
   opts.on("--delta","-d DELTA", Float,
          "Don't report differences whithin +/- DELTA percent") { |d|
     options.delta=d
   }
   opts.on("--ignore-comments", "-c", "ignore comments") { |i|
-    options.ignore=true
+    options.ignore_comments=true
+  }
+  opts.on("--ignore-kern", "-k", "ignore difference in kerning information") { |k|
+    options.ignore_kern=true
+  }
+
+  opts.on("--encoding", "-e ENC", "assume encoding ENC") {|e|
+    kpse.open_file(e,"enc") { |f|
+      options.encoding = ENC.new(f)
+    }
   }
   opts.on("--skip-characters", "-s", "only look at fontdimen and main data") {|s|
     options.skip=true
   }
+  opts.on_tail("--help", "-h", "Show this help") { puts opts; exit 0 }
   opts.separator  ""
   opts.parse!
 }
@@ -111,7 +131,6 @@ percent = options.delta ? options.delta/50.0 : 0
 }
 
 
-# fontdimen
 fd1 = p1.fontdimen
 fd2 = p2.fontdimen
 str = ""
@@ -138,7 +157,6 @@ str= ""
   a=p1[i]
   b=p2[i]
   next if a==b
-  # puts "at char: #{i}"
   if p1[i]==nil
     str << "#{i}: no character at this slot in font 1" << "\n"
   elsif p2[i]==nil
@@ -155,13 +173,52 @@ str= ""
         chr << "  Difference in #{dim}: #{a[dim]*d1} vs. #{b[dim]*d2}" << "\n"
       end
     }
-    if a[:lig] != b[:lig]
-      chr << "  Difference in lig information"  << "\n"
+    if a[:ligkern] and b[:ligkern]
+      if a[:ligkern][:lig] != b[:ligkern][:lig]
+        chr << "  Difference in lig information"  << "\n"
+        if a[:ligkern][:lig]  
+          a[:ligkern][:lig].each { |lig|
+            chr << "  | " << lig.inspect << "\n"
+          }
+        else
+          chr << "nil"
+        end
+        chr << "  vs.\n"
+        if b[:ligkern][:lig]
+          b[:ligkern][:lig].each { |lig|
+            chr << "  | " << lig.inspect << "\n"
+          }
+        else
+          chr << "nil"
+        end
+      end
+      if a[:ligkern][:krn] != b[:ligkern][:krn] and options.ignore_kern != true
+        chr << "  Difference in kern information" << "\n"
+        if a[:ligkern][:krn]
+          (a[:ligkern][:krn] - b[:ligkern][:krn]).each { |lig|
+            chr << "  | " << lig.inspect << "\n"
+          }
+        else
+          chr << "nil"
+        end
+        chr << "  vs.\n"
+        if b[:ligkern][:krn]
+          (b[:ligkern][:krn] - a[:ligkern][:krn]).each { |lig|
+            chr << "  | " << lig.inspect << "\n"
+          }
+        else
+          chr << "nil"
+        end
+      end
     end
-    if a[:krn] != b[:krn]
-      chr << "  Difference in kern information" << "\n"
+    if  a[:map] != b[:map] 
+      chr << "  Difference in map\n"
+      chr << showmap(a[:map])
+      chr << "  vs.\n"
+      chr << showmap(b[:map])
     end
-    if ( a[:comment] != b[:comment] ) and ( options.ignore != true)
+
+    if ( a[:comment] != b[:comment] ) and ( options.ignore_comments != true)
       chr << "  Difference in comment" << "\n"
       chr << a[:comment].to_s
       chr << "\nvs.\n"
@@ -169,7 +226,11 @@ str= ""
       chr << "\n"
     end
     if chr.length > 0
-      str << "#{i}:"  << "\n"
+      str << "#{i}: "
+      if options.encoding
+        str << options.encoding[i]
+      end
+      str << "\n"
       str << chr
     end
   end
@@ -179,3 +240,5 @@ if str.length > 0
   puts  "------------------"
   puts str
 end
+
+  
