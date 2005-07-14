@@ -16,7 +16,17 @@ Accessing Property Lists:: Use the  PL class to read and write (virtual) propert
 Reading a font metric:: See the FontMetric class and the subclass AFM to access the font files
 Installing a font(set):: See below for examples.
 
-== Installing a single font
+== Example programs
+
+You might find the examples shipped with RFIL useful.
+
+afm2tfm.rb:: Install a single font. As with afm2tfm (the program shipped with dvips), you can reencode a font and fake caps.
+afminfo:: Give information about an afm file (metrics, glyph information).
+pldiff:: Compare two metric files and outputs all differences.
+plinfo:: Show information about a TeX metric file.
+
+
+== Example usage of the RFI Library
 
 === Example usage to install a single font:
  font=Font.new
@@ -36,7 +46,7 @@ to the main font.
  f.load_variant("savorg__.afm")
  fc = f.load_variant("savorg__.afm")
  f.fake_caps(fc,0.8)
- f.copy(fc,:lowercase)
+ f.copy(fc,:lowercase,:ligkern)
  f.defaultfm.chars.apply_ligkern_instructions(RFI::STDLIGKERN)
  f.write_files
 
@@ -50,7 +60,7 @@ running Rdoc like this:
  rdoc --title "Ruby Font Installer Library" README lib/*rb 
 
 This creates a directory +doc+ and a lot of html files. Open
-+doc/index.html+ in your browser and voila, all classes and methods
+<tt>doc/index.html</tt> in your browser and voila, all classes and methods
 documented. 
 
 There is a +Makefile+ that takes care of generating the documentation.
