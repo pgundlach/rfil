@@ -109,7 +109,7 @@ class TestRFI < Test::Unit::TestCase
     assert_equal('OE',gl['oe'].capitalize)
     assert_equal('ae',gl['AE'].downcase)
     assert_equal('I',gl['dotlessi'].capitalize)
-    assert_equal('SS',gl['germandbls'].capitalize)
+    assert_equal('S',gl['germandbls'].capitalize)
     assert_equal(nil,gl['A'].capitalize)
   end
   def test_foo
