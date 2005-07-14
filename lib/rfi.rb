@@ -1,6 +1,6 @@
 # rfi.rb -- general use classes
 #--
-# Last Change: Wed Jul 13 20:57:53 2005
+# Last Change: Thu Jul 14 23:30:30 2005
 #++
 # = RFI
 # Everything that does not fit somewhere else gets included in the
@@ -317,8 +317,7 @@ class RFI
     end
   end
 
-  
-
+
   # The Glyphlist is a actually a Hash with some special methods
   # attached.
   class Glyphlist < Hash
@@ -419,11 +418,7 @@ class RFI
         end
       }
       if self['germandbls']
-        c=RFI::Char.new('SS')
-        c.fontnumber=0
-        # metrics here!
-        self['SS']=c
-        self['germandbls'].uc='SS'
+        self['germandbls'].uc='S'
       end
     end
 
@@ -439,7 +434,6 @@ class RFI
       @capheight=factor
       self.each { |glyphname,char|
         if char.is_lowercase?
-          
           # remove ligatures from sc
           char.lig_data={}
           char.kern_data={}
@@ -454,7 +448,6 @@ class RFI
           char.lly *= @capheight
           char.urx *= @capheight
           char.ury *= @capheight
-
         else # char is something like Aring, semicolon, ...
           # if destchar is uppercase letter (A, Aring, ...)
           # 1. delete all kerns to lowercase letters (not e.g. semicolon)
@@ -478,20 +471,34 @@ class RFI
       if self['germandbls']
         s=self['S']
         d=self['germandbls']
+
         d.b = s.b.dup
         d.wx = s.wx * 2 * @capheight
         d.urx += s.wx
+        
+        
         d.kern_data={}
         s.kern_data.each { |destglyph,kerndata|
           unless self[destglyph].is_lowercase?
-            d.kern_data[self[destglyph].downcase]=[kerndata[0] * @capheight,0]
+            # we are looking at non-lowercase chars. These might be
+            # ones that are uppercase or are 'something else', e.g.
+            # hyphen...
+            # since we only replace the lc variants, keep the uc and
+            # others intact.
+            if self[destglyph].is_uppercase? 
+              d.kern_data[self[destglyph].downcase]=[kerndata[0] * @capheight,0]
+
+            else
+              d.kern_data[destglyph]=[kerndata[0] * @capheight,0]
+              
+            end
           end
         }
         
-        # d.kern_data = s.kern_data.dup
         d.pcc_data=[['S',0,0],['S',s.wx,0]]
         d.lly *= @capheight
         d.urx *= @capheight
+        
       end
     end # fake_caps
 
