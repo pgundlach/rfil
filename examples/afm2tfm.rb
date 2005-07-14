@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #--
-# Last Change: Wed Jul 13 16:30:01 2005
+# Last Change: Thu Jul 14 19:38:25 2005
 #++
 =begin rdoc
 == afm2tfm using the ruby font installer library
@@ -149,14 +149,15 @@ font.pl(font.texenc[0]).write_tfm(File.join(font.get_dir(:tfm),fn))
 if options.fakecaps
   fc = font.load_variant(inputfile)
   font.fake_caps(fc,options.capheight)
-  font.copy(fc,:lowercase)
+  font.copy(fc,:lowercase,:ligkern=>true)
 end
 
 if options.vffile
   font.apply_ligkern_instructions(RFI::STDLIGKERN)
-  vf=File.join(font.get_dir(:vf),options.vffile+".vf")
+  vf= File.join(font.get_dir(:vf) ,options.vffile+".vf")
   tfm=File.join(font.get_dir(:tfm),options.vffile+ ".tfm")
-  font.vpl(font.mapenc,font.texenc[0]).write_vf(vf,tfm)
+  vpl=font.vpl(font.mapenc,font.texenc[0])
+  vpl.write_vf(vf,tfm)
 end
 puts font.maplines
 
