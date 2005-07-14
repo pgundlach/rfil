@@ -1,6 +1,6 @@
 #--
 # pl.rb - TeX Property List accessor class
-# Last Change: Mon Jul 11 23:32:22 2005
+# Last Change: Thu Jul 14 03:10:49 2005
 #++
 # See the PL class for a detailed description on its usage.
 
@@ -197,6 +197,7 @@ class PL
     end
     # Compare this object to another object of the same class.
     def ==(obj)
+      return false unless obj.respond_to?(:each)
       obj.each { |key,value|
         return false unless @h[key]==value
       }
@@ -316,6 +317,7 @@ class PL
   # Fixnum. If arrays:  the first array is the lig array (LIG objects),
   # the second array is the kern ([destchar, amount]) array.
   def []= (i,value)
+
     # if we nil out i, perhaps we have to remove all lig aliases? FIXME
     @chars[i]={}
     [:comment,:charwd,:charht,:charic,:chardp,:map].each { |sym|
@@ -323,9 +325,16 @@ class PL
     }
 
     # defining an alias for ligkern: you can either set :ligalias to a
-    # Fixnum or have :ligkern 
+    # Fixnum or have :ligkern
+#    puts "pl#[]= value[:ligalias]=#{value[:ligalias]}"
+#    puts "pl#[]= value[:ligkern]=#{value[:ligkern]}"
     if n = (value[:ligalias] or 
               value[:ligkern].instance_of?(Fixnum) ? value[:ligkern] : nil)
+#      puts "pl#[]= n=#{n}"
+
+      # alias is fine, but an alias to nil is of no use
+      return value if @ligs[n]==nil
+      
       unless @ligs[n].instance_of? LigKern
         raise  "@ligs[#{n}] is of wrong class: #{@ligs[n].class}. Should be LigKern"
       end
@@ -333,9 +342,11 @@ class PL
       @ligs[i]=n
       # now set it the alias slot
       unless @ligs[n].has_key?(:alias)
+#        puts "pl#[]=: calling Set.new"
         @ligs[n][:alias]=Set.new()
       end
-      @ligs[n][:alias].add(n)
+ #     puts "pl#[]=: calling add #{n}"
+      @ligs[n][:alias].add(i)
       
     elsif lk=value[:ligkern]
       # no aliases found, use normal ligkern op
@@ -463,7 +474,12 @@ class PL
     ret={}
     @ligs.each_with_index{ |ligkern,i|
       next unless ligkern
-      ret[i] = ligkern.instance_of?(Fixnum) ? ligkern : ligkern.dup
+      ret[i] = if ligkern.instance_of?(Fixnum)
+                 @ligs[ligkern].dup
+               else
+                 ligkern
+               end
+      #ret[i] = ligkern.instance_of?(Fixnum) ? ligkern : ligkern.dup
     }
     return ret
   end
@@ -585,12 +601,17 @@ class PL
       next unless lighash
       # ligentry is at some other position
       next if lighash.instance_of?(Fixnum)
-      ligplist << PL::Node.new(:label,PL::Num.new(i,"CO"))
+
+      labels=[i]
       if lighash[:alias]
         lighash[:alias].each { |otherpos|
-          ligplist << PL::Node.new(:label,PL::Num.new(otherpos,"CO"))
+          labels.push(otherpos)
         }
       end
+      labels.sort.each { |l|
+        ligplist << PL::Node.new(:label,PL::Num.new(l,"CO"))
+      }
+      
       if lighash[:krn]
         lighash[:krn].each { |kern|
           ligplist << PL::Node.new(:krn,PL::Num.new(kern[0],"CO"),
