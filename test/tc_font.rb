@@ -218,7 +218,7 @@ class TestFont < Test::Unit::TestCase
         :slot=>1,
         :chardp=>2,
         :charwd=>632,
-        :charht=>702
+        :charht=>564
       },
       # b
       {:slot=>2,
@@ -272,6 +272,7 @@ class TestFont < Test::Unit::TestCase
         :charwd=>433,
         :charht=>426}]
     count=0
+    # pp npl.get_charentries
     npl.get_charentries.each_with_index { |charentry,i|
       count += 1
       assert_equal(ce[i],charentry)
