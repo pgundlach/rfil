@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #--
-# Last Change: Tue Jul 12 17:50:39 2005
+# Last Change: Wed Jul 13 16:30:01 2005
 #++
 =begin rdoc
 == afm2tfm using the ruby font installer library
@@ -10,18 +10,19 @@ hard to implement. For example, the absence of the <tt>-u</tt>-switch in
 afm2tfm introduces some randomnes, so we assume that <tt>-u</tt> is
 always given.
 
- Usage: afm2tfm.rb [options] FILE[.afm] ... [FILE[.tfm]]
-     -c REAL                          use REAL for height of small caps made with -V [0.8]
-     -e REAL                          widen (extend) characters by a factor of REAL
-     -p ENCFILE                       read/download ENCFILE for the PostScript encoding
-     -s REAL                          oblique (slant) characters by REAL, generally <<1
-     -t ENCFILE                       read ENCFILE for the encoding of the vpl file
-     -T ENCFILE                       equivalent to -p ENCFILE -t ENCFILE
-     -v FILE[.vpl]                    make a VPL file for conversion to VF
-     -V SCFILE[.vpl]                  like -v, but synthesize smallcaps as lowercase
-         --help                       print this message and exit.
-         --version                    print version number and exit.
-
+  Usage: afm2tfm.rb [options] FILE[.afm] ... [FILE[.tfm]]
+      -c REAL                          use REAL for height of small caps made with -V [0.8]
+      -d DIRNAME                       Set the base output directory to DIRNAME
+      -e REAL                          widen (extend) characters by a factor of REAL
+      -p ENCFILE                       read/download ENCFILE for the PostScript encoding
+      -s REAL                          oblique (slant) characters by REAL, generally <<1
+      -t ENCFILE                       read ENCFILE for the encoding of the vpl file
+      -T ENCFILE                       equivalent to -p ENCFILE -t ENCFILE
+      -v FILE[.vpl]                    make a VF file
+      -V SCFILE[.vpl]                  like -v, but synthesize smallcaps as lowercase
+          --help                       print this message and exit.
+          --version                    print version number and exit.
+  
 ---
 Remark: this is not the reimplementation I mentioned at the 35th NTG meeting
 
@@ -144,6 +145,7 @@ font.mapenc=options.mapenc || "8a.enc"
 fn=font.map_fontname(font.mapenc) + ".tfm"
 font.pl(font.texenc[0]).write_tfm(File.join(font.get_dir(:tfm),fn))
 
+
 if options.fakecaps
   fc = font.load_variant(inputfile)
   font.fake_caps(fc,options.capheight)
@@ -151,6 +153,7 @@ if options.fakecaps
 end
 
 if options.vffile
+  font.apply_ligkern_instructions(RFI::STDLIGKERN)
   vf=File.join(font.get_dir(:vf),options.vffile+".vf")
   tfm=File.join(font.get_dir(:tfm),options.vffile+ ".tfm")
   font.vpl(font.mapenc,font.texenc[0]).write_vf(vf,tfm)
