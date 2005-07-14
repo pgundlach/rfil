@@ -1,6 +1,6 @@
 #--
 # enc.rb - read and parse TeX's encoding files
-# Last Change: Tue Jul 12 12:18:53 2005
+# Last Change: Wed Jul 13 15:04:37 2005
 #++
 # See the class ENC for the api description.
 
@@ -47,6 +47,9 @@ require 'forwardable'
 #++
 
 class ENC # < DelegateClass(Array)
+  def self.documented_as_accessor(*args) # :nodoc:
+  end 
+
   extend Forwardable
 
   def_delegators(:@encvector, :size, :[],:each, :each_with_index)
@@ -67,7 +70,7 @@ class ENC # < DelegateClass(Array)
 
   # Filename of the encoding vector. Used for creating mapfile
   # entries. Always ends with ".enc" if read (unless it is unset).
-  attr_accessor :filename
+  documented_as_accessor :filename
   
   # Optional enc is either a File object or a string with the content
   # of a file. If set, the object is initialized with the given
@@ -89,6 +92,10 @@ class ENC # < DelegateClass(Array)
     # super(@encvector)
   end
 
+  def filename
+    @filename
+  end
+  
   def filename=(fn) # :nodoc:
     @filename=File.basename(fn.chomp(".enc")+".enc")
   end
