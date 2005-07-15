@@ -1,6 +1,6 @@
 # rfi.rb -- general use classes
 #--
-# Last Change: Fri Jul 15 00:05:57 2005
+# Last Change: Fri Jul 15 19:30:13 2005
 #++
 # = RFI
 # Everything that does not fit somewhere else gets included in the
@@ -35,6 +35,7 @@ class RFI
   # Metric information about a glyph. Does not contain the glyph
   # (outlines) itself.
   class Char
+    
     # to make Rdoc and Ruby happy: [ruby-talk:147778]
     def self.documented_as_accessor(*args) #:nodoc:
     end
@@ -43,7 +44,7 @@ class RFI
     attr_accessor :name
 
     # Advance with
-    attr_accessor :wx
+    documented_as_accessor :wx
 
     # Standard code slot (0-255 or -1 for unencoded)
     attr_accessor :c
@@ -55,7 +56,9 @@ class RFI
 
     # Kern_data (Hash). The key is the glyph name, the entries are
     # _[x,y]_ arrays. For ltr and rtl typesetting only the x entry
-    # should be interesting.
+    # should be interesting. This is raw information from the font
+    # metric file. Does not change when efactor et al. are set in any
+    # way. 
     attr_accessor :kern_data
 
     # Information about ligatures - unknown datatype yet
@@ -88,7 +91,14 @@ class RFI
 
     # the name of the lowercase glyph (nil if there is no lowercase glyph)
     attr_accessor :lc
-    
+
+    # Sets the extension factor. This is used by calculations of _wx_,
+    # _llx_ and _urx_.
+    attr_accessor :efactor
+
+    # Sets the slant factor. This is used by calculations of _wx_,
+    # _llx_ and _urx_.
+    attr_accessor :slant
     # Optional argument sets the name of the glyph.
     def initialize (glyphname=nil)
       @name=glyphname
@@ -96,11 +106,19 @@ class RFI
       @kern_data={}
       @wx=0
       @b=[0,0,0,0]
+      @efactor=1.0
+      @slant=0.0
     end
     
+    def wx       # :nodoc:
+      transform(@wx,0)
+    end
+    def wx=(obj) # :nodoc:
+      @wx=obj
+    end
     # Lower left x position of glyph.
     def llx            # :nodoc:
-      @b[0]
+      transform(@b[0],b[1])
     end                  
     def llx=(value)    # :nodoc:
       @b[0]=value
@@ -115,7 +133,7 @@ class RFI
     end 
     # Upper right x position of glyph.
     def urx            # :nodoc:
-      @b[2]
+      transform(@b[2],ury)
     end
     def urx=(value)    # :nodoc:
       @b[2]=value
@@ -228,6 +246,12 @@ class RFI
     def downcase
       @lc
     end
+
+    private
+    def transform (x,y)
+      (@efactor * x + @slant * y)
+    end
+
   end # class Char
 
 
@@ -316,6 +340,56 @@ class RFI
       "[#{@type.to_s.upcase} #@left + #@right => #@result]"
     end
   end
+
+  require 'forwardable'
+
+  # Stores information about kerning and ligature information. Allows
+  # deep copy of ligature and kerning information.
+  class LigKern
+    extend Forwardable
+    # Optional parameter initializes the new LigKern object.
+    def initialize(h={})
+      @h=h
+    end
+    
+    def_delegators(:@h, :each, :[], :[]=,:each_key,:has_key?)
+    
+    def initialize_copy(obj) # :nodoc:
+      tmp={}
+      if obj[:lig]
+        tmp[:lig]=Array.new
+        obj[:lig].each { |elt|
+          tmp[:lig].push(elt.dup)
+        }
+      end
+      if obj[:krn]
+        tmp[:krn]=Array.new
+        obj[:krn].each { |elt|
+          tmp[:krn].push(elt.dup)
+        }
+      end
+      if obj[:alias]
+        tmp[:alias]=obj[:alias].dup
+      end
+      @h=tmp
+    end
+    # Compare this object to another object of the same class.
+    def ==(obj)
+      return false unless obj.respond_to?(:each)
+      # the krn needs to be compared one by one, because they are floats
+      if obj.has_key?(:krn)
+        obj[:krn].each { |destchar,value|
+          return false unless @h[:krn].assoc(destchar)
+          return false if (value - @h[:krn].assoc(destchar)[1]).abs > 0.01
+        }
+      end
+      obj.each { |key,value|
+        next if key==:krn
+        return false unless @h[key]==value
+      }
+      true
+    end
+  end
 
 
   # The Glyphlist is a actually a Hash with some special methods
@@ -358,6 +432,7 @@ class RFI
       end
       ret
     end
+
     # instructions.each must yield string objects (i.e. an array of
     # strings, an IO object, a single string, ...). Instruction is like:
     # "space l =: lslash" or "two {} *"
