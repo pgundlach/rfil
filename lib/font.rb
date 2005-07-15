@@ -1,11 +1,12 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Fri Jul 15 19:08:08 2005
+# Last Change: Fri Jul 15 20:21:48 2005
 #++
 require 'set'
 
 require 'helper'
 require 'afm'
+require 'truetype'
 require 'enc'
 require 'kpathsea'
 require 'pl'
@@ -45,6 +46,7 @@ class Font
   # extend font with this factor
   attr_accessor :efactor
 
+  # slantfactor
   attr_accessor :slant
   # If fontcollection is supplied, we are now part as the
   # fontcollection. You can set mapenc and texenc in the fontcollection
@@ -79,13 +81,32 @@ class Font
     fm=nil
     
     if fontname.instance_of? String
-      case File.extname(fontname)
-      when ".afm"
-        fm=AFM.new
-        fm.read(fontname)
+      if File.exists?(fontname)
+        case File.extname(fontname)
+        when ".afm"
+          fm=AFM.new
+        when ".ttf"
+          fm=TrueType.new
+        else
+          raise ArgumentError, "Unknown filetype: #{File.basename(fontname)}"
+        end
       else
-        raise ArgumentError, "Unknown filetype: #{File.basename(fontname)}"
+        # let us guess the inputfile
+        %w( .afm .ttf ).each { |ext|
+          if File.exists?(fontname+ext)
+            fontname += ext
+            case ext
+            when ".afm"
+              fm=AFM.new
+            when ".ttf"
+              fm=TrueType.new
+            end
+            break
+          end
+        }
       end
+      raise Errno::ENOENT unless fm
+      fm.read(fontname)
       raise ScriptError, "Fontname is not set" unless fm.name
     elsif fontname.respond_to? :charwd
       # some kind of font metric

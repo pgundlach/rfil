@@ -1,16 +1,15 @@
 #!/usr/bin/env ruby
 #--
-# Last Change: Fri Jul 15 19:29:04 2005
+# Last Change: Fri Jul 15 20:48:03 2005
 #++
 =begin rdoc
 == afm2tfm using the ruby font installer library
 This is a re-implementation of afm2tfm that is part of dvips. This
-does not aim for a 100% compatible output, since that would be too
-hard to implement. For example, the absence of the <tt>-u</tt>-switch in
-afm2tfm introduces some randomnes, so we assume that <tt>-u</tt> is
-always given.
+does not aim for a 100% compatible output. There are some differences
+in the calculation of the font metrics, which, in my opinion, are
+reasonable. The -u and -o switch are missing from this implementation.
 
-  Usage: afm2tfm.rb [options] FILE[.afm] ... [FILE[.tfm]]
+  Usage: afm2tfm.rb [options] FILE[.afm,.ttf] ... [FILE[.tfm]]
       -c REAL                          use REAL for height of small caps made with -V [0.8]
       -d DIRNAME                       Set the base output directory to DIRNAME
       -e REAL                          widen (extend) characters by a factor of REAL
@@ -22,7 +21,19 @@ always given.
       -V SCFILE[.vpl]                  like -v, but synthesize smallcaps as lowercase
           --help                       print this message and exit.
           --version                    print version number and exit.
-  
+
+= Usage
+See the documentation of the original afm2tfm for an explanation of
+the parameters -c, -e, -s, -p, -t, -T, -v and -V.
+
+afm2tfm.rb creates a tfm (tex font metric) file from the font given as
+the first argument. This font can be a Postscript Type 1 font metric
+file (afm) or a TrueType font. (So the name of the program is a bit
+misleading, it is not restricted to Type 1 font metric files.) The tfm
+file is written assuming that the underlying TeX text is encoded in
+the encoding given with the -p parameter.  
+
+[<tt>-d</tt> DIRNAME] Set the base directory to DIRNAME. All files are written to the base directory. If unset, use the current directory. 
 ---
 Remark: this is not the reimplementation I mentioned at the 35th NTG meeting
 
@@ -83,9 +94,6 @@ ARGV.options { |opt|
     end
   }
     
-#  opt.on("-O", "use octal for all character codes in the vpl file") {
-#    a.use_octal=true
-#  }
   opt.on("-p ENCFILE", "read/download ENCFILE for the PostScript encoding") {|e|
     options.mapenc =  e
   }
@@ -128,19 +136,18 @@ if ARGV.size == 0
   exit 0
 end
 
-options.inputfilename=ARGV.shift
+inputfile=ARGV.shift
 
 if ARGV.size >0
   options.outputfilename=ARGV.shift
 end
 
-inputfile=(options.inputfilename.chomp(".afm") + ".afm")
 font = Font.new
 
 if options.dirname
   font.set_dirs(options.dirname)
 end
-                
+
 begin
   font.load_variant(inputfile)
 rescue Errno::ENOENT
