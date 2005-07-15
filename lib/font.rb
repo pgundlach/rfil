@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Thu Jul 14 22:00:26 2005
+# Last Change: Fri Jul 15 19:08:08 2005
 #++
 require 'set'
 
@@ -10,7 +10,17 @@ require 'enc'
 require 'kpathsea'
 require 'pl'
 
-# Main class to manipulate and combine font metrics.
+# Main class to manipulate and combine font metrics. This is mostly a
+# convenience class, if you don't want to do the boring stuff
+# yourself. You can 'load' a font, manipulate the data and create a pl
+# and vpl file. It is used in conjunction with FontCollection, a class
+# that contains several Font objects (perhaps a font family).
+# The Font class relys on PL to write out the property lists, on the
+# subclasses of RFI, especially on RFI::Glyphlist that knows about a
+# lot of things about the char metrics, ENC for handling the encoding
+# information and, of course, FontMetric and its subclasses to read a
+# font. 
+
 class Font
   include Helper
   
@@ -31,18 +41,22 @@ class Font
 
   # The fontmetric of the default font
   attr_accessor :defaultfm
-  
+
+  # extend font with this factor
+  attr_accessor :efactor
+
+  attr_accessor :slant
   # If fontcollection is supplied, we are now part as the
   # fontcollection. You can set mapenc and texenc in the fontcollection
   # and don't bother about it here. Settings in a Font object will
   # override settings in the fontcollection.
-
   
-
   def initialize (fontcollection=nil)
     # we are part of a fontcollection
     @fontcollection=fontcollection
     # @defaultfm=FontMetric.new
+    @efactor=1.0
+    @slant=0.0
     @variants=[]
     @dirs={}
     @origsuffix="-orig"
@@ -128,18 +142,22 @@ class Font
     pl.designunits=1000
 
     fd={}
-    fd[:slant]=@defaultfm.slantfactor - @defaultfm.efactor * Math::tan(@defaultfm.italicangle * Math::PI / 180.0)
-    fd[:space]=@defaultfm.space
-    fd[:stretch]=@defaultfm.isfixedpitch ? 0 : 300
-    fd[:shrink]=@defaultfm.isfixedpitch ? 0 : @defaultfm.transform(100,0)
+    fd[:slant]=@slant - @efactor * Math::tan(@defaultfm.italicangle * Math::PI / 180.0)
+    fd[:space]=transform(@defaultfm.space,0)
+    fd[:stretch]=@defaultfm.isfixedpitch ? 0 : transform(300,0)
+    fd[:shrink]=@defaultfm.isfixedpitch ? 0 : transform(100,0)
     fd[:xheight]=@defaultfm.xheight
-    fd[:quad]=@defaultfm.transform(1000,0)
+    fd[:quad]=transform(1000,0)
+
+    # @defaultfm.chars.slant_extend(@slant,@efactor)
 
     pl.fontdimen=fd
     enc.each_with_index{ |char,i|
       next if char==".notdef"
       thisglyph=@defaultfm.chars[char]
       next unless thisglyph
+      thisglyph.efactor=@efactor
+      thisglyph.slant=@slant
       glyphhash={}
       glyphhash[:comment]=char
       [:charwd, :charht, :chardp, :charic].each { |sym|
@@ -174,13 +192,14 @@ class Font
     vpl.designunits=1000
     fm=@defaultfm
     fd={}
-    fd[:slant]=fm.slantfactor - fm.efactor * Math::tan(fm.italicangle * Math::PI / 180.0)
-    fd[:space]=fm.space
-    fd[:stretch]=fm.isfixedpitch ? 0 : fm.transform(200,0)
-    fd[:shrink]=fm.isfixedpitch ? 0 : fm.transform(100,0)
+    fd[:slant]=@slant - @efactor * Math::tan(fm.italicangle * Math::PI / 180.0)
+    fd[:space]=transform(fm.space,0)
+    #fd[:space]=fm.transform(fm.space,0)
+    fd[:stretch]=fm.isfixedpitch ? 0 : transform(200,0)
+    fd[:shrink]=fm.isfixedpitch ? 0 : transform(100,0)
     fd[:xheight]=fm.xheight
-    fd[:quad]=fm.transform(1000,0)
-    fd[:extraspace]=fm.isfixedpitch ? fm.space : fm.transform(111,0)
+    fd[:quad]=transform(1000,0)
+    fd[:extraspace]=fm.isfixedpitch ? fm.space : transform(111,0)
     vpl.fontdimen=fd
 
     map=[]
@@ -196,7 +215,6 @@ class Font
     vpl.mapfont=map
     
     charhash=texenc.glyph_index.dup
-    
     # now for the ligatures
     # we should ignore duplicate ligature/kern entries in the future!
     texenc.each_with_index  { |char,i|
@@ -213,7 +231,10 @@ class Font
       next unless charhash.has_key?(char)
       
       thischar=@defaultfm.chars[char]
-      
+
+      thischar.efactor=@efactor
+      thischar.slant=@slant
+
       allslots=charhash[char].sort
       firstslot=allslots.shift
 #      puts "char=#{char}"
@@ -223,7 +244,7 @@ class Font
       
         
       # lig
-      ligkern=PL::LigKern.new
+      ligkern=RFI::LigKern.new
 
       # right must be duplicated!
       #
@@ -248,7 +269,7 @@ class Font
         if (texenc.glyph_index.has_key? dest)
           texenc.glyph_index[dest].each { |slot|
             
-            tmp=[slot,kern[0]]
+            tmp=[slot,(kern[0]*@efactor)]
             if ligkern[:krn]
               ligkern[:krn].push(tmp)
             else
@@ -314,17 +335,13 @@ class Font
           end
         end
       end
-#      puts "adding #{i}"
       vpl[i]=charentry
       allslots.each { |otherslot|
-#        puts "adding otherslot: #{otherslot}"
         charentry[:ligkern]=firstslot
         vpl[otherslot]=charentry
       }
 
     }
-    #pp vpl.ligs
-
     return vpl
   end
 
@@ -332,11 +349,7 @@ class Font
   def apply_ligkern_instructions(what)
     @defaultfm.chars.apply_ligkern_instructions(what)
   end  
-  def find_smallest_from_set(set)
-    set.inject { |memo,num|
-      memo < num ? memo : num
-    }
-  end
+
   # Return a string or an array of strings that should be put in a mapfile.
   def maplines(options={})
     # "normally" (afm2tfm)
@@ -367,8 +380,19 @@ class Font
       fontsused.each { |f|
         str=map_fontname(te,f)
         str << " #{@variants[f].fontname} "
+        instr=[]
+        if @slant != 0.0
+          instr << "#@slant SlantFont"
+        end
+        if @efactor != 1.0
+          instr << "#@efactor ExtendFont"
+        end
         unless te.filename == "8a.enc"
-          str << "\"#{te.encname} ReEncodeFont\""
+          instr << "#{te.encname} ReEncodeFont"
+        end
+        
+        str << "\"" << instr.join(" ") << "\"" if instr.size > 0
+        unless te.filename == "8a.enc"
           str << " <#{te.filename}"
         end
         str << " <#{@variants[f].fontfilename}"
@@ -536,8 +560,8 @@ class Font
         end
       }
     end
-  end
-
+  end  # copy
+  
   # Return an array with all used fontnumbers loaded with
   # load_variant. If, for example, fontnubmer 0 and 3 are used,
   # find_used_fonts would return [0,3].
@@ -548,15 +572,20 @@ class Font
     }
     fonts.to_a.sort
   end
-
+  
+ 
   # Return the name of the font in the mapline. 
   def map_fontname (texenc,varnumber=0)
     mapenc_loc=mapenc
+    suffix=""
+    suffix << @origsuffix
+    suffix << "-slt#{@slant}" if @slant != 0.0
+    suffix << "-ext#{@efactor}" if @efactor != 1.0
     if mapenc_loc
       # use the one in mapenc_loc
-      tex_fontname(mapenc,varnumber) + @origsuffix 
+      tex_fontname(mapenc,varnumber) + suffix 
     else
-      tex_fontname(texenc,varnumber) + @origsuffix
+      tex_fontname(texenc,varnumber) + suffix
     end
   end
   
@@ -573,6 +602,13 @@ class Font
     else
       "#{texencname}-#{fontname}"
     end
-  end 
+  end
+  #######
+  private
+  #######
 
-end
+  def transform (x,y)
+    (@efactor * x + @slant * y).round
+  end
+
+end # class Font

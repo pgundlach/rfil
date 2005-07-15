@@ -49,7 +49,7 @@ class TestPL < Test::Unit::TestCase
   end
   def test_cache
     pl=PL.new
-    hyphen1={:ligkern=>PL::LigKern.new({:lig=>[RFI::LIG.new(45,45,21,:lig),
+    hyphen1={:ligkern=>RFI::LigKern.new({:lig=>[RFI::LIG.new(45,45,21,:lig),
                                        RFI::LIG.new(45,127,21,:lig)],:krn =>
                                        [[28,11.0], [89, -42.0]]}),
       :charwd=>207.0, :comment=>"hyphen", :charht=>240.0}
@@ -165,7 +165,7 @@ class TestPL < Test::Unit::TestCase
       :charwd=>207.0,
       :ligalias=>45,
       :comment=>"hyphen",
-      :ligkern=> PL::LigKern.new(:alias=>s,
+      :ligkern=> RFI::LigKern.new(:alias=>s,
                                  :comment=>"hyphenhyphenfi",
                                  :lig=>[ RFI::LIG.new(127,45,21,:lig),
                                    RFI::LIG.new(127,127,21,:lig)],
@@ -220,7 +220,7 @@ class TestPL < Test::Unit::TestCase
     assert_equal(b,v.fontdimen(true).to_s)
   end
   def test_ligkern
-    lt=PL::LigKern.new()
+    lt=RFI::LigKern.new()
     lt[:lig]=[ RFI::LIG.new(127,45,21,:lig),
       RFI::LIG.new(127,127,21,:lig)]
     

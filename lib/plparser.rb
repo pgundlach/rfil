@@ -1,5 +1,5 @@
 #--
-# Last Change: Thu Jul 14 03:11:01 2005
+# Last Change: Fri Jul 15 19:08:39 2005
 #++
 # == Accessing PL (property lists)
 # The PL class and its subclasses are helpful if you want to read or
@@ -213,7 +213,7 @@ class PL
           comment << node.contents[0]
         when :stop
           pos=currentchar.shift
-          @ligs[pos]=LigKern.new
+          @ligs[pos]=RFI::LigKern.new
           @ligs[pos][:comment]=comment
           @ligs[pos][:krn]=krn.sort if krn.size > 0
           @ligs[pos][:lig]=lig if lig.size > 0

@@ -111,13 +111,14 @@ class TestFontMetric < Test::Unit::TestCase
     assert_equal(1,fm.chars['f'].chardp)
     assert_equal(0,fm.chars['f'].charic)
   end
-  def test_transform
-    fm=FontMetric.new
-    assert_equal(200,fm.transform(200,0))
-    fm.efactor=0.5
-    assert_equal(100,fm.transform(200,0))
-    fm.efactor=1
-    fm.slantfactor=0.50
-    assert_equal(20,fm.transform(10,20))
-  end
+#!!!! -> move to tc_font
+  #   def test_transform
+#     fm=FontMetric.new
+#     assert_equal(200,fm.transform(200,0))
+#     fm.efactor=0.5
+#     assert_equal(100,fm.transform(200,0))
+#     fm.efactor=1
+#     fm.slantfactor=0.50
+#     assert_equal(20,fm.transform(10,20))
+#   end
 end

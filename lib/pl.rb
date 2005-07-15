@@ -1,6 +1,6 @@
 #--
 # pl.rb - TeX Property List accessor class
-# Last Change: Thu Jul 14 22:47:58 2005
+# Last Change: Fri Jul 15 19:07:18 2005
 #++
 # See the PL class for a detailed description on its usage.
 
@@ -21,6 +21,10 @@ FARRAY = ['MRR','MIR','BRR','BIR','LRR','LIR','MRC','MIC','BRC','BIC',
 class PL
   include Enumerable
 
+    # This class is probably only interesting for programmers that want
+  # to access and manipulate the internal data representation of the
+  # property list.
+  # 
   # A plist contains Node objects.
   # An example Plist looks like this
   #  [#<PL::Node:0x2274ac @content=[""], @type=:vtitle>,
@@ -48,6 +52,10 @@ class PL
 
 
 
+  # This class is probably only interesting for programmers that want
+  # to access and manipulate the internal data representation of the
+  # property list.
+  #
   # Number class for property lists. Numbers in pl are stored as 
   # _type_ _number_
   class Num
@@ -115,7 +123,11 @@ class PL
   end
 
 
-  
+
+  # This class is probably only interesting for programmers that want
+  # to access and manipulate the internal data representation of the
+  # property list.
+  # 
   # A node contains an array of plists, strings and/or numericals.
   # It is always part of a Plist.
   class Node
@@ -162,56 +174,6 @@ class PL
       tmp
     end
   end # class node
-
-  require 'forwardable'
-
-  # Stores information about kerning and ligature information. Allows
-  # deep copy of ligature and kerning information.
-  class LigKern
-    extend Forwardable
-    # Optional parameter initializes the new LigKern object.
-    def initialize(h={})
-      @h=h
-    end
-    
-    def_delegators(:@h, :each, :[], :[]=,:each_key,:has_key?)
-    
-    def initialize_copy(obj) # :nodoc:
-      tmp={}
-      if obj[:lig]
-        tmp[:lig]=Array.new
-        obj[:lig].each { |elt|
-          tmp[:lig].push(elt.dup)
-        }
-      end
-      if obj[:krn]
-        tmp[:krn]=Array.new
-        obj[:krn].each { |elt|
-          tmp[:krn].push(elt.dup)
-        }
-      end
-      if obj[:alias]
-        tmp[:alias]=obj[:alias].dup
-      end
-      @h=tmp
-    end
-    # Compare this object to another object of the same class.
-    def ==(obj)
-      return false unless obj.respond_to?(:each)
-      # the krn needs to be compared one by one, because they are floats
-      if obj.has_key?(:krn)
-        obj[:krn].each { |destchar,value|
-          return false unless @h[:krn].assoc(destchar)
-          return false if (value - @h[:krn].assoc(destchar)[1]).abs > 0.01
-        }
-      end
-      obj.each { |key,value|
-        next if key==:krn
-        return false unless @h[key]==value
-      }
-      true
-    end
-  end
 
   # to make Rdoc and Ruby happy: [ruby-talk:147778]
   def self.documented_as_accessor(*args)  #:nodoc:
@@ -284,7 +246,7 @@ class PL
       end
     }
     return ret unless @ligs[i]
-    ret[:ligkern]=LigKern.new
+    ret[:ligkern]=RFI::LigKern.new
     case @ligs[i]
     when Fixnum
       # n is now the slot where the real ligs are defined
@@ -305,7 +267,7 @@ class PL
       if @ligs[n][:krn]
         ret[:ligkern][:krn]=@ligs[n][:krn].dup
       end
-    when LigKern
+    when RFI::LigKern
       ret[:ligkern]=@ligs[i].dup
     else
       raise "unknown class:" + @ligs[i].class.to_s
@@ -343,7 +305,7 @@ class PL
       # alias is fine, but an alias to nil is of no use
       return value if @ligs[n]==nil
       
-      unless @ligs[n].instance_of? LigKern
+      unless @ligs[n].instance_of? RFI::LigKern
         raise  "@ligs[#{n}] is of wrong class: #{@ligs[n].class}. Should be LigKern"
       end
       # set the alias in the @ligs table (current slot)
@@ -359,7 +321,7 @@ class PL
     elsif lk=value[:ligkern]
       # no aliases found, use normal ligkern op
       unless @ligs[i]
-        @ligs[i]=LigKern.new
+        @ligs[i]=RFI::LigKern.new
       end
       @ligs[i]=lk.dup
     else

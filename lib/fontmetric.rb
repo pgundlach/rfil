@@ -1,5 +1,5 @@
 # fontmetric.rb - superclass for different font metric formats
-# Last Change: Mon Jul 11 23:30:32 2005
+# Last Change: Fri Jul 15 19:24:42 2005
 
 # FontMetric is the superclass for font metrics. All information that
 # is not specific to a certain kind of file format is accessible via
@@ -55,11 +55,6 @@ class FontMetric
   # FullName in the afm file.
   attr_accessor :fullname
   
-  attr_accessor :efactor
-
-  attr_accessor :slantfactor
-
-  
   def initialize
     @chars=RFI::Glyphlist.new
     @info={}
@@ -86,108 +81,4 @@ class FontMetric
       return @filename
     end
   end
-
-  def transform (x,y)
-    (@efactor * x + @slantfactor * y).round
-  end
 end
-
-__END__
-
-  def fake_caps (factor)
-    # we need to do the following
-    # 1. adapt kerning pairs
-    # 2. change font metrics (wd)
-    # 3. remove ligatures from sc
-
-    @fake_caps=true
-    @capheight=factor
-    @chars.each { |glyphname,char|
-      # puts "glyphname=#{glyphname}, char=#{char}"
-      
-      if is_lowercase?(glyphname)
-        # remove ligatures from sc
-        char.lig_data={}
-        
-        char.kern_data={}
-        
-        @chars[capitalize(glyphname)].kern_data.each { |destglyph,kerndata|
-          unless is_lowercase?(destglyph)
-            char.kern_data[destglyph.downcase]=[kerndata[0] * factor,0]
-          end
-        }
-        char.b = @chars[capitalize(glyphname)].b.clone
-        char.wx = @chars[capitalize(glyphname)].wx * @capheight
-        char.lly *= @capheight
-        char.urx *= @capheight
-          
-      else # char is something like Aring, semicolon, ...
-        # if destchar is uppercase letter (A, Aring, ...)
-        # 1. delete all kerns to lowercase letters (not e.g. semicolon)
-        # 2. duplicate all uc kerns, multiply by factor and insert this
-        #    as lc kern
-        char.kern_data.delete_if { |destglyph,kerndata|
-          is_lowercase?(destglyph)
-        }
-
-        new_kern_data={}
-        char.kern_data.each { |destglyph,kerndata|
-          if is_uppercase?(destglyph)
-            new_kern_data[destglyph.downcase]=[kerndata[0]*factor,kerndata[1]]
-          end
-          new_kern_data[destglyph]=kerndata
-        }
-        char.kern_data=new_kern_data
-      end
-      # 2.  
-    }
-    if @chars['germandbls']
-      s=@chars['S']
-      d=@chars['germandbls']
-      d.b = s.b.dup
-      d.wx = s.wx * 2 * @capheight
-      d.urx += s.wx
-      d.kern_data={}
-      @chars['S'].kern_data.each { |destglyph,kerndata|
-        unless is_lowercase?(destglyph)
-          d.kern_data[destglyph.downcase]=[kerndata[0] * @capheight,0]
-        end
-      }
-        
-      # d.kern_data = s.kern_data.dup
-      d.pcc_data=[['S',0,0],['S',s.wx,0]]
-      d.lly *= @capheight
-      d.urx *= @capheight
-
-    end
-  end
-  
-  # A,Aring,... are all "uppercase" glyphs
-  def is_uppercase?(glyphname)
-    # simple approach first
-    return glyphname[0].chr =~ /[A-Z]/ ?  true : false
-  end
-  
-  # a,aring are "lowercase" glyphs, but hyphen is not  
-  def is_lowercase?(glyphname)
-    return true if glyphname == 'dotlessi'
-    return true if glyphname == 'dotlessj'
-    return true if glyphname == 'germandbls'
-    return true if glyphname.size==1 and glyphname[0].chr =~ /[a-z]/
-    return true if %w( ae oe ).member?(glyphname)
-    return false if glyphname[0].chr =~ /[A-Z]/
-    return @chars[glyphname.capitalize] != nil
-  end
-
-  # ae -> AE, lslash -> Lslash, hyphen -> bang (ArgumentError)
-  # dotlessi -> I
-  def capitalize(glyphname)
-    return 'I' if glyphname == 'dotlessi'
-    return 'J' if glyphname == 'dotlessj'
-    return 'S' if glyphname == 'germandbls'
-    return glyphname.upcase if %w( ae oe ).member?(glyphname)
-    return glyphname.capitalize if is_lowercase?(glyphname)
-    raise ArgumentError, "glyphname (#{glyphname}) cannot be capitalized"
-  end
-
-  

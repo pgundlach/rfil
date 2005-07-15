@@ -30,7 +30,7 @@ class TestMetric < Test::Unit::TestCase
 
     chars={}
     ligs={}
-    ligs['hyphen']=PL::LigKern.new({:krn=>
+    ligs['hyphen']=RFI::LigKern.new({:krn=>
                                        [[118, -18.4],
                                        [86, -23],
                                        [119, -24.8],
@@ -46,7 +46,7 @@ class TestMetric < Test::Unit::TestCase
                                      :lig=>[
                                        RFI::LIG.new(45,45,21,"LIG"),
                                        RFI::LIG.new(45,127,21,"LIG")]})
-    ligs['s']=PL::LigKern.new({:krn=>
+    ligs['s']=RFI::LigKern.new({:krn=>
                                   [[118, 11.2],
                                   [97, -4.8],
                                   [119, 11.2],
@@ -54,7 +54,7 @@ class TestMetric < Test::Unit::TestCase
                                   [28, 3.2],
                                   [116, 9.6]]})
 
-    ligs['S']=PL::LigKern.new({:krn=>
+    ligs['S']=RFI::LigKern.new({:krn=>
                                   [[118, 11.2],
                                   [86, 14],
                                   [119, 11.2],
@@ -66,14 +66,14 @@ class TestMetric < Test::Unit::TestCase
                                   [89, 20],
                                   [116, 9.6],
                                   [84, 12]]})
-    ligs['germandbls']=PL::LigKern.new({:krn=>
+    ligs['germandbls']=RFI::LigKern.new({:krn=>
                                            [[118, 11.2],
                                            [97, -4.8],
                                            [119, 11.2],
                                            [121, 16.0],
                                            [28, 3.2],
                                            [116, 9.6]]})
-    ligs['a']=PL::LigKern.new({:krn=>[[118, -58.4],[127, 19.2],[45, 19.2],
+    ligs['a']=RFI::LigKern.new({:krn=>[[118, -58.4],[127, 19.2],[45, 19.2],
                                   [119, -64.0],[46, 15.2],[99, -31.2],
                                   [121, -30.4],[44, 22.4],[111, -31.2],
                                   [113, -31.2],[103, -31.2],[10, -15.2],
@@ -121,11 +121,119 @@ class TestMetric < Test::Unit::TestCase
     chars.each { |name,data|
       c=v[font.mapenc.glyph_index[name].min]
       [:charwd, :charht, :chardp, :charic].each { |sym|
-        assert_in_delta(data[sym],c[sym],0.001)
+        assert_in_delta(data[sym],c[sym],0.001, "in #{name},#{sym}")
       }
       assert_equal(data[:map],c[:map])
       assert_equal(ligs[name],c[:ligkern])
     }
   end
-  
+  def test_slant
+    font=Font.new
+    font.load_variant("savorg__.afm")
+    font.slant=0.5
+    font.apply_ligkern_instructions(RFI::STDLIGKERN)
+    font.mapenc="ec"
+    font.texenc="ec"
+    v = font.vpl(font.mapenc,font.texenc[0])
+    chars={}
+    ligs={}
+    ligs['A']=RFI::LigKern.new({:krn=>
+      [[118, -26.0],
+       [127, 24.0],
+       [45, 24.0],
+       [86, -73.0],
+       [119, -25.0],
+       [46, 19.0],
+       [97, 24.0],
+       [87, -80.0],
+       [98, 15.0],
+       [121, -26.0],
+       [44, 28.0],
+       [99, -8.0],
+       [89, -38.0],
+       [67, -39.0],
+       [111, -16.0],
+       [100, -1.0],
+       [79, -39.0],
+       [113, -1.0],
+       [81, -39.0],
+       [103, 12.0],
+       [71, -39.0],
+       [10, -19.0],
+       [116, 3.0],
+       [84, -39.0],
+       [117, 4.0],
+       [85, -43.0]]})
+    chars['A']={:charwd=>632.0,
+      :charht=>564.0,
+      :chardp=>2,
+      :charic=>294.0}
+    
+    chars['germandbls']={:charwd=>520.0,
+      :charht=>733, :chardp=>12, :charic=>346.5}
+    chars.each { |name,data|
+      c=v[font.mapenc.glyph_index[name].min]
+      [:charwd, :charht, :chardp, :charic].each { |sym|
+        assert_in_delta(data[sym],c[sym],0.001, "in #{name},#{sym}")
+      }
+      assert_equal(data[:map],c[:map])
+      assert_equal(ligs[name],c[:ligkern])
+    }
+  end
+
+  def test_extend
+    font=Font.new
+    font.load_variant("savorg__.afm")
+    font.efactor=0.5
+    font.apply_ligkern_instructions(RFI::STDLIGKERN)
+    font.mapenc="ec"
+    font.texenc="ec"
+    v = font.vpl(font.mapenc,font.texenc[0])
+
+    chars={}
+    ligs={}
+    chars['germandbls']={:charwd=>260.0, :charht=>733, :chardp=>12,
+      :charic=>0}
+    
+    chars['A']={:charwd=>316.0,
+      :charht=>564.0,
+      :chardp=>2,
+      :charic=>6.0}
+    ligs['A']=RFI::LigKern.new({:krn=>
+      [[118, -13.0],
+       [127, 12.0],
+       [45, 12.0],
+       [86, -36.5],
+       [119, -12.5],
+       [46, 9.5],
+       [97, 12.0],
+       [87, -40.0],
+       [98, 7.5],
+       [121, -13.0],
+       [44, 14.0],
+       [99, -4.0],
+       [89, -19.0],
+       [67, -19.5],
+       [111, -8.0],
+       [100, -0.5],
+       [79, -19.5],
+       [113, -0.5],
+       [81, -19.5],
+       [103, 6.0],
+       [71, -19.5],
+       [10, -9.5],
+       [116, 1.5],
+       [84, -19.5],
+       [117, 2.0],
+       [85, -21.5]]})
+    chars.each { |name,data|
+      c=v[font.mapenc.glyph_index[name].min]
+      [:charwd, :charht, :chardp, :charic].each { |sym|
+        assert_in_delta(data[sym],c[sym],0.001, "in #{name},#{sym}")
+      }
+      assert_equal(data[:map],c[:map])
+      assert_equal(ligs[name],c[:ligkern])
+    }
+
+end
 end
