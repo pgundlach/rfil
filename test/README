@@ -1,0 +1,34 @@
+If you change anything in the rfil/lib directory, make sure that
+
+a) all tests run without any errors/failures
+b) create a test for your changes
+
+Do not check into the subversion repository any revisions where
+condition a) is not met.
+
+
+
+--------------------------------------------------
+The font dustismo_roman.ttf is a GPLed font. From the license.txt:
+
+----------------------------------------
+Dustismo is Copyright (C) 2002 Dustin Norlander
+Homepage: http://www.cheapskatefonts.com
+email: nutso@cheapskatefonts.com
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+----------------------------------------
+
+
+
+Patrick Gundlach
+patrickg@despammed.com
+July 2005
