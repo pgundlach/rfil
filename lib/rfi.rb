@@ -1,6 +1,6 @@
 # rfi.rb -- general use classes
 #--
-# Last Change: Thu Jul 14 23:30:30 2005
+# Last Change: Fri Jul 15 00:05:57 2005
 #++
 # = RFI
 # Everything that does not fit somewhere else gets included in the
@@ -173,7 +173,7 @@ class RFI
     # glyphindex is supplied, only return true if relevant. This means
     # that the second parameter of a kerning information or the second
     # parameter and the result of a ligature information must be in
-    # the glyphindex. glyphindex must respond to _include?_.
+    # the glyphindex. glyphindex must respond to <em>include?</em>.
     def has_ligkern?(glyphindex=nil)
       if glyphindex and not glyphindex.respond_to? :include?
         raise ArgumentError, "glyphindex does not respod to include?"
