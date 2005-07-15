@@ -1,5 +1,5 @@
 #! /usr/bin/env ruby
-# Last Change: Thu Jul 14 21:47:57 2005
+# Last Change: Fri Jul 15 20:59:27 2005
 
 # test_rfi.rb
 # this file runs all test
@@ -9,6 +9,7 @@ require 'test/unit'
 require 'tc_enc'
 require 'tc_kpathsea'
 require 'tc_afm'
+require 'tc_truetype'
 require 'tc_fontmetric'
 require 'tc_metric'
 require 'tc_font'
