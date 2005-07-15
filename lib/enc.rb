@@ -1,6 +1,6 @@
 #--
 # enc.rb - read and parse TeX's encoding files
-# Last Change: Wed Jul 13 15:04:37 2005
+# Last Change: Thu Jul 14 23:42:34 2005
 #++
 # See the class ENC for the api description.
 
@@ -92,7 +92,7 @@ class ENC # < DelegateClass(Array)
     # super(@encvector)
   end
 
-  def filename
+  def filename # :nodoc:
     @filename
   end
   
