@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #--
-# Last Change: Thu Jul 14 19:38:25 2005
+# Last Change: Fri Jul 15 19:29:04 2005
 #++
 =begin rdoc
 == afm2tfm using the ruby font installer library
@@ -34,6 +34,16 @@ License::  Copyright (c) 2005 Patrick Gundlach.
 
 # :enddoc:
 
+# font metric differences between afm2tfm and afm2tfm.rb
+# tfm: fix_height is applied before writing out the tfm file, so the height
+#   of the glpyphs are different.
+# slant: charic calculation in the vpl file is not affected by the
+#      texheight in afm2tfm.c, but in afm2tfm.rb the height is changed
+#      before cahric calculation
+# other:
+#       in my testfont, the hyphen has a different height in the tfm
+#       file: 732 (afm2tfm.c) vs. 240 (afm2tfm.rb)
+
 require 'optparse'
 require 'ostruct'
 
@@ -43,7 +53,6 @@ $:.unshift File.join(File.dirname(__FILE__),"..","lib")
 require 'font'
 
 options=OpenStruct.new
-options.capheight = 0.8
 
 ARGV.options { |opt|
   opt.banner = "Usage: #{File.basename($0)} [options] FILE[.afm] ... [FILE[.tfm]]"
@@ -142,21 +151,27 @@ end
 
 font.texenc=options.texenc || "8a.enc"
 font.mapenc=options.mapenc || "8a.enc"
+
+font.apply_ligkern_instructions(RFI::STDLIGKERN)
+
+font.efactor=options.efactor || 1.0
+font.slant  =options.slant   || 0.0
+
 fn=font.map_fontname(font.mapenc) + ".tfm"
 font.pl(font.texenc[0]).write_tfm(File.join(font.get_dir(:tfm),fn))
 
 
 if options.fakecaps
   fc = font.load_variant(inputfile)
-  font.fake_caps(fc,options.capheight)
+  font.fake_caps(fc,options.capheight || 0.8)
   font.copy(fc,:lowercase,:ligkern=>true)
 end
 
 if options.vffile
-  font.apply_ligkern_instructions(RFI::STDLIGKERN)
   vf= File.join(font.get_dir(:vf) ,options.vffile+".vf")
   tfm=File.join(font.get_dir(:tfm),options.vffile+ ".tfm")
   vpl=font.vpl(font.mapenc,font.texenc[0])
+  # File.open("output/foo.vpl","w") { |f|  f << vpl.to_s  }
   vpl.write_vf(vf,tfm)
 end
 puts font.maplines
