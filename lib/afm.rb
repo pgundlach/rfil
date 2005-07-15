@@ -1,4 +1,4 @@
-# Last Change: Sat Jul  2 21:38:25 2005
+# Last Change: Fri Jul 15 19:31:53 2005
 
 require 'rfi'
 require 'strscan'
@@ -171,8 +171,8 @@ private
         when "B"
           #special treatment for bounding box
           char.b = value.split.collect { |e| e.to_i }
-          char.llx = transform(char.llx,char.lly)
-          char.urx = transform(char.urx,char.ury)
+          char.llx = char.llx
+          char.urx = char.urx
           # We need to avoid negative heights or depths. They break
           # accents in math mode, among other things.
           char.lly = 0 if char.lly > 0
@@ -183,7 +183,7 @@ private
           # hex: '<20>' -> '0x20' -> .to_i -> 32
           char.c = value.sub(/</,'0x').sub(/>/,'').to_i(16)
         when "WX"
-          char.wx = transform(value.to_i,0)
+          char.wx = value.to_i
         else
           char.send((key.downcase + "=").to_sym,value.to_i)
         end
@@ -280,8 +280,7 @@ private
           # is in the afm data... :-( -> reject those entries
           # if @info['chars'][destname]
           if @chars[destname]
-            # @info['chars'][name].kern_data[destname] = [num,0]
-            @chars[name].kern_data[destname] = [transform(num,0),0]
+            @chars[name].kern_data[destname] = [num,0]
           else
             STDERR.puts "info: unused kern data for " + name if @verbose
           end
