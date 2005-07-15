@@ -38,9 +38,6 @@ class TestFont < Test::Unit::TestCase
     assert_raise(Errno::ENOENT) {
       font.load_variant("foo.afm")
     }
-    assert_raise(ArgumentError) {
-      font.load_variant("bar.xyz")
-    }
   end
   def test_mapfont
     font=Font.new
