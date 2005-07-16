@@ -1,6 +1,6 @@
 # rfi.rb -- general use classes
 #--
-# Last Change: Fri Jul 15 19:30:13 2005
+# Last Change: Sat Jul 16 13:24:57 2005
 #++
 # = RFI
 # Everything that does not fit somewhere else gets included in the
@@ -10,7 +10,16 @@
 # useless of their own or are accessed in different classes.
 
 class RFI
-
+  # Super class for plugins
+  class TempsWriter
+    attr_accessor :name
+    def initialize(name)
+      @name=name
+    end
+    def msf
+      #dummy
+    end
+  end
   # Some instructions to remove kerning information from digits and
   # other things. -> sort this out 
   STDLIGKERN = ["space l =: lslash",

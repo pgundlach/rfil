@@ -10,12 +10,12 @@ require 'font'
 class TestFontCollection < Test::Unit::TestCase
 
   def setup
-    @fc=FontCollection.new('Helvetica')
+    @fc=FontCollection.new()
   end
   def test_register
     # needs font object
     assert_raise(ArgumentError) {
-      @fc.register_font("foo")
+      @fc.register_font()
     }
   end
   def test_encodings

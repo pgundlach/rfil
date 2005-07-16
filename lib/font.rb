@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Fri Jul 15 20:21:48 2005
+# Last Change: Sun Jul 17 01:04:41 2005
 #++
 require 'set'
 
@@ -23,6 +23,9 @@ require 'pl'
 # font. 
 
 class Font
+  def self.documented_as_accessor(*args) # :nodoc:
+  end 
+
   include Helper
   
   # The encoding that the PDF/PS expects (what is put before
@@ -34,11 +37,11 @@ class Font
   # encoding mentioned in #texenc. In this case, a one to one mapping
   # will be done: 8r -> 8r, t1 -> t1 etc. (like the -T switch in
   # afm2tfm).
-  attr_accessor :mapenc
+  documented_as_accessor :mapenc
 
   # Array of encodings that TeX spits out. If it is not set, take
   # the settings from the fontcollection.
-  attr_accessor :texenc
+  documented_as_accessor :texenc
 
   # The fontmetric of the default font
   attr_accessor :defaultfm
@@ -59,6 +62,8 @@ class Font
     # @defaultfm=FontMetric.new
     @efactor=1.0
     @slant=0.0
+    @texenc=nil
+    @mapenc=nil
     @variants=[]
     @dirs={}
     @origsuffix="-orig"
@@ -67,14 +72,16 @@ class Font
       unless @fontcollection.respond_to?(:register_font)
         raise ArgumentError, "parameter does not look like a fontcollection"
       end
-      @fontcollection.register_font(self)
+      @colnum=@fontcollection.register_font(self)
     else
       # the default dirs
       set_dirs(Dir.getwd)
     end
   end
-  
 
+  # hook run after font has been loaded by load_variant
+  def after_load_hook (*args,&b)
+  end
   # Read a font(metric file). Return a number that identifies the font.
   # The first font read is the default font. 
   def load_variant(fontname)
@@ -135,9 +142,9 @@ class Font
 
     fm.chars.fix_height(fm.xheight)
     fm.fontat=1   # default scale factor
-    
+    after_load_hook
     fontnumber
-  end
+  end # load_variant
 
 
   # change the metrics (and glyphs) of the default font so that
@@ -427,10 +434,14 @@ class Font
   end
 
   # Creates all the necessary files to use the font. This is mainly a
-  # shortcut if you are too lazy to program.
+  # shortcut if you are too lazy to program. _options_:
+  # [:dryrun] true/false
+  # [:verbose] true/false
+  # [:mapfile] true/false
   
   def write_files(options={})
-
+    #options[:writevf]
+      
     
     tfmdir=get_dir(:tfm); ensure_dir(tfmdir)
     vfdir= get_dir(:vf) ; ensure_dir(vfdir)
@@ -444,7 +455,7 @@ class Font
     }
     encodings.each { |enc|
       find_used_fonts.each { |var|
-        tfmfilename=File.join(tfmdir,map_fontname(enc,var) + ".tfm")
+        tfmfilename=File.join(tfmdir,map_fontname(enc,var,:writevf=>options[:writevf]) + ".tfm")
 
         if options[:verbose]==true
           puts "writing tfm: #{tfmfilename}" 
@@ -455,25 +466,27 @@ class Font
       }
     }
 
-    # vf
-    encodings=Set.new
-    texenc.each { |te|
-      encodings.add mapenc ? mapenc : te
-    }
-    texenc.each { |te|
-      outenc = mapenc ? mapenc : te
-      # vplfilename=File.join(vpldir,tex_fontname(te) + ".vpl")
-      vffilename= File.join(vfdir, tex_fontname(te) + ".vf")
-      tfmfilename=File.join(tfmdir,tex_fontname(te) + ".tfm")
-      if options[:verbose]==true
-        puts "vf: writing tfm: #{tfmfilename}"
-        puts "vf: writing vf: #{vffilename}"
-      end
-      unless options[:dryrun]==true
-        vpl(outenc,te).write_vf(vffilename,tfmfilename)
-      end
-    }
-
+    unless options[:writevf]==false
+      # vf
+      encodings=Set.new
+      texenc.each { |te|
+        encodings.add mapenc ? mapenc : te
+      }
+      texenc.each { |te|
+        outenc = mapenc ? mapenc : te
+        # vplfilename=File.join(vpldir,tex_fontname(te) + ".vpl")
+        vffilename= File.join(vfdir, tex_fontname(te) + ".vf")
+        tfmfilename=File.join(tfmdir,tex_fontname(te) + ".tfm")
+        if options[:verbose]==true
+          puts "vf: writing tfm: #{tfmfilename}"
+          puts "vf: writing vf: #{vffilename}"
+        end
+        unless options[:dryrun]==true
+          vpl(outenc,te).write_vf(vffilename,tfmfilename)
+        end
+      }
+    end
+    
     unless options[:mapfile]==false
       # mapfile
       if options[:verbose]==true
@@ -510,12 +523,6 @@ class Font
     set_mapenc(enc)
   end
 
-  def texenc=(enc) # :nodoc:
-    @texenc=[]
-    if enc
-      set_encarray(enc,@texenc)
-    end
-  end
   def texenc  # :nodoc:
     if @texenc
       @texenc
@@ -528,8 +535,15 @@ class Font
         @kpse.open_file("8a.enc","enc") { |f|
           ret = [ENC.new(f)]
         }
-        ret
+        # puts "returning #{ret}"
+        return ret
       end
+    end
+  end
+  def texenc=(enc) # :nodoc:
+    @texenc=[]
+    if enc
+      set_encarray(enc,@texenc)
     end
   end
 
@@ -540,7 +554,7 @@ class Font
 
   # Copy glyphs from one font to the default font. _fontnumber_ is the
   # number that is returned from load_variant, _glyphlist_ is whatever
-  # you want to copy. _options_ is one of:
+  # you want to copy. Overwrites existing chars. _options_ is one of:
   # [:ligkern] copy the ligature and kerning information with the glyphs stated in glyphlist. This will remove all related existing ligature and kerning information the default font.
   # *needs testing*
   def copy(fontnumber,glyphlist,options={})
@@ -596,12 +610,12 @@ class Font
   
  
   # Return the name of the font in the mapline. 
-  def map_fontname (texenc,varnumber=0)
+  def map_fontname (texenc,varnumber=0,options={})
     mapenc_loc=mapenc
     suffix=""
-    suffix << @origsuffix
-    suffix << "-slt#{@slant}" if @slant != 0.0
-    suffix << "-ext#{@efactor}" if @efactor != 1.0
+    suffix << @origsuffix unless options[:writevf]==true
+    suffix << "-slanted-#{(@slant*100).round}" if @slant != 0.0
+    suffix << "-extended-#{(@efactor*100).round}" if @efactor != 1.0
     if mapenc_loc
       # use the one in mapenc_loc
       tex_fontname(mapenc,varnumber) + suffix 

@@ -32,7 +32,7 @@ class TestFontFontCollection < Test::Unit::TestCase
     assert(font.mapenc==@ecenc)
     assert(font.texenc[0]==@ecenc)
     # we now define encodings only in the fontcollection
-    fc=FontCollection.new('foo')
+    fc=FontCollection.new()
     fc.mapenc="ec.enc"
     fc.texenc="ec.enc"
     assert(fc.mapenc==@ecenc)
@@ -45,7 +45,7 @@ class TestFontFontCollection < Test::Unit::TestCase
   end
 
   def test_dirs
-    fc=FontCollection.new('foo')
+    fc=FontCollection.new()
     fc.set_dirs(:vpl => "/vpl")
     assert_equal("/vpl",fc.get_dir(:vpl))
     

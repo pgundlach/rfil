@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #--
-# Last Change: Fri Jul 15 20:48:03 2005
+# Last Change: Sat Jul 16 19:20:59 2005
 #++
 =begin rdoc
 == afm2tfm using the ruby font installer library
@@ -15,10 +15,10 @@ reasonable. The -u and -o switch are missing from this implementation.
       -e REAL                          widen (extend) characters by a factor of REAL
       -p ENCFILE                       read/download ENCFILE for the PostScript encoding
       -s REAL                          oblique (slant) characters by REAL, generally <<1
-      -t ENCFILE                       read ENCFILE for the encoding of the vpl file
+      -t ENCFILE                       read ENCFILE for the encoding of the vf file
       -T ENCFILE                       equivalent to -p ENCFILE -t ENCFILE
-      -v FILE[.vpl]                    make a VF file
-      -V SCFILE[.vpl]                  like -v, but synthesize smallcaps as lowercase
+      -v FILE[.vf]                     make a VF file
+      -V SCFILE[.vf]                   like -v, but synthesize smallcaps as lowercase
           --help                       print this message and exit.
           --version                    print version number and exit.
 
@@ -106,25 +106,25 @@ ARGV.options { |opt|
     end
   }
     
-  opt.on("-t ENCFILE", "read ENCFILE for the encoding of the vpl file") {|e|
-    options.mapenc = e
+  opt.on("-t ENCFILE", "read ENCFILE for the encoding of the vf file") {|e|
+    options.texenc = e
   }
   opt.on("-T ENCFILE",String,"equivalent to -p ENCFILE -t ENCFILE") {|e|
     options.mapenc  = e
     options.texenc = e
   }
-  opt.on("-v FILE[.vpl]", String, "make a VF file") { |v|
+  opt.on("-v FILE[.vf]", String, "make a VF file") { |v|
     options.vffile=v
   }
-  opt.on("-V SCFILE[.vpl]","like -v, but synthesize smallcaps as lowercase") { |v|
+  opt.on("-V SCFILE[.vf]","like -v, but synthesize smallcaps as lowercase") { |v|
     options.vffile=v
     options.fakecaps=true
   }
   opt.on("--help","print this message and exit.") { puts opt; exit 0 }
   opt.on("--version","print version number and exit.") {
-    puts "#{File.basename($0)}: Version 0.1"
+    puts "#{File.basename($0)}: Version 0.9"
+    puts "Uses RFI Library (https://foundry.supelec.fr/projects/rfil)"
     puts "[Based on afm2tfm(k) (dvips(k) 5.95a) 8.1 (C) 2005 Radical Eye Software.]"
-    puts "experimental!"
     exit
   }
   opt.parse!
