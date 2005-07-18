@@ -51,8 +51,8 @@ module Helper
   # for the information. The automatic font installation method in
   # Font#write_files uses this information. When a _string_ is passed,
   # use this as the base dir for all files, when a hash is given, the
-  # keys must be one of <tt>:afm</tt>, <tt>:tfm</tt>, <tt>:vpl</tt>,
-  # <tt>:vf</tt>, <tt>:pl</tt>, <tt>:map</tt>, <tt>:pfb</tt>.
+  # keys must be one of <tt>:afm</tt>, <tt>:tfm</tt>, 
+  # <tt>:vf</tt>,<tt>:map</tt>, <tt>:pfb</tt>, <tt>:tt</tt>, <tt>:tds</tds>. 
   def set_dirs(arg)
     if arg.instance_of? String
       [:afm, :tfm, :vpl, :vf, :pl, :map, :pfb].each { |sym|
