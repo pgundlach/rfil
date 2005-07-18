@@ -1,6 +1,6 @@
 # rfi.rb -- general use classes
 #--
-# Last Change: Sat Jul 16 13:24:57 2005
+# Last Change: Mon Jul 18 14:27:50 2005
 #++
 # = RFI
 # Everything that does not fit somewhere else gets included in the
@@ -448,8 +448,13 @@ class RFI
     def apply_ligkern_instructions (instructions)
       instructions.each { |instr|
         s = instr.split(' ')
+          
         if @@encligops.member?(s[2]) # one of =:, |=: |=:> ...
-          self[s[0]].lig_data[s[1]]=LIG.new(s[0],s[1],s[3],@@encligops.index(s[2]))
+          if self[s[0]]
+            self[s[0]].lig_data[s[1]]=LIG.new(s[0],s[1],s[3],@@encligops.index(s[2]))
+          else
+            # puts "glyphlist#apply_ligkern_instructions: char not found: #{s[0]}"
+          end
         elsif s[1] == "{}"
           remove_kern(s[0],s[2])
         end
@@ -462,13 +467,17 @@ class RFI
     def remove_kern(left,right)
       raise ArgumentError, "Only one operand may be '*'" if left=='*' and right=='*'
       if right == "*"
-        self[left].kern_data={}
+        self[left].kern_data={} if self[left]
       elsif left == "*"
-        self.each { |name,chardata|
-          chardata.kern_data.delete(right)
-        }
+        if self[right]
+          self.each { |name,chardata|
+            chardata.kern_data.delete(right)
+          }
+        end
       else
-        self[left].kern_data.delete(right)
+        if self[right] and self[left]
+          self[left].kern_data.delete(right)
+        end
       end
     end
     
