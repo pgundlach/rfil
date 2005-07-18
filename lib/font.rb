@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Sun Jul 17 01:04:41 2005
+# Last Change: Mon Jul 18 15:36:03 2005
 #++
 require 'set'
 
@@ -51,6 +51,12 @@ class Font
 
   # slantfactor
   attr_accessor :slant
+
+  # Don't write out virtual fonts if write_vf is set to false here or
+  # in the fontcollection.
+  documented_as_accessor :write_vf
+
+
   # If fontcollection is supplied, we are now part as the
   # fontcollection. You can set mapenc and texenc in the fontcollection
   # and don't bother about it here. Settings in a Font object will
@@ -62,6 +68,7 @@ class Font
     # @defaultfm=FontMetric.new
     @efactor=1.0
     @slant=0.0
+    @write_vf=true
     @texenc=nil
     @mapenc=nil
     @variants=[]
@@ -161,8 +168,9 @@ class Font
   
   # Return PL (property list) object that represents the tfm file of
   # the font. enc is the encoding of the tfm file, which must be an
-  # ENC object.
-  def pl(enc)
+  # ENC object. No ligature and or kerning information is put into the
+  # pl file. *obsolete* -> use pl(enc,noligs=>true) instead.
+  def pl_nolig(enc)
     pl=PL.new(false)
     pl.family=@defaultfm.familyname
     pl.codingscheme=enc.encname
@@ -194,6 +202,87 @@ class Font
       pl[i]=glyphhash
     }
     pl
+  end
+
+  # Return PL (property list) object that represents the tfm file of
+  # the font. enc is the encoding of the tfm file, which must be an
+  # ENC object. Ligature and kerning information is put into the pl
+  # file unless <tt>:noligs</tt> is set to true in the options.
+  def pl(enc,options={})
+    plist=PL.new(false)
+    plist.family=@defaultfm.familyname
+    plist.codingscheme=enc.encname
+    plist.designsize=10.0
+    plist.designunits=1000
+
+    fd={}
+    fd[:slant]=@slant - @efactor * Math::tan(@defaultfm.italicangle * Math::PI / 180.0)
+    fd[:space]=transform(@defaultfm.space,0)
+    fd[:stretch]=@defaultfm.isfixedpitch ? 0 : transform(300,0)
+    fd[:shrink]=@defaultfm.isfixedpitch ? 0 : transform(100,0)
+    fd[:xheight]=@defaultfm.xheight
+    fd[:quad]=transform(1000,0)
+    plist.fontdimen=fd
+
+    charhash=enc.glyph_index.dup
+    
+    enc.each_with_index{ |char,i|
+      next if char==".notdef"
+
+      thischar=@defaultfm.chars[char]
+      next unless thischar
+
+      # ignore those chars we have already encountered
+      next unless charhash.has_key?(char)
+
+      thischar.efactor=@efactor
+      thischar.slant=@slant
+      # puts "char=#{char}, charhash[char]=#{charhash[char]}"
+      allslots=charhash[char].sort
+      firstslot=allslots.shift
+      charhash.delete(char)
+      
+      ligkern=RFI::LigKern.new
+      thischar.lig_data.each_value { |lig|
+        if (enc.glyph_index.has_key? lig.right) and
+            (enc.glyph_index.has_key? lig.result)
+          # lig is like "hyphen ..." but needs to be in a format like
+          # "45 .."
+            ligkern[:lig] = lig.to_pl(enc)
+        end
+      }
+      thischar.kern_data.each { |dest,kern|
+        if (enc.glyph_index.has_key? dest)
+          enc.glyph_index[dest].each { |slot|
+            
+            tmp=[slot,(kern[0]*@efactor)]
+            if ligkern[:krn]
+              ligkern[:krn].push(tmp)
+            else
+              ligkern[:krn]=[tmp]
+            end
+          }
+        end
+      }
+
+      charentry={}
+      if ( (ligkern[:krn] and ligkern[:krn].size!=0) or
+             (ligkern[:lig] and ligkern[:lig].size!=0) ) and
+          options[:noligs] != true
+        charentry[:ligkern]=ligkern
+      end
+
+      charentry[:comment]=char
+      [:charwd, :charht, :chardp, :charic].each { |sym|
+        charentry[sym]=thischar.send(sym)
+      }
+      plist[i]=charentry
+      allslots.each { |otherslot|
+        charentry[:ligkern]=firstslot
+        plist[otherslot]=charentry
+      }
+    }
+    plist
   end
   
   # Return a PL (virtual property list) object that represents a vf
@@ -253,19 +342,18 @@ class Font
       next unless mapenc.glyph_index.include?(char)
 
       # next if this glyph is unknown
-      next unless @defaultfm.chars[char]
+      thischar=@defaultfm.chars[char]
+      next unless thischar
 
-      # ginore those chars we have already encountered
+      # ignore those chars we have already encountered
       next unless charhash.has_key?(char)
       
-      thischar=@defaultfm.chars[char]
 
       thischar.efactor=@efactor
       thischar.slant=@slant
 
       allslots=charhash[char].sort
       firstslot=allslots.shift
-#      puts "char=#{char}"
       charhash.delete(char)
       
       # (there might be some more slots left, but let's first do the lig)
@@ -440,7 +528,6 @@ class Font
   # [:mapfile] true/false
   
   def write_files(options={})
-    #options[:writevf]
       
     
     tfmdir=get_dir(:tfm); ensure_dir(tfmdir)
@@ -455,7 +542,7 @@ class Font
     }
     encodings.each { |enc|
       find_used_fonts.each { |var|
-        tfmfilename=File.join(tfmdir,map_fontname(enc,var,:writevf=>options[:writevf]) + ".tfm")
+        tfmfilename=File.join(tfmdir,map_fontname(enc,var) + ".tfm")
 
         if options[:verbose]==true
           puts "writing tfm: #{tfmfilename}" 
@@ -466,7 +553,7 @@ class Font
       }
     }
 
-    unless options[:writevf]==false
+    if write_vf
       # vf
       encodings=Set.new
       texenc.each { |te|
@@ -552,6 +639,17 @@ class Font
     File.join(get_dir(:map),@defaultfm.name + ".map")
   end
 
+  def write_vf        # :nodoc:
+    if @fontcollection
+      @fontcollection.write_vf
+    else
+      @write_vf
+    end
+  end
+  def write_vf= (obj) # :nodoc:
+    @write_vf=obj
+  end
+  
   # Copy glyphs from one font to the default font. _fontnumber_ is the
   # number that is returned from load_variant, _glyphlist_ is whatever
   # you want to copy. Overwrites existing chars. _options_ is one of:
@@ -613,7 +711,7 @@ class Font
   def map_fontname (texenc,varnumber=0,options={})
     mapenc_loc=mapenc
     suffix=""
-    suffix << @origsuffix unless options[:writevf]==true
+    suffix << @origsuffix if write_vf
     suffix << "-slanted-#{(@slant*100).round}" if @slant != 0.0
     suffix << "-extended-#{(@efactor*100).round}" if @efactor != 1.0
     if mapenc_loc

@@ -186,6 +186,27 @@ class TestFont < Test::Unit::TestCase
       assert_equal(ce[i],charentry)
     }
   end
+  def test_pl_lig_nolig
+    font=Font.new
+    font.load_variant("savorg__.afm")
+    font.apply_ligkern_instructions(RFI::STDLIGKERN)
+
+    font.texenc="8r"
+    
+    plligs  =font.pl(font.texenc[0],:noligs=>false).to_s
+    plnoligs=font.pl(font.texenc[0],:noligs=>true).to_s
+    ligs=PL.new().parse(plligs)
+    noligs=PL.new().parse(plnoligs)
+    ligs[font.texenc[0].glyph_index['hyphen'].min]
+    assert_equal(nil,noligs[font.texenc[0].glyph_index['hyphen'].min][:ligkern])
+    l=RFI::LigKern.new({:krn=>[[2, 11.0], [65, 21.0], [84, -48.0],
+                           [86, -23.0], [87, -31.0], [89, -42.0]],
+                         :alias=>Set.new([173]),
+                         :lig=>[RFI::LIG.new(45,45,150,"LIG"),
+                           RFI::LIG.new(45,173,150,"LIG")]})
+    assert_equal(l,ligs[font.texenc[0].glyph_index['hyphen'].min][:ligkern])
+  end
+
   def test_pl
     font=Font.new
     a=ENC.new()
@@ -206,7 +227,7 @@ class TestFont < Test::Unit::TestCase
     font.load_variant("savorg__.afm")
     font.mapenc=a
 
-    str=font.pl(a).to_s
+    str=font.pl_nolig(a).to_s
     npl=PL.new(false)
     npl.parse(str)
     ce=[

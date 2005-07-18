@@ -1,5 +1,5 @@
 # fontcollection.rb
-# Last Change: Sat Jul 16 19:31:38 2005
+# Last Change: Sun Jul 17 13:16:58 2005
 
 require 'rfi'
 require 'font'
@@ -41,6 +41,8 @@ class FontCollection
 
   attr_accessor :fonts
 
+  attr_accessor :write_vf
+  
   # list of temps
   documented_as_reader :temps
   
@@ -48,6 +50,7 @@ class FontCollection
     @kpse=Kpathsea.new
     @texenc=nil
     @mapenc=nil
+    @write_vf=true
     @fonts={}
     @dirs={}
     set_dirs(Dir.getwd)

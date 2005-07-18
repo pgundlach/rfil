@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #--
-# Last Change: Sat Jul 16 19:20:59 2005
+# Last Change: Mon Jul 18 15:28:30 2005
 #++
 =begin rdoc
 == afm2tfm using the ruby font installer library
@@ -13,6 +13,7 @@ reasonable. The -u and -o switch are missing from this implementation.
       -c REAL                          use REAL for height of small caps made with -V [0.8]
       -d DIRNAME                       Set the base output directory to DIRNAME
       -e REAL                          widen (extend) characters by a factor of REAL
+      -l                               Include ligature and kerning information in tfm file
       -p ENCFILE                       read/download ENCFILE for the PostScript encoding
       -s REAL                          oblique (slant) characters by REAL, generally <<1
       -t ENCFILE                       read ENCFILE for the encoding of the vf file
@@ -33,7 +34,8 @@ misleading, it is not restricted to Type 1 font metric files.) The tfm
 file is written assuming that the underlying TeX text is encoded in
 the encoding given with the -p parameter.  
 
-[<tt>-d</tt> DIRNAME] Set the base directory to DIRNAME. All files are written to the base directory. If unset, use the current directory. 
+[<tt>-d</tt> DIRNAME] Set the base directory to DIRNAME. All files are written to the base directory. If unset, use the current directory.
+[<tt>-l</tt>] Don't discard the ligature and kerning information when writing the tfm file.
 ---
 Remark: this is not the reimplementation I mentioned at the 35th NTG meeting
 
@@ -93,7 +95,11 @@ ARGV.options { |opt|
       exit -1
     end
   }
-    
+
+  opt.on("-l", "Include ligature and kerning information in tfm file") {
+    options.ligkern=true
+  }
+  
   opt.on("-p ENCFILE", "read/download ENCFILE for the PostScript encoding") {|e|
     options.mapenc =  e
   }
@@ -164,8 +170,10 @@ font.apply_ligkern_instructions(RFI::STDLIGKERN)
 font.efactor=options.efactor || 1.0
 font.slant  =options.slant   || 0.0
 
+ploptions=options.ligkern==true ? {:noligs=>false} : {:noligs=>true}
+
 fn=font.map_fontname(font.mapenc) + ".tfm"
-font.pl(font.texenc[0]).write_tfm(File.join(font.get_dir(:tfm),fn))
+font.pl(font.texenc[0],ploptions).write_tfm(File.join(font.get_dir(:tfm),fn))
 
 
 if options.fakecaps
