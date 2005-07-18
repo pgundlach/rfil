@@ -66,10 +66,12 @@ class TestRFI < Test::Unit::TestCase
     gl.apply_ligkern_instructions("endash hyphen =: emdash")
     assert_equal(gl['endash'].lig_data['hyphen'].result,'emdash')
 
+    gl['T']=RFI::Char.new('T')
+    gl['A']=RFI::Char.new('A')
     gl['hyphen']=RFI::Char.new('hyphen')
     gl['hyphen'].kern_data={"A"=>[21,0],"T" => [-48,0]}
     gl.apply_ligkern_instructions("hyphen {} A")
-    assert_equal(gl['hyphen'].kern_data,{"T" => [-48,0]})
+    assert_equal({"T" => [-48,0]},gl['hyphen'].kern_data)
 
     gl.apply_ligkern_instructions("hyphen {} *")
     assert_equal(gl['hyphen'].kern_data,{})
