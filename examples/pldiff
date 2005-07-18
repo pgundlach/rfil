@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby -w
 #--
-# Last Change: Thu Jul 14 23:41:41 2005
+# Last Change: Mon Jul 18 14:35:42 2005
 #++
 =begin rdoc
 
@@ -136,9 +136,6 @@ if options.texencoding.instance_of?(String)
     options.texencoding = ENC.new(f)
   }
 end
-
-#ARGV.push("test/file1.pl")
-#ARGV.push("test/file2.pl")
 
 if ARGV.size != 2
   puts "#{File.basename($0)}: Need exactly two file arguments."
