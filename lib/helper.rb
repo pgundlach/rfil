@@ -55,7 +55,7 @@ module Helper
   # <tt>:vf</tt>,<tt>:map</tt>, <tt>:pfb</tt>, <tt>:tt</tt>, <tt>:tds</tds>. 
   def set_dirs(arg)
     if arg.instance_of? String
-      [:afm, :tfm, :vpl, :vf, :pl, :map, :pfb].each { |sym|
+      [:afm, :tfm, :vpl, :vf, :pl, :map, :pfb, :fd, :typescript].each { |sym|
         @dirs[sym]=arg
       }
     elsif arg.instance_of? Hash
@@ -76,5 +76,7 @@ module Helper
       # file does not exist, we can create a directory (hopefully)
       Dir.mkdir(dirname)
     end
-  end
+  end #ensure_dir
+
+  
 end
