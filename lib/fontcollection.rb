@@ -1,5 +1,5 @@
 # fontcollection.rb
-# Last Change: Sun Jul 17 13:16:58 2005
+# Last Change: Tue Jul 19 16:57:44 2005
 
 require 'rfi'
 require 'font'
@@ -41,6 +41,9 @@ class FontCollection
 
   attr_accessor :fonts
 
+  # sans, roman, typewriter
+  attr_accessor :style
+
   attr_accessor :write_vf
   
   # list of temps
@@ -52,6 +55,7 @@ class FontCollection
     @mapenc=nil
     @write_vf=true
     @fonts={}
+    @style=nil
     @dirs={}
     set_dirs(Dir.getwd)
     @temps={}
@@ -91,11 +95,32 @@ class FontCollection
     end
     return fontnumber
   end
+  
   def run_temps(name)
     if @temps.has_key?(name)
-      @temps[name].msf
+      
+      # doc for run_plugin
+      # Return the contents of the file that should be used by the TeX
+      # macro package, i.e a typescript for ConTeXt or an fd-file for
+      # Context. Return value is an Array of Hashes. The Hash has three
+      # different keys:
+      # [<tt>:type</tt>] The type of the file, should be either <tt>:fd</tt> or <tt>:typescript</tt>.
+      # [<tt>:filename</tt>] the filename (without a path) of the file
+      # [<tt>:contents</tt>] the contents of the file.
+
+      files=@temps[name].run_plugin
+      if files.respond_to?(:each)
+        files.each { |fh|
+          dir=get_dir(fh[:type])
+          filename=File.join(dir,fh[:filename])
+          # puts "writing file #{filename}, contents: #{fh[:contents]}"
+          File.open(filename,"w") { |f|
+            f << fh[:contents]
+          }
+        }
+      end
     else
-      raise "don't know msf #{name}"
+      raise "don't know plugin #{name}"
     end
   end
   def guess_parameters(font,collectionnumber)
