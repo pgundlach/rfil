@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #--
-# Last Change: Mon Jul 18 15:28:30 2005
+# Last Change: Tue Jul 19 11:55:57 2005
 #++
 =begin rdoc
 == afm2tfm using the ruby font installer library
@@ -18,8 +18,8 @@ reasonable. The -u and -o switch are missing from this implementation.
       -s REAL                          oblique (slant) characters by REAL, generally <<1
       -t ENCFILE                       read ENCFILE for the encoding of the vf file
       -T ENCFILE                       equivalent to -p ENCFILE -t ENCFILE
-      -v FILE[.vf]                     make a VF file
-      -V SCFILE[.vf]                   like -v, but synthesize smallcaps as lowercase
+      -v [FILE]                        make a VF file with filename FILE
+      -V [SCFILE]                      like -v, but synthesize smallcaps as lowercase
           --help                       print this message and exit.
           --version                    print version number and exit.
 
@@ -36,6 +36,7 @@ the encoding given with the -p parameter.
 
 [<tt>-d</tt> DIRNAME] Set the base directory to DIRNAME. All files are written to the base directory. If unset, use the current directory.
 [<tt>-l</tt>] Don't discard the ligature and kerning information when writing the tfm file.
+[<tt>-v</tt>, <tt>-V</tt> FILE] The filename of the virtual fonts is optional. When unset, construct a name such as <tt>ec-savorg__-capitalized-800</tt>.
 ---
 Remark: this is not the reimplementation I mentioned at the 35th NTG meeting
 
@@ -119,11 +120,13 @@ ARGV.options { |opt|
     options.mapenc  = e
     options.texenc = e
   }
-  opt.on("-v FILE[.vf]", String, "make a VF file") { |v|
+  opt.on("-v [FILE]", String, "make a VF file with filename FILE") { |v|
+    options.write_vf=true
     options.vffile=v
   }
-  opt.on("-V SCFILE[.vf]","like -v, but synthesize smallcaps as lowercase") { |v|
+  opt.on("-V [SCFILE]","like -v, but synthesize smallcaps as lowercase") { |v|
     options.vffile=v
+    options.write_vf=true
     options.fakecaps=true
   }
   opt.on("--help","print this message and exit.") { puts opt; exit 0 }
@@ -149,6 +152,7 @@ if ARGV.size >0
 end
 
 font = Font.new
+font.write_vf = options.write_vf
 
 if options.dirname
   font.set_dirs(options.dirname)
@@ -173,7 +177,7 @@ font.slant  =options.slant   || 0.0
 ploptions=options.ligkern==true ? {:noligs=>false} : {:noligs=>true}
 
 fn=font.map_fontname(font.mapenc) + ".tfm"
-font.pl(font.texenc[0],ploptions).write_tfm(File.join(font.get_dir(:tfm),fn))
+font.pl(font.mapenc,ploptions).write_tfm(File.join(font.get_dir(:tfm),fn))
 
 
 if options.fakecaps
@@ -182,11 +186,17 @@ if options.fakecaps
   font.copy(fc,:lowercase,:ligkern=>true)
 end
 
-if options.vffile
-  vf= File.join(font.get_dir(:vf) ,options.vffile+".vf")
-  tfm=File.join(font.get_dir(:tfm),options.vffile+ ".tfm")
+if options.write_vf
+  vffilename=if options.vffile
+               options.vffile
+             else
+               font.tex_fontname(font.texenc[0])
+             end
+  vf= File.join(font.get_dir(:vf) ,vffilename+".vf")
+  tfm=File.join(font.get_dir(:tfm),vffilename+ ".tfm")
   vpl=font.vpl(font.mapenc,font.texenc[0])
-  # File.open("output/foo.vpl","w") { |f|  f << vpl.to_s  }
+  #  vplfile= File.join(font.get_dir(:vpl) ,vffilename + ".vpl")
+  #  vpl.write_vpl(vplfile)
   vpl.write_vf(vf,tfm)
 end
 puts font.maplines

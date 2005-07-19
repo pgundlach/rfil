@@ -81,6 +81,7 @@ class TestMetric < Test::Unit::TestCase
     chars['hyphen']={:charwd=>207,
       :charht=>240,
       :chardp=>0,
+      :map=>[[:setchar, 45]],
       :charic=>0}
     chars['s']={:charwd=>374.4,
       :charht=>436.0,

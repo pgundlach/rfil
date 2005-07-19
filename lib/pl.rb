@@ -1,6 +1,6 @@
 #--
 # pl.rb - TeX Property List accessor class
-# Last Change: Fri Jul 15 19:07:18 2005
+# Last Change: Mon Jul 18 16:38:03 2005
 #++
 # See the PL class for a detailed description on its usage.
 
@@ -471,13 +471,13 @@ class PL
   # Write out a tfm-file for the current pl. _tfmlocation_ is a full
   # path to the to be created tfm file. The directory must be
   # writable.
-  def write_tfm(location)
+  def write_tfm(tfmlocation)
     update_plist
     require 'tempfile'
     tmpfile = Tempfile.new("afm2tfm.rb")
     tmpfile << @plist.to_s
     tmpfile.close
-    system("pltotf #{tmpfile.path} #{location} > /dev/null")
+    system("pltotf #{tmpfile.path} #{tfmlocation} > /dev/null")
     raise ScriptError unless $?.success?
   end
 
@@ -493,7 +493,12 @@ class PL
     system("vptovf #{tmpfile.path} #{vflocation} #{tfmlocation} > /dev/null")
     raise ScriptError, "error running vptovf" unless $?.success?
   end
-
+  def write_vpl(vpllocation)
+    update_plist
+    File.open(vpllocation,"w") { |f|
+      f << @plist.to_s
+    }
+  end
   def vtitle=(title)       #:nodoc:
     insert_or_change(:vtitle,title)
   end

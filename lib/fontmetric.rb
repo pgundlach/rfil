@@ -1,5 +1,5 @@
 # fontmetric.rb - superclass for different font metric formats
-# Last Change: Fri Jul 15 19:24:42 2005
+# Last Change: Mon Jul 18 23:07:00 2005
 
 # FontMetric is the superclass for font metrics. All information that
 # is not specific to a certain kind of file format is accessible via
@@ -58,6 +58,7 @@ class FontMetric
   def initialize
     @chars=RFI::Glyphlist.new
     @info={}
+    @fontfilename=nil
     @efactor=1.0
     @slantfactor=0.0
   end

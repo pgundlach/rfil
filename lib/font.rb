@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Mon Jul 18 15:36:03 2005
+# Last Change: Tue Jul 19 11:36:28 2005
 #++
 require 'set'
 
@@ -68,6 +68,7 @@ class Font
     # @defaultfm=FontMetric.new
     @efactor=1.0
     @slant=0.0
+    @capheight=nil
     @write_vf=true
     @texenc=nil
     @mapenc=nil
@@ -160,6 +161,7 @@ class Font
     raise ScriptError, "no font loaded" unless @defaultfm
     # first, make a list of uppercase and lowercase glyphs
     @defaultfm.chars.update_uc_lc_list
+    @capheight=capheight
     v=@variants[fontnumber]
     v.fontat=capheight
     v.chars.fake_caps(capheight)
@@ -209,6 +211,7 @@ class Font
   # ENC object. Ligature and kerning information is put into the pl
   # file unless <tt>:noligs</tt> is set to true in the options.
   def pl(enc,options={})
+    # puts "font#pl called with encoding #{enc.encname}"
     plist=PL.new(false)
     plist.family=@defaultfm.familyname
     plist.codingscheme=enc.encname
@@ -237,7 +240,7 @@ class Font
 
       thischar.efactor=@efactor
       thischar.slant=@slant
-      # puts "char=#{char}, charhash[char]=#{charhash[char]}"
+      # puts "char=#{char}, charhash[char]=#{charhash[char].inspect}"
       allslots=charhash[char].sort
       firstslot=allslots.shift
       charhash.delete(char)
@@ -296,17 +299,17 @@ class Font
     raise ArgumentError, "mapenc must be an ENC object" unless mapenc.respond_to? :encname
     raise ArgumentError, "texenc must be an ENC object" unless texenc.respond_to? :encname
     
-    vpl=PL.new(true)
-    vpl.vtitle="Installed with rfi library"
-    vpl.add_comment(" Please edit that VTITLE if you edit this file")
-    vpl.family=@defaultfm.familyname
-    vpl.codingscheme= if mapenc.encname != texenc.encname
+    vplplist=PL.new(true)
+    vplplist.vtitle="Installed with rfi library"
+    vplplist.add_comment(" Please edit that VTITLE if you edit this file")
+    vplplist.family=@defaultfm.familyname
+    vplplist.codingscheme= if mapenc.encname != texenc.encname
                         mapenc.encname + " + " + texenc.encname
                       else
                         mapenc.encname
                       end
-    vpl.designsize=10.0
-    vpl.designunits=1000
+    vplplist.designsize=10.0
+    vplplist.designunits=1000
     fm=@defaultfm
     fd={}
     fd[:slant]=@slant - @efactor * Math::tan(fm.italicangle * Math::PI / 180.0)
@@ -317,7 +320,7 @@ class Font
     fd[:xheight]=fm.xheight
     fd[:quad]=transform(1000,0)
     fd[:extraspace]=fm.isfixedpitch ? fm.space : transform(111,0)
-    vpl.fontdimen=fd
+    vplplist.fontdimen=fd
 
     map=[]
     fontmapping=find_used_fonts()
@@ -329,7 +332,7 @@ class Font
       end
       map.push(maph)
     }
-    vpl.mapfont=map
+    vplplist.mapfont=map
     
     charhash=texenc.glyph_index.dup
     # now for the ligatures
@@ -407,9 +410,11 @@ class Font
         charentry[sym]=thischar.send(sym)
       }
 
+      # puts "looking at #{char}, mapenc[#{i}]=#{mapenc[i]}"
       # map
       mapneeded=(thischar.fontnumber != 0 or
                    (mapenc.glyph_index[char].member?(i)==false) or
+                   (allslots.size > 0 ) or
                    thischar.pcc_data
                  )
       if mapneeded
@@ -451,14 +456,14 @@ class Font
           end
         end
       end
-      vpl[i]=charentry
+      vplplist[i]=charentry
       allslots.each { |otherslot|
         charentry[:ligkern]=firstslot
-        vpl[otherslot]=charentry
+        vplplist[otherslot]=charentry
       }
 
     }
-    return vpl
+    return vplplist
   end
 
   # Todo: document and test!
@@ -545,7 +550,7 @@ class Font
         tfmfilename=File.join(tfmdir,map_fontname(enc,var) + ".tfm")
 
         if options[:verbose]==true
-          puts "writing tfm: #{tfmfilename}" 
+          puts "tfm: writing tfm: #{tfmfilename}" 
         end
         unless options[:dryrun]==true
           pl(enc).write_tfm(tfmfilename)
@@ -563,6 +568,7 @@ class Font
         outenc = mapenc ? mapenc : te
         # vplfilename=File.join(vpldir,tex_fontname(te) + ".vpl")
         vffilename= File.join(vfdir, tex_fontname(te) + ".vf")
+        vplfilename= File.join(vfdir, tex_fontname(te) + ".vpl")
         tfmfilename=File.join(tfmdir,tex_fontname(te) + ".tfm")
         if options[:verbose]==true
           puts "vf: writing tfm: #{tfmfilename}"
@@ -570,6 +576,7 @@ class Font
         end
         unless options[:dryrun]==true
           vpl(outenc,te).write_vf(vffilename,tfmfilename)
+          # vpl(outenc,te).write_vpl(vplfilename)
         end
       }
     end
@@ -706,40 +713,54 @@ class Font
     fonts.to_a.sort
   end
   
- 
-  # Return the name of the font in the mapline. 
+  
+  # Return the name of the font in the mapline. If we don't write
+  # virtual fonts, this is the name of the tfm file written. If we
+  # write vf's, than this is the name used in the mapfont section of
+  # the virtual font as well as the name of the tfm file, but both
+  # with some marker that this font 'should' not be used directly. 
   def map_fontname (texenc,varnumber=0,options={})
     mapenc_loc=mapenc
     suffix=""
     suffix << @origsuffix if write_vf
-    suffix << "-slanted-#{(@slant*100).round}" if @slant != 0.0
-    suffix << "-extended-#{(@efactor*100).round}" if @efactor != 1.0
     if mapenc_loc
       # use the one in mapenc_loc
-      tex_fontname(mapenc,varnumber) + suffix 
+      construct_fontname(mapenc,varnumber) + suffix 
     else
-      tex_fontname(texenc,varnumber) + suffix
+      construct_fontname(texenc,varnumber) + suffix
     end
   end
-  
-  def tex_fontname (texenc,varnumber=0)
-    texencname=if texenc.filename
-                texenc.filename.chomp(".enc").downcase
-              else
-                texenc.encname
-              end
-    fontname=@variants[varnumber].name
-    # default
-    if texencname == "8a"
-      "#{fontname}"
-    else
-      "#{texencname}-#{fontname}"
-    end
+
+  # Return the name 
+  def tex_fontname (encoding)
+    tf=construct_fontname(encoding)
+    tf << "-capitalized-#{(@capheight*1000).round}" if @capheight
+    tf
   end
+ 
   #######
   private
   #######
+  def construct_fontname(encoding,varnumber=0)
+        encodingname=if encoding.filename
+                encoding.filename.chomp(".enc").downcase
+              else
+                encoding.encname
+              end
+    fontname=@variants[varnumber].name
+    # default
+    tf=if encodingname == "8a"
+         "#{fontname}"
+       else
+         "#{encodingname}-#{fontname}"
+       end
+    tf << "-slanted-#{(@slant*100).round}" if @slant != 0.0
+    tf << "-extended-#{(@efactor*100).round}" if @efactor != 1.0
+    
+    tf
 
+  end
+  
   def transform (x,y)
     (@efactor * x + @slant * y).round
   end
