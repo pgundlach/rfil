@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Tue Jul 19 11:36:28 2005
+# Last Change: Tue Jul 19 15:13:02 2005
 #++
 require 'set'
 
@@ -56,7 +56,8 @@ class Font
   # in the fontcollection.
   documented_as_accessor :write_vf
 
-
+  documented_as_accessor :style
+  
   # If fontcollection is supplied, we are now part as the
   # fontcollection. You can set mapenc and texenc in the fontcollection
   # and don't bother about it here. Settings in a Font object will
@@ -73,6 +74,7 @@ class Font
     @texenc=nil
     @mapenc=nil
     @variants=[]
+    @style=nil
     @dirs={}
     @origsuffix="-orig"
     @kpse=Kpathsea.new
@@ -646,6 +648,18 @@ class Font
     File.join(get_dir(:map),@defaultfm.name + ".map")
   end
 
+  # untested, put in helper
+  def style        # :nodoc:
+    if @fontcollection
+      @fontcollection.style
+    else
+      @style
+    end
+  end
+  def style=(obj)         # :nodoc:
+    @style=obj
+  end
+  
   def write_vf        # :nodoc:
     if @fontcollection
       @fontcollection.write_vf
@@ -742,11 +756,16 @@ class Font
   private
   #######
   def construct_fontname(encoding,varnumber=0)
-        encodingname=if encoding.filename
-                encoding.filename.chomp(".enc").downcase
-              else
-                encoding.encname
-              end
+    encodingname=if String === encoding
+                   encoding
+                 else
+                   if encoding.filename
+                     encoding.filename.chomp(".enc").downcase
+                   else
+                     encoding.encname
+                   end
+                 end
+    
     fontname=@variants[varnumber].name
     # default
     tf=if encodingname == "8a"
