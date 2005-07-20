@@ -1,4 +1,4 @@
-# Last Change: Thu Jul 21 00:31:10 2005
+# Last Change: Thu Jul 21 01:14:03 2005
 
 require 'rfi'
 require 'strscan'
@@ -92,6 +92,7 @@ class AFM < FontMetric
   def read (filename)
     @filename=File.basename(filename)
     @name=@filename.chomp(".afm")
+    self.pathname=Pathname.new(filename).realpath.to_s
     
     File.open(filename) { |file| 
       parse(file.read)

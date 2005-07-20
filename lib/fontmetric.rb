@@ -1,5 +1,5 @@
 # fontmetric.rb - superclass for different font metric formats
-# Last Change: Thu Jul 21 00:41:57 2005
+# Last Change: Thu Jul 21 01:09:11 2005
 
 # FontMetric is the superclass for font metrics. All information that
 # is not specific to a certain kind of file format is accessible via
@@ -87,11 +87,11 @@ class FontMetric
   # variable is unset, just use @filename, perhaps change afm to pfb
   def fontfilename # :nodoc:
     return @fontfilename if @fontfilename
-    case @filename
+    case filename
     when /\.afm$/
-      return @filename.chomp(".afm") + ".pfb"
+      return filename.chomp(".afm") + ".pfb"
     when /\.tt$/
-      return @filename
+      return filename
     end
   end
 end

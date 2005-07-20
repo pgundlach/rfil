@@ -20,10 +20,10 @@ class TestFontMetric < Test::Unit::TestCase
 
   def test_filename
     fm=FontMetric.new
-    fm.filename="foo.afm"
+    fm.pathname="foo.afm"
     assert_equal("foo.pfb",fm.fontfilename)
     
-    fm.filename="bar.tt"
+    fm.pathname="bar.tt"
     assert_equal("bar.tt",fm.fontfilename)
 
     fm.fontfilename="baz.otf"
