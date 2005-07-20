@@ -1,53 +1,152 @@
-# Last Change: Wed Jul 20 16:38:53 2005
+# Last Change: Wed Jul 20 23:43:57 2005
 
 require 'rfi'
 require 'strscan'
 require 'pl'
 require 'fontmetric'
 
-# Read and parse a (type1) afm file. 
+# = AFM -- Access type1 font metric files
+#
+# == General information
+#
+# Read and parse a (type1) afm file. The afm file must be compliant to
+# the afm specification as described in 'Adobe Font Metrics File
+# Format Specification' Version 4.1, dated October 7 1998.
+#
+# == Example usage
+#
+# === Read an afm file
+#  filename = "/opt/tetex/3.0/texmf/fonts/afm/urw/palatino/uplb8a.afm"
+#  File.open(filename)  { |afmfile|
+#     afm=AFM.new(afmfile)
+#     afm.filename           # => "/opt/..../uplb8a.afm"
+#     afm.count_charmetrics  # => 316
+#     afm.encodingscheme     # => "AdobeStandardEncoding"
+#     # ....
+#  }
+#
 
 class AFM < FontMetric
 
-
-  # this is set to true if there is something wrong in the afm file.
-  # The user should rerun the parsing process with @verbose=true to
-  # see what is wrong. 
+  # This is set to true if there is something wrong in the afm file.
+  # Diagnostics can be turned on with <tt>:verbose</tt> set to true
+  # when creating the object.
   attr_reader :something_strange
 
-  # Print some additional info on stderr
-  attr_writer :verbose
-
+  # Number of characters found in the afm file.
   attr_accessor :count_charmetrics
-  
+
+  # Number of encoded character found in the afm file.
   attr_accessor :count_charmetrics_encoded
-  
+
+  # Number of unencoded character found in the afm file.
   attr_accessor :count_charmetrics_unencoded
 
+  # The default encoding of the font.
   attr_accessor :encodingscheme
+
+  # Boundingbox of the font. Array of for elements.
+  attr_accessor :fontbbox
+
+  # Underline position of the font.
+  attr_accessor :underlineposition
+
+  # Underline thickness.
+  attr_accessor :underlinethickness
+
+  # Height of caps.
+  attr_accessor :capheight
+
+  # Height of ascender.
+  attr_accessor :ascender
+
+  # Height of descender.
+  attr_accessor :descender
   
-  attr_accessor :fontbbox, :underlineposition, :underlinethickness, :capheight
-  attr_accessor :ascender, :descender
-  
-  
-  def initialize
+  # Create an empty afm file. If _afm_ is set, use this to initialize
+  # the object. _afm_ is either a string with the contents of an afm
+  # file or a File object that points to the afm file. _options_
+  # currently only accepts <tt>:verbose</tt> (true/false), that prints
+  # out some diagnostic information on STDERR.
+  def initialize(afm=nil,options={})
     @somethingstrange = false
     super()
     @outlinetype=:type1
     @comment = ""
-    @verbose=false
+    @verbose=options[:verbose]==true
+    if afm
+      string = afm.respond_to?(:read) ? afm.read : afm
+      if afm.respond_to?(:path)
+        self.filename=afm.path
+      end
+      #p string
+      parse(string)
+    end
   end
 
+  # Read the afm file given with _filename_. _filename_ must be full
+  # path to the afm file, it does not perform any lookups. *Obsolete*,
+  # use the #new method for passing the afm String.
   def read (filename)
     @filename=File.basename(filename)
     @name=@filename.chomp(".afm")
     
     File.open(filename) { |file| 
-      parse(file.read.gsub(/\r\n/,"\n"))
+      parse(file.read)
     }
   end
 
-private
+  # Return a string representation of the afm file that is compliant
+  # with the afm spec.
+  def to_s
+    s ="StartFontMetrics 2.0\n"
+    s << "Comment Generated using the RFI Library\n"
+    %w( FontName FullName FamilyName Weight Notice ItalicAngle
+        IsFixedPitch UnderlinePosition UnderlineTickness Version
+        EncodingScheme CapHeight XHeight Descender Ascender ).each {|kw|
+
+      meth=kw.downcase.to_sym
+      value=self.send(meth) if self.respond_to?(meth)
+      if value
+        s << kw << " " << value.to_s << "\n"
+      end
+    }
+    s << "FontBBox " << @fontbbox.join(" ") << "\n"
+    s << "StartCharMetrics #@count_charmetrics\n"
+    @chars.sort{ |a,b|
+      # puts "a=#{a[1].c}, b=#{b[1].c}"
+      if a[1].c == -1
+        b[1].c == -1 ? 0 : 1
+      else
+        b[1].c == -1 ? -1 :  a[1].c <=> b[1].c
+      end      
+    }.each { |a,b|
+      s << "C #{b.c} ; WX #{b.wx} ; N #{a} ; B #{b.b.join(" ")}\n"
+    }
+    s << "EndCharMetrics\nStartKernData\nStartKernPairs"
+    count=0
+    @chars.each_value { |c|
+      count += c.kern_data.size
+    }
+    s << " #{count}\n"
+    @chars.sort{ |a,b| a[0] <=> b[0] }.each { |name,char|
+      char.kern_data.each { |destname, value|
+        s << "KPX #{name} #{destname} #{value[0]}\n"
+      }
+    }
+    s << "EndKernPairs\nEndKernData\nEndFontMetrics\n"
+    s
+  end
+  
+  #######
+  private
+  #######
+  
+  def parse(txt)
+    @s=StringScanner.new(txt.gsub(/\r\n/,"\n"))
+    @s.scan(/StartFontMetrics/)
+    get_fontmetrics
+  end
 
   def get_keyword
     @s.skip_until(/\s+/)
@@ -299,10 +398,5 @@ private
       end
     end
     raise "never reached"
-  end
-  def parse(txt)
-    @s=StringScanner.new(txt)
-    @s.scan(/StartFontMetrics/)
-    get_fontmetrics
   end
 end
