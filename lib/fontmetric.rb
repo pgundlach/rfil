@@ -1,12 +1,11 @@
 # fontmetric.rb - superclass for different font metric formats
-# Last Change: Wed Jul 20 22:14:36 2005
+# Last Change: Thu Jul 21 00:41:57 2005
 
 # FontMetric is the superclass for font metrics. All information that
 # is not specific to a certain kind of file format is accessible via
 # this class.
 
 require 'rfi'
-
 class FontMetric
   # to make Rdoc and Ruby happy: [ruby-talk:147778]
   def self.documented_as_accessor(*args) # :nodoc:
@@ -20,10 +19,14 @@ class FontMetric
   # Hash of glyphs in the font. 
   attr_accessor :chars
 
-  # The filename of the just read metric file. (Question: with or without path???) 
-  attr_accessor :filename
+  # The filename of the just read metric file. Does not contain the
+  # path. To set, change the pathname
+  documented_as_reader :filename
 
-  # file name of the font containing the outlines (the file that needs
+  # Absolute pathname of the metric file. Not checked when set.
+  attr_accessor :pathname
+  
+  # File name of the font containing the outlines (the file that needs
   # to be put into the pdf-file). The .tt or the .pfb file. If unset
   # use the value of filename, but changed to the correct extension in
   # case of Type 1 fonts.
@@ -65,10 +68,15 @@ class FontMetric
     @fontfilename=nil
     @efactor=1.0
     @slantfactor=0.0
+    @pathname=nil
   end
 
   def space  # :nodoc:
     chars['space'].wx
+  end
+
+  def filename
+    File.basename(@pathname)
   end
 
   def fontfilename= (obj)  # :nodoc:

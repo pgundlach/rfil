@@ -1,6 +1,6 @@
 # rfi.rb -- general use classes
 #--
-# Last Change: Wed Jul 20 21:37:49 2005
+# Last Change: Thu Jul 21 00:23:13 2005
 #++
 # = RFI
 # Everything that does not fit somewhere else gets included in the

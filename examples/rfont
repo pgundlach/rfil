@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby -w
 #--
-# Last Change: Wed Jul 20 20:38:21 2005
+# Last Change: Wed Jul 20 23:57:09 2005
 #++
 =begin rdoc
 = rfont -- An example font installer
@@ -31,7 +31,14 @@ This is the command line I used to install the Bitstream variant of the font 'Sy
   ./rfont bitstream/syntax ../corel/hum531*afm -t ec,ts1 -p 8r -d ~/rfitexmf/ -u latex -s sans --verbose  --tds  -c
 
 It works, but the <tt>.fd</tt>-file is not perfect yet.
+---
+Author:: Patrick Gundlach <patrickg@despammed.com>
+License::  Copyright (c) 2005 Patrick Gundlach.
+           Released under the terms of the GNU General Public License
+
 =end
+
+# :enddoc:
 
 require 'optparse'
 require 'ostruct'

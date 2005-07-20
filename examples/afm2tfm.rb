@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #--
-# Last Change: Wed Jul 20 20:38:05 2005
+# Last Change: Wed Jul 20 23:57:03 2005
 #++
 =begin rdoc
 == afm2tfm using the ruby font installer library
@@ -38,7 +38,7 @@ the encoding given with the -p parameter.
 [<tt>-l</tt>] Don't discard the ligature and kerning information when writing the tfm file.
 [<tt>-v</tt>, <tt>-V</tt> FILE] The filename of the virtual fonts is optional. When unset, construct a name such as <tt>ec-savorg__-capitalized-800</tt>.
 ---
-Remark: this is not the reimplementation I mentioned at the 35th NTG meeting
+Remark: this is not the reimplementation I mentioned at the 35th NTG meeting.
 
 Author:: Patrick Gundlach <patrickg@despammed.com>
 License::  Copyright (c) 2005 Patrick Gundlach.

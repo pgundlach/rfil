@@ -1,9 +1,11 @@
-# Last Change: Wed Jul 20 23:43:57 2005
+# Last Change: Thu Jul 21 00:31:10 2005
 
 require 'rfi'
 require 'strscan'
 require 'pl'
 require 'fontmetric'
+require 'pathname'
+
 
 # = AFM -- Access type1 font metric files
 #
@@ -77,7 +79,7 @@ class AFM < FontMetric
     if afm
       string = afm.respond_to?(:read) ? afm.read : afm
       if afm.respond_to?(:path)
-        self.filename=afm.path
+        self.pathname=Pathname.new(afm.path).realpath.to_s
       end
       #p string
       parse(string)
