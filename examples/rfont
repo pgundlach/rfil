@@ -1,15 +1,41 @@
 #!/usr/bin/env ruby -w
 #--
-# Last Change: Tue Jul 19 15:11:07 2005
+# Last Change: Wed Jul 20 18:18:48 2005
 #++
 =begin rdoc
 = rfont -- An example font installer
 
 rfont uses the RFI Library for installing a family of fonts.
+
+== Command line parameters
+Usage: rfont [options] vendor/fontname  FILE1 FILE2 ...
+    -c, --copy-fonts                 Also copy the font outlines
+    -d, --directory DIR              Set base directory to DIR
+        --dry-run                    dry run, don't create any files
+    -m, --list-msf                   list available macro support methods
+    -p ENCFILE                       read/download ENCFILE for the PostScript encoding
+    -s, --style STYLE                Style of the font, eg. sans, roman, typewriter
+        --tds                        Put files in a TDS compliant directory hierarchy
+    -t ENCFILE                       read ENCFILE for the encoding of the vf file
+                                     multiple encodings can be given (seperated by ',')
+    -T ENCFILE                       equivalent to -p ENCFILE -t ENCFILE
+    -u, --use-msf MSF                use msf files (plugins) MSF, multiple files seperated by ','
+    -v, --no-vf                      Do not create virtual fonts for reencoding
+        --verbose                    Print more then needed on stdout
+        --help                       print this message and exit.
+        --version                    print version number and exit.
+
+== Example usage
+This is the command line I used to install the Bitstream variant of the font 'Syntax' (from the Corel Draw CD)
+
+  ./rfont bitstream/syntax ../corel/hum531*afm -t ec,ts1 -p 8r -d ~/rfitexmf/ -u latex -s sans --verbose  --tds  -c
+
+It works, but the <tt>.fd</tt>-file is not perfect yet.
 =end
 
 require 'optparse'
 require 'ostruct'
+require 'fileutils'
 
 $:.unshift File.join(File.dirname(__FILE__),"..","lib")
 
@@ -20,8 +46,16 @@ fc=FontCollection.new
 
 ret= ARGV.options { |opts|
   opts.banner = "Usage: #{File.basename($0)} [options] vendor/fontname  FILE1 FILE2 ..."
+  opts.on("-c", "--copy-fonts", "Also copy the font outlines") {
+    options.copyfonts=true
+  }
+ 
   opts.on("-d DIR", "--directory", "Set base directory to DIR") { |d|
     fc.set_dirs(d)
+  }
+  opts.on("--dry-run", "dry run, don't create any files") {
+    fc.options[:dryrun]=true
+    options.dryrun=true
   }
   opts.on("-m", "--list-msf", "list available macro support methods") {
     puts "#{fc.temps.join("\n")}"
@@ -31,11 +65,11 @@ ret= ARGV.options { |opts|
           "read/download ENCFILE for the PostScript encoding") {|e|
     fc.mapenc =  e
   }
-  opts.on("-v", "--no-vf", "Do not create virtual fonts for reencoding") {
-    fc.write_vf=false
-  }
   opts.on("-s STYLE", "--style", String, "Style of the font, eg. sans, roman, typewriter") { |s|
     fc.style=s.to_sym
+  }
+  opts.on("--tds", "Put files in a TDS compliant directory hierarchy") {
+    options.tds=true
   }
   opts.on("-t ENCFILE",Array, "read ENCFILE for the encoding of the vf file",
           "multiple encodings can be given (seperated by ',')") {|e|
@@ -45,13 +79,19 @@ ret= ARGV.options { |opts|
     fc.mapenc = e
     fc.texenc = e
   }
-
   opts.on("-u MSF","--use-msf",Array, "use msf files (plugins) MSF, multiple files seperated by ','") { |m|
     options.msf=m
   }
+  opts.on("-v", "--no-vf", "Do not create virtual fonts for reencoding") {
+    fc.write_vf=false
+  }
+  opts.on("--verbose","Print more then needed on stdout") {
+    options.verbose=true
+    fc.options[:verbose]=true
+  }
   opts.on_tail("--help","print this message and exit.") { puts opts; exit 0 }
   opts.on_tail("--version","print version number and exit.") {
-    puts "#{File.basename($0)}: Version 0.9"
+    puts "#{File.basename($0)}: Version 0.1"
     exit 0
   }
   opts.parse!
@@ -60,6 +100,7 @@ unless ret
   puts "See --help for usage information"
   exit(-1) 
 end
+
 
 vendor_fontname=ARGV.shift
 
@@ -70,10 +111,21 @@ if options.vendor==nil or options.fontname==nil
   puts "You must name vendor and fontname this way: vendor/fontname"
 end
 
+
+
+fc.fontname=options.fontname
+fc.vendor=options.vendor
+
+if options.tds
+  fc.set_dirs(:tds=>true)
+end
+
 fonts=[]
 maplines=""
 
-fc.fontname=options.fontname
+
+fontoutlinedir=File.dirname(ARGV[0])
+
 ARGV.each { |fontname|
   # puts "reading font #{File.basename(fontname)}"
   f=Font.new(fc)
@@ -88,14 +140,38 @@ fc.fonts.each { |font,params|
 #   puts "variant: #{params[:variant]}"
 #   puts "expert set" if params[:expert]==true
 #   puts "sc/osf"  if params[:smallcaps]==true
-  font.write_files(:dryrun=>false, :verbose=>false, :mapfile=>false
+  font.write_files(:dryrun=>options.dryrun==true,
+                   :verbose=>false, :mapfile=>false
                    )
   maplines << font.maplines.to_s
 }
 
-File.open(File.join(fc.get_dir(:map),options.fontname + ".map"), "w") { |f|
-  f << maplines
-}
+if options.copyfonts
+  fc.fonts.each { |font,ignore|
+    font.find_used_fonts.each {|varnumber|
+      fontmetric=font.variants[varnumber]
+      destdir=font.get_dir(fontmetric.outlinetype)
+      sourcefile=File.join(fontoutlinedir,fontmetric.fontfilename)
+      destfile=File.join(destdir,fontmetric.fontfilename)
+      puts "Copying #{sourcefile} to #{destfile}" if options.verbose
+      fc.ensure_dir(destdir)
+      unless options.dryrun
+        FileUtils.cp(sourcefile,destfile)
+      end
+    }
+  }
+end
+
+mapdir=fc.get_dir(:map)
+mapfile=File.join(mapdir,options.fontname)
+puts "Writing mapfile #{mapfile}" if options.verbose
+unless fc.options[:dryrun]
+  fc.ensure_dir(mapdir)
+  File.open(mapfile + ".map", "w") { |f|
+    f << maplines
+  }
+end
+
 if options.msf
   options.msf.each{ |m|
     fc.run_temps(m.to_sym)

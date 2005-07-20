@@ -33,6 +33,10 @@ class TempsWriterLaTeX < RFI::TempsWriter
     latexenc=case e.encname
              when "ECEncoding"
                "T1"
+             when "TeXBase1Encoding"
+               "8r"
+             when "TS1Encoding"
+               "TS1"
              else
                raise "unknown latex encoding: #{e.encname}"
              end

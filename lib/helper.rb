@@ -5,7 +5,10 @@
 
 # Here we define methods that are used in Font and FontCollection. 
 
+# require 'forwardable'
+require 'fileutils'
 module Helper
+  # extend Forwardable
   def set_encarray(enc,where) #:nodoc:
     if enc.instance_of?(ENC)
       where.push(enc)
@@ -54,14 +57,52 @@ module Helper
   # keys must be one of <tt>:afm</tt>, <tt>:tfm</tt>, 
   # <tt>:vf</tt>,<tt>:map</tt>, <tt>:pfb</tt>, <tt>:tt</tt>, <tt>:tds</tds>. 
   def set_dirs(arg)
+    # tds needs testing! set vendor/fonname before/after set_dirs
+    types=[:afm, :tfm, :vpl, :vf, :pl, :map, :type1,:truetype, :fd, :typescript]
     if arg.instance_of? String
-      [:afm, :tfm, :vpl, :vf, :pl, :map, :pfb, :fd, :typescript].each { |sym|
+      @basedir=arg
+      types.each { |sym|
         @dirs[sym]=arg
       }
     elsif arg.instance_of? Hash
-      arg.each { |key,value|
-        @dirs[key] = value
-      }
+      if arg[:tds]==true
+        suffix = if @vendor and @fontname
+                   File.join(@vendor,@fontname)
+                 else
+                   ""
+                 end
+        types.each { |t|
+          subdir= case t
+                  when :afm
+                    File.join("fonts/afm",suffix)
+                  when :tfm
+                    File.join("fonts/tfm",suffix)
+                  when :vpl
+                    File.join("fonts/source/vpl",suffix)
+                  when :vf
+                    File.join("fonts/vf",suffix)
+                  when :pl
+                    File.join("fonts/source/pl",suffix)
+                  when :map
+                    "fonts/map/dvips"
+                  when :type1
+                    File.join("fonts/type1",suffix)
+                  when :truetype
+                    File.join("fonts/truetype",suffix)
+                  when :fd
+                    File.join("tex/latex",suffix)
+                  when :typescript
+                    File.join("tex/context",suffix)
+                  else
+                    raise "unknown type"
+                  end
+          @dirs[t] = File.join(@basedir,subdir)
+        }
+      else
+        arg.each { |key,value|
+          @dirs[key] = value
+        }
+      end
     end
   end
   def ensure_dir(dirname) # :nodoc:
@@ -74,9 +115,33 @@ module Helper
       end
     else
       # file does not exist, we can create a directory (hopefully)
-      Dir.mkdir(dirname)
+      
+      puts "Creating directory hierarchy #{dirname}" if @options[:verbose]
+      
+      unless @options[:dryrun]
+        FileUtils.mkdir_p(dirname)
+      end
     end
   end #ensure_dir
 
-  
+  class Options
+    def initialize(fontcollection)
+      @fc=fontcollection
+      @options={}
+    end
+    def [](idx)
+      if @options[idx]
+        return @options[idx]
+      end
+      if @fc
+        @fc.options[idx]
+      else
+        nil
+      end
+    end
+    def []=(idx,obj)
+      @options[idx]=obj
+    end
+    
+  end
 end

@@ -1,4 +1,4 @@
-# Last Change: Fri Jul 15 19:31:53 2005
+# Last Change: Wed Jul 20 16:38:53 2005
 
 require 'rfi'
 require 'strscan'
@@ -33,6 +33,7 @@ class AFM < FontMetric
   def initialize
     @somethingstrange = false
     super()
+    @outlinetype=:type1
     @comment = ""
     @verbose=false
   end

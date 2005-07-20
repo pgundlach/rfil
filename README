@@ -24,7 +24,7 @@ afm2tfm.rb:: Install a single font. As with afm2tfm (the program shipped with dv
 afminfo:: Give information about an afm file (metrics, glyph information).
 pldiff:: Compare two metric files and outputs all differences.
 plinfo:: Show information about a TeX metric file.
-
+rfont:: Simple installer that handles a family of fonts (reguar, italic, bold...)
 
 == Example usage of the RFI Library
 

@@ -1,5 +1,5 @@
 # fontcollection.rb
-# Last Change: Tue Jul 19 16:57:44 2005
+# Last Change: Wed Jul 20 18:10:25 2005
 
 require 'rfi'
 require 'font'
@@ -45,18 +45,24 @@ class FontCollection
   attr_accessor :style
 
   attr_accessor :write_vf
+
+  attr_accessor :options
   
   # list of temps
   documented_as_reader :temps
   
   def initialize()
     @kpse=Kpathsea.new
+    @basedir=nil
     @texenc=nil
     @mapenc=nil
     @write_vf=true
     @fonts={}
+    @options={:verbose=>false,:dryrun=>false}
     @style=nil
     @dirs={}
+    @vendor=nil
+    @fontname=nil
     set_dirs(Dir.getwd)
     @temps={}
     # find temps-plugins
@@ -113,10 +119,12 @@ class FontCollection
         files.each { |fh|
           dir=get_dir(fh[:type])
           filename=File.join(dir,fh[:filename])
-          # puts "writing file #{filename}, contents: #{fh[:contents]}"
-          File.open(filename,"w") { |f|
-            f << fh[:contents]
-          }
+          puts "writing file #{filename}" if @options[:verbose]
+          
+          unless @options[:dryrun]
+            ensure_dir(dir)
+            File.open(filename,"w") { |f| f << fh[:contents] }              
+          end
         }
       end
     else

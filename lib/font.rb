@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Tue Jul 19 15:13:02 2005
+# Last Change: Wed Jul 20 16:29:44 2005
 #++
 require 'set'
 
@@ -57,7 +57,11 @@ class Font
   documented_as_accessor :write_vf
 
   documented_as_accessor :style
-  
+
+  # :dryrun, :verbose, see also fontcollection
+  attr_accessor :options
+
+  attr_accessor :variants
   # If fontcollection is supplied, we are now part as the
   # fontcollection. You can set mapenc and texenc in the fontcollection
   # and don't bother about it here. Settings in a Font object will
@@ -87,6 +91,7 @@ class Font
       # the default dirs
       set_dirs(Dir.getwd)
     end
+    @options=Options.new(fontcollection)
   end
 
   # hook run after font has been loaded by load_variant
@@ -211,8 +216,8 @@ class Font
   # Return PL (property list) object that represents the tfm file of
   # the font. enc is the encoding of the tfm file, which must be an
   # ENC object. Ligature and kerning information is put into the pl
-  # file unless <tt>:noligs</tt> is set to true in the options.
-  def pl(enc,options={})
+  # file unless <tt>:noligs</tt> is set to true in the opts.
+  def pl(enc,opts={})
     # puts "font#pl called with encoding #{enc.encname}"
     plist=PL.new(false)
     plist.family=@defaultfm.familyname
@@ -273,7 +278,7 @@ class Font
       charentry={}
       if ( (ligkern[:krn] and ligkern[:krn].size!=0) or
              (ligkern[:lig] and ligkern[:lig].size!=0) ) and
-          options[:noligs] != true
+          opts[:noligs] != true
         charentry[:ligkern]=ligkern
       end
 
@@ -474,7 +479,7 @@ class Font
   end  
 
   # Return a string or an array of strings that should be put in a mapfile.
-  def maplines(options={})
+  def maplines(opts={})
     # "normally" (afm2tfm)
     # savorg__ Savoy-Regular " mapenc ReEncodeFont " <savorg__ <mapenc.enc
 
@@ -529,17 +534,17 @@ class Font
   end
 
   # Creates all the necessary files to use the font. This is mainly a
-  # shortcut if you are too lazy to program. _options_:
+  # shortcut if you are too lazy to program. _opts_:
   # [:dryrun] true/false
   # [:verbose] true/false
   # [:mapfile] true/false
   
-  def write_files(options={})
+  def write_files(opts={})
       
     
     tfmdir=get_dir(:tfm); ensure_dir(tfmdir)
     vfdir= get_dir(:vf) ; ensure_dir(vfdir)
-    unless options[:mapfile]==false
+    unless opts[:mapfile]==false
       mapdir=get_dir(:map); ensure_dir(mapdir)
     end
 
@@ -583,7 +588,7 @@ class Font
       }
     end
     
-    unless options[:mapfile]==false
+    unless opts[:mapfile]==false
       # mapfile
       if options[:verbose]==true
         puts "writing #{mapfilename}"
@@ -659,6 +664,13 @@ class Font
   def style=(obj)         # :nodoc:
     @style=obj
   end
+#   def options         # :nodoc:
+#     if @fontcollection
+#       @fontcollection.options
+#     else
+#       @options
+#     end
+#   end
   
   def write_vf        # :nodoc:
     if @fontcollection
@@ -673,10 +685,10 @@ class Font
   
   # Copy glyphs from one font to the default font. _fontnumber_ is the
   # number that is returned from load_variant, _glyphlist_ is whatever
-  # you want to copy. Overwrites existing chars. _options_ is one of:
+  # you want to copy. Overwrites existing chars. _opts_ is one of:
   # [:ligkern] copy the ligature and kerning information with the glyphs stated in glyphlist. This will remove all related existing ligature and kerning information the default font.
   # *needs testing*
-  def copy(fontnumber,glyphlist,options={})
+  def copy(fontnumber,glyphlist,opts={})
     tocopy=[]
     case glyphlist
     when Symbol
@@ -689,7 +701,7 @@ class Font
       @defaultfm.chars[glyphname]=@variants[fontnumber].chars[glyphname]
       @defaultfm.chars[glyphname].fontnumber=fontnumber
     }
-    if options[:ligkern]==true
+    if opts[:ligkern]==true
       # assume: copying lowercase letters.
       # we need to copy *all* lowercase -> * data and replace all 
       # we need to remove all uppercase -> lowercase data first
@@ -733,7 +745,7 @@ class Font
   # write vf's, than this is the name used in the mapfont section of
   # the virtual font as well as the name of the tfm file, but both
   # with some marker that this font 'should' not be used directly. 
-  def map_fontname (texenc,varnumber=0,options={})
+  def map_fontname (texenc,varnumber=0,opts={})
     mapenc_loc=mapenc
     suffix=""
     suffix << @origsuffix if write_vf

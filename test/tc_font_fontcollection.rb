@@ -61,5 +61,26 @@ class TestFontFontCollection < Test::Unit::TestCase
     assert_equal("/tmp",font.get_dir(:tfm))
     # vpl has been overridden be font
     assert_equal("/tmp",font.get_dir(:vpl))
+    fc.set_dirs("/tmp")
+    fc.set_dirs(:tds=>true)
+    # !! check next 4 assertions, are incorrect (trailing /)
+    assert_equal("/tmp/fonts/source/vpl/",fc.get_dir(:vpl))
+    assert_equal("/tmp/fonts/type1/",fc.get_dir(:type1))
+    assert_equal("/tmp/tex/latex/",fc.get_dir(:fd))
+
+    font=Font.new(fc)
+    assert_equal("/tmp/fonts/source/vpl/",font.get_dir(:vpl))
   end
+  def test_options
+    fc=FontCollection.new
+    assert_equal(false,fc.options[:dryrun])
+    font=Font.new(fc)
+    assert_equal(false,font.options[:verbose])
+    font.options[:foo]="bar"
+    assert_equal("bar",font.options[:foo])
+    assert_equal(nil,fc.options[:foo])
+    fc.options[:verbose]=true
+    assert_equal(true,font.options[:verbose])
+  end
+
 end
