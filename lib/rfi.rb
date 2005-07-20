@@ -1,6 +1,6 @@
 # rfi.rb -- general use classes
 #--
-# Last Change: Mon Jul 18 14:27:50 2005
+# Last Change: Wed Jul 20 21:37:49 2005
 #++
 # = RFI
 # Everything that does not fit somewhere else gets included in the
@@ -10,16 +10,29 @@
 # useless of their own or are accessed in different classes.
 
 class RFI
-  # Super class for plugins
-  class TempsWriter
-    attr_accessor :name
+
+  # Super class for plugins. Just subclass this Plugin, set the name
+  # when calling Plugin#new and implement run_plugin.
+  class Plugin
+    # Name of the plugin. A Symbol or a String.
+    attr_reader :name
+
+    # Create a new plugin. _name_ is the name of the plugin (it must
+    # be a Symbol or a String).
     def initialize(name)
       @name=name
     end
-    def msf
+    
+    # Return an Array of files that should be written on the user's
+    # harddrive. The Hash entries are
+    # [<tt>:type</tt>] Type of the file (<tt>:fd</tt>, <tt>:typescript</tt> etc.)
+    # [<tt>:filename</tt>] The filename (without a path) of the file.
+    # [<tt>:contents</tt>] The contents of the file.
+    def run_plugin
       #dummy
     end
   end
+  
   # Some instructions to remove kerning information from digits and
   # other things. -> sort this out 
   STDLIGKERN = ["space l =: lslash",

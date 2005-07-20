@@ -22,7 +22,7 @@ class TestFontb < Test::Unit::TestCase
     if File.exists? f
       assert(File.mtime(f) < t)
     end
-    font=Font.new
+    font=RFI::Font.new
     font.load_variant("savorg__.afm")
     font.set_dirs(destdir)
     font.write_files

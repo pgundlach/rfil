@@ -197,7 +197,7 @@ class TestPL < Test::Unit::TestCase
   end
   def test_fontdimen
     require 'font'
-    font=Font.new
+    font=RFI::Font.new
     font.load_variant("savorg__.afm")
     font.mapenc="8r"
     font.texenc="ec"

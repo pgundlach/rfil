@@ -100,7 +100,7 @@ class TestRFI < Test::Unit::TestCase
   end
   def test_glyphlist_uc_lc
     require 'font'
-    font=Font.new
+    font=RFI::Font.new
     font.load_variant("savorg__.afm")
     gl=font.defaultfm.chars
     gl.update_uc_lc_list
@@ -117,7 +117,7 @@ class TestRFI < Test::Unit::TestCase
   def test_foo
     # stupid name, I know (please change it)
     require 'font'
-    font=Font.new
+    font=RFI::Font.new
     font.load_variant("savorg__.afm")
     gl=font.defaultfm.chars
     lc=["a", "aacute", "acircumflex", "adieresis", "ae", "agrave", "aring", "atilde", "b", "c", "ccedilla", "d", "dotlessi", "e", "eacute", "ecircumflex", "edieresis", "egrave", "eth", "f", "g", "germandbls", "h", "i", "iacute", "icircumflex", "idieresis", "igrave", "j", "k", "l", "lslash", "m", "n", "ntilde", "o", "oacute", "ocircumflex", "odieresis", "oe", "ograve", "oslash", "otilde", "p", "q", "r", "s", "scaron", "t", "thorn", "u", "uacute", "ucircumflex", "udieresis", "ugrave", "v", "w", "x", "y", "yacute", "ydieresis", "z", "zcaron"]

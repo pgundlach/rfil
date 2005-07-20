@@ -1,8 +1,10 @@
-# Example Context plugin for FontCollection
-#
-# 'temps' = TeX macro package support :-)
+=begin rdoc
+Plugin for RFIL to create a typescript usable for ConTeXt.
+=end
 
-class TempsWriterContext < RFI::TempsWriter
+# :enddoc:
+
+class TypescriptWriterConTeXt < RFI::Plugin
   
   def initialize(fontcollection)
     @fc=fontcollection

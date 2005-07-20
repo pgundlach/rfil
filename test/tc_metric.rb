@@ -13,7 +13,7 @@ require 'font'
 
 class TestMetric < Test::Unit::TestCase
   def test_fake_caps
-    font=Font.new
+    font=RFI::Font.new
     font.load_variant("savorg__.afm")
     fc=font.load_variant("savorg__.afm")
     font.fake_caps(fc,0.8)
@@ -129,7 +129,7 @@ class TestMetric < Test::Unit::TestCase
     }
   end
   def test_slant
-    font=Font.new
+    font=RFI::Font.new
     font.load_variant("savorg__.afm")
     font.slant=0.5
     font.apply_ligkern_instructions(RFI::STDLIGKERN)
@@ -183,7 +183,7 @@ class TestMetric < Test::Unit::TestCase
   end
 
   def test_extend
-    font=Font.new
+    font=RFI::Font.new
     font.load_variant("savorg__.afm")
     font.efactor=0.5
     font.apply_ligkern_instructions(RFI::STDLIGKERN)

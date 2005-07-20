@@ -1,21 +1,16 @@
-# Example LaTeX plugin for FontCollection
-#
-# 'temps' = TeX macro package support :-)
+=begin rdoc
+Plugin for RFIL to create a fontdefinition file (<tt>.fd</tt>) for LaTeX
+=end
 
-class TempsWriterLaTeX < RFI::TempsWriter
+# :enddoc:
+
+class FDWriterLaTeX < RFI::Plugin
   
   def initialize(fontcollection)
     @fc=fontcollection
     super(:latex)
   end
 
-  # Return the contents of the file that should be used by the TeX
-  # macro package, i.e a typescript for ConTeXt or an fd-file for
-  # LaTeX. Return value is an Array of Hashes. The Hash has three
-  # different keys:
-  # [<tt>:type</tt>] The type of the file, should be either <tt>:fd</tt> or <tt>:typescript</tt>.
-  # [<tt>:filename</tt>] the filename (without a path) of the file
-  # [<tt>:contents</tt>] the contents of the file.
   def run_plugin
     ret=[]
     @fc.texenc.each { |e|

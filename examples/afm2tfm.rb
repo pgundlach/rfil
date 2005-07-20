@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #--
-# Last Change: Tue Jul 19 11:55:57 2005
+# Last Change: Wed Jul 20 20:38:05 2005
 #++
 =begin rdoc
 == afm2tfm using the ruby font installer library
@@ -151,7 +151,7 @@ if ARGV.size >0
   options.outputfilename=ARGV.shift
 end
 
-font = Font.new
+font = RFI::Font.new
 font.write_vf = options.write_vf
 
 if options.dirname

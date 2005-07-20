@@ -23,14 +23,14 @@ class TestFont < Test::Unit::TestCase
   end
   
   def test_startup
-    font=Font.new
+    font=RFI::Font.new
     assert_raise(ArgumentError) {
       # font expects a FontCollection object if called w/ arg
-      Font.new("some class")
+      RFI::Font.new("some class")
     }
   end
   def test_load_variant
-    font=Font.new
+    font=RFI::Font.new
     # todo: ligatures,
     assert_equal(0,font.load_variant("savorg__.afm"))
     assert_equal(1,font.load_variant("savoi___.afm"))
@@ -40,7 +40,7 @@ class TestFont < Test::Unit::TestCase
     }
   end
   def test_mapfont
-    font=Font.new
+    font=RFI::Font.new
     font.load_variant("savorg__.afm")
     fc=font.load_variant("savoscrg.afm")
     font.copy(fc,:digits)
@@ -62,7 +62,7 @@ class TestFont < Test::Unit::TestCase
   end
 
   def test_vpl
-    font=Font.new
+    font=RFI::Font.new
     a=ENC.new()
     a.encname="mapenc"
     a[0]=".notdef"
@@ -187,7 +187,7 @@ class TestFont < Test::Unit::TestCase
     }
   end
   def test_pl_lig_nolig
-    font=Font.new
+    font=RFI::Font.new
     font.load_variant("savorg__.afm")
     font.apply_ligkern_instructions(RFI::STDLIGKERN)
 
@@ -208,7 +208,7 @@ class TestFont < Test::Unit::TestCase
   end
 
   def test_pl
-    font=Font.new
+    font=RFI::Font.new
     a=ENC.new()
     a.encname="mapenc"
     a[0]=".notdef"
@@ -308,7 +308,7 @@ class TestFont < Test::Unit::TestCase
 end
   
   def test_vpl_fontname
-    font=Font.new
+    font=RFI::Font.new
     font.load_variant("savorg__.afm")
     def font.m(a)
       # private:
@@ -319,7 +319,7 @@ end
 
   end
   def test_enc
-    font=Font.new
+    font=RFI::Font.new
     font.texenc=[@ecenc,@texnansienc]
     assert_equal([@ecenc,@texnansienc],font.texenc)
 
@@ -332,16 +332,16 @@ end
   end
   
   def test_mapfilename
-    font=Font.new
+    font=RFI::Font.new
     font.load_variant("savorg__.afm")
     assert_equal("savorg__.map", File.basename(font.mapfilename))
   end
   def test_ensure_font
-    font=Font.new
+    font=RFI::Font.new
     assert_raise(ScriptError) {   font.fake_caps(1,1)   }
   end
   def test_find_used_fonts
-    font=Font.new
+    font=RFI::Font.new
     font.load_variant("savorg__.afm")
     b = font.load_variant("savorg__.afm")
     c = font.load_variant("savorg__.afm")

@@ -1,5 +1,5 @@
 # fontmetric.rb - superclass for different font metric formats
-# Last Change: Wed Jul 20 16:40:55 2005
+# Last Change: Wed Jul 20 22:14:36 2005
 
 # FontMetric is the superclass for font metrics. All information that
 # is not specific to a certain kind of file format is accessible via
@@ -20,7 +20,7 @@ class FontMetric
   # Hash of glyphs in the font. 
   attr_accessor :chars
 
-  # The filename of the just read metric file
+  # The filename of the just read metric file. (Question: with or without path???) 
   attr_accessor :filename
 
   # file name of the font containing the outlines (the file that needs

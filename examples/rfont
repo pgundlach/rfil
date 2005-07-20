@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby -w
 #--
-# Last Change: Wed Jul 20 18:18:48 2005
+# Last Change: Wed Jul 20 20:38:21 2005
 #++
 =begin rdoc
 = rfont -- An example font installer
@@ -12,14 +12,14 @@ Usage: rfont [options] vendor/fontname  FILE1 FILE2 ...
     -c, --copy-fonts                 Also copy the font outlines
     -d, --directory DIR              Set base directory to DIR
         --dry-run                    dry run, don't create any files
-    -m, --list-msf                   list available macro support methods
+    -m, --list-plugin                list available macro support methods
     -p ENCFILE                       read/download ENCFILE for the PostScript encoding
     -s, --style STYLE                Style of the font, eg. sans, roman, typewriter
         --tds                        Put files in a TDS compliant directory hierarchy
     -t ENCFILE                       read ENCFILE for the encoding of the vf file
                                      multiple encodings can be given (seperated by ',')
     -T ENCFILE                       equivalent to -p ENCFILE -t ENCFILE
-    -u, --use-msf MSF                use msf files (plugins) MSF, multiple files seperated by ','
+    -u, --use-plugin PLUGIN          use plugin files PLUGIN, multiple files seperated by ','
     -v, --no-vf                      Do not create virtual fonts for reencoding
         --verbose                    Print more then needed on stdout
         --help                       print this message and exit.
@@ -42,7 +42,7 @@ $:.unshift File.join(File.dirname(__FILE__),"..","lib")
 require 'fontcollection'
 options=OpenStruct.new
 optionswritevf=true
-fc=FontCollection.new
+fc=RFI::FontCollection.new
 
 ret= ARGV.options { |opts|
   opts.banner = "Usage: #{File.basename($0)} [options] vendor/fontname  FILE1 FILE2 ..."
@@ -57,7 +57,7 @@ ret= ARGV.options { |opts|
     fc.options[:dryrun]=true
     options.dryrun=true
   }
-  opts.on("-m", "--list-msf", "list available macro support methods") {
+  opts.on("-m", "--list-plugin", "list available plugins") {
     puts "#{fc.temps.join("\n")}"
     exit 0;
   }
@@ -79,8 +79,8 @@ ret= ARGV.options { |opts|
     fc.mapenc = e
     fc.texenc = e
   }
-  opts.on("-u MSF","--use-msf",Array, "use msf files (plugins) MSF, multiple files seperated by ','") { |m|
-    options.msf=m
+  opts.on("-u PLUGIN","--use-plugin",Array, "use plugin PLUGIN, multiple files seperated by ','") { |m|
+    options.plugin=m
   }
   opts.on("-v", "--no-vf", "Do not create virtual fonts for reencoding") {
     fc.write_vf=false
@@ -128,7 +128,7 @@ fontoutlinedir=File.dirname(ARGV[0])
 
 ARGV.each { |fontname|
   # puts "reading font #{File.basename(fontname)}"
-  f=Font.new(fc)
+  f=RFI::Font.new(fc)
   f.load_variant(fontname)
   fonts.push f
 }
@@ -172,8 +172,8 @@ unless fc.options[:dryrun]
   }
 end
 
-if options.msf
-  options.msf.each{ |m|
+if options.plugin
+  options.plugin.each{ |m|
     fc.run_temps(m.to_sym)
   }
 end

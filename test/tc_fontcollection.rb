@@ -10,7 +10,7 @@ require 'font'
 class TestFontCollection < Test::Unit::TestCase
 
   def setup
-    @fc=FontCollection.new()
+    @fc=RFI::FontCollection.new()
   end
   def test_register
     # needs font object
