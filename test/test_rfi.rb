@@ -1,5 +1,5 @@
 #! /usr/bin/env ruby
-# Last Change: Fri Jul 15 20:59:27 2005
+# Last Change: Mon Jul 25 18:19:07 2005
 
 # test_rfi.rb
 # this file runs all test
@@ -19,3 +19,5 @@ require 'tc_fontcollection'
 require 'tc_font_fontcollection'
 require 'tc_pl'
 require 'tc_rfi'
+require 'tc_tfm'
+require 'tc_vf'
