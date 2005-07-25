@@ -88,7 +88,9 @@ class TFMParser
   # reading a tfm file is about 10 times faster than doing
   # `tftop xyz.pl` and using PL#parse. And only a bit slower than
   # `tftop xyz.pl > /dev/null` alone. (1.3 secs. vs. 0.9 secs. - 10 times)
-  LIGOPS = %w( LIG LIG/ /LIG /LIG/ x LIG/> /LIG> /LIG/> x x x /LIG/>> ) 
+  LIGOPS = %w( LIG LIG/  /LIG  /LIG/
+               x   LIG/> /LIG> /LIG/>
+               x   x     x     /LIG/>> ) 
   LIGTAG=1
   STOPFLAG=128
   KERNFLAG=128
@@ -211,7 +213,11 @@ class TFMParser
     @index=@char_base *4
     (@bc..@ec).each { |n|
       # p "looking at char #{n}, index is at #{@index / 4}"
-      tmp={}
+      tmp=if @tfm.chars[n]
+            @tfm.chars[n]
+          else
+            Hash.new
+          end
       @tfm.chars[n]=tmp
       tmp[:charwd]=get_fix_word((@width_base + get_byte)*4)
       b=get_byte

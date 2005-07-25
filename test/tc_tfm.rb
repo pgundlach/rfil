@@ -14,7 +14,7 @@ class TestTFM < Test::Unit::TestCase
     tfm=TFM.new
     tfm.read_file(f)
     f.close
-    p tfm.fontfamily
+    assert_equal("tricky.tfm",tfm.filename)
   end
 
 end
