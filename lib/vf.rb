@@ -1,6 +1,6 @@
 # vf.rb -- Class that models TeX's virtual fonts.
 #--
-# Last Change: Mon Jul 25 18:20:39 2005
+# Last Change: Mon Jul 25 20:27:30 2005
 #++
 
 require 'tfm'
@@ -8,25 +8,30 @@ require 'kpathsea'
 
 
 class VF < TFM
-  # fontlist is an array of Hashes with the following keys:
-  # [<tt>:scale</tt>] Relative size of the font
-  # [<tt>:designsize</tt>] Arbitrary 
-  # [<tt>:name</tt>]    Filename of the font. Without path.
-  # [<tt>:checksum</tt>] Checksum of that font.
-  attr_accessor :fontlist
-  def initialize
-    super
-    @fontlist=[]
-  end
   def self.documented_as_accessor(*args) #:nodoc:
   end
   def self.documented_as_reader(*args) #:nodoc:
   end
-  def filename=(obj)
-    raise
-  end
-  def filename
-    File.basename(@pathname)
+
+  # fontlist is an array of Hashes with the following keys:
+  # [<tt>:scale</tt>] Relative size of the font
+  # [<tt>:designsize</tt>] Arbitrary 
+  # [<tt>:name</tt>]    Filename of the font. Without path.
+  # [<tt>:area</tt>]    'Path' of the font. Often nil.
+  # [<tt>:checksum</tt>] Checksum of that font.
+  attr_accessor :fontlist
+
+  # This is the same Array as in TFM. Besides the keys <tt>:charwd</tt>,
+  # <tt>:charht</tt>, <tt>:chardp</tt> and <tt>:charic</tt>, we now have a key
+  # <tt>:dvi</tt> that holds all vf instructions.
+  documented_as_accessor :chars
+
+  # Comment at the beginning of the vf file. Must be < 256 chars.
+  attr_accessor :comment
+  def initialize
+    super
+    @comment=nil
+    @fontlist=[]
   end
   
   def read_file(file)
@@ -50,7 +55,6 @@ class VF < TFM
     end
     t=TFMParser.new(self)
     tfmpathname=@pathname.chomp(".vf")+".tfm"
-    #puts "looking for tfm #{tfmpathname}"
     File.open(tfmpathname){ |f|
       t.parse(f.read)
     }
@@ -60,34 +64,40 @@ end #class VF
 
 
 
+# This class is not meant to be used by the programmer. It is used in
+# the VF class to read a virtual font from a file.
+
 class VFParser
+  # Raise this exception if an error related to the virtual font is
+  # encountered. Don't expect this library to be too clever at the beginning.
   class VFError < Exception
   end
 
   def initialize(vfobj)
-    @vfobj=vfobj
+    @vfobj= vfobj || VF.new
     @stack=[[0,0,0,0]]
     push
     @index=0
     @dviindex=nil
   end
-  def parse(vfstring)
-    raise ArgumentError, "I expect a string" unless vfstring.respond_to?(:unpack)
+
+  # _vfdata_ is a string with the contents of the vf (binary) file.
+  # Return a VF object filled with the information of the virtual
+  # font. Does not read the tfm data. It is safe to parse tfm data
+  # after parsing the virtual font. 
+  def parse(vfdata)
+    raise ArgumentError, "I expect a string" unless vfdata.respond_to?(:unpack)
     @index=0
-    @data=vfstring.unpack("C*")
+    @data=vfdata.unpack("C*")
 
     raise VFError, "This does not look like a vf to me" if 247 != get_byte
     raise VFError, "Unknown VF version" unless  202 == get_byte
 
-    get_byte.times do
-      # ignore comment
-      get_byte
-    end
+    @vfobj.comment=get_chars(get_byte)
 
     tfmcksum = get_qbyte
     tfmdsize = get_fix_word
 
-    # assume for now we only have 1 font, this holds true for the ltd test case
     while b=get_byte
       case b
       when 0..241
@@ -96,53 +106,30 @@ class VFParser
       when 242
         parse_char(:long)
       when 243,244,245,246
-        parse_font(4-(246 - b))  # length of k
+        # jippie, a (map)font
+        fontnumber=get_bytes(243-b+1,false)
+        tmp=@vfobj.fontlist[fontnumber]={}
+        tmp[:checksum]=get_qbyte
+        tmp[:scale]=get_fix_word
+        tmp[:designsize] = get_fix_word
+        a = get_byte   # length of area (directory?)
+        l = get_byte   # length of fontname
+        tmp[:area]=get_chars(a)
+        tmp[:name]=get_chars(l)
       when 248
         parse_postamble
       else
         raise VFError, "unknown instruction number #{b.inspect}"
       end
     end
-  end
-
-  def parse_font(sizeof_k)
-    k = case sizeof_k
-        when 1
-          get_byte
-        when 2
-          get_dbyte
-        when 3
-          get_tbyte
-        when 4
-          get_qbyte
-        end
-    # checksum
-    c = get_qbyte
-    # see dvitype §18
-    # scale factor
-    s = get_fix_word
-    # design size
-    d = get_fix_word
-    # a=area/directory. if 0, use std
-    a = get_byte
-    # l=length of fontname
-    l = get_byte
-    n = @data[(@index..@index+a+l-1)].collect{ |b|
-      b.chr
-    }.join
-    @index += a+l
-    #puts "k=#{k} (fontnumber)"
-    tmp={}
-    @vfobj.fontlist[k]=tmp
-    tmp[:checksum]=c
-    tmp[:scale]=s
-    tmp[:designsize]=d
-    tmp[:name]=n
-    #puts "checksum=#{c}"
-    #puts "scale factor=#{s}"
-    #puts "design_size=#{d}"
-    #  puts "name=#{n}"
-  end
+    return @vfobj
+  end # parse
+  
+  
+  #######
+  private
+  #######
+  
   def parse_postamble
     while get_byte
     end
@@ -206,16 +193,15 @@ class VFParser
         b=out_as_fix(get_bytes(c,true,@dviindex+1))
         instructions << [:moveright, b]
       when 147
-        instructions << [:moveright, self._w]
+        instructions << [:moveright, _w]
         @dviindex +=1
       when 148..151
         c=4-(151-i)
-        w=out_as_fix(get_bytes(c,true,@dviindex+1))
-        self._w=w
-        instructions << [:moveright,w]
+        self._w=out_as_fix(get_bytes(c,true,@dviindex+1))
+        instructions << [:moveright,_w]
         @dviindex += c+1
       when 152
-        instructions << [:moveright, self._x]
+        instructions << [:moveright, _x]
         @dviindex +=1
       when 153..156
         c=4-(156-i)
@@ -230,22 +216,20 @@ class VFParser
         instructions << [:movedown,v]
         @dviindex += c+1
       when 161
-        instructions << [:movedown, self._y]
+        instructions << [:movedown, _y]
         @dviindex +=1
       when 162..165
-        c=4-(165-i)
-        y = out_as_fix(get_bytes(c,true,@dviindex+1))
-        self._y=y
-        instructions << [:movedown,y]
+        c=i-162+1
+        self._y = out_as_fix(get_bytes(c,true,@dviindex+1))
+        instructions << [:movedown,_y]
         @dviindex += c+1
       when 166
-        instructions << [:movedown, self._z]
+        instructions << [:movedown, _z]
         @dviindex +=1
       when 167..170
         c=i-167+1
-        z = out_as_fix(get_bytes(c,true,@dviindex+1))
-        self._z=z
-        instructions << [:movedown,z]
+        self._z = out_as_fix(get_bytes(c,true,@dviindex+1))
+        instructions << [:movedown,_z]
         @dviindex += c+1
       when 171..234
         instructions << [:selectfont, 63-234+i]
@@ -318,17 +302,17 @@ class VFParser
   end
   
   
-  def set_stackvalue(obj,value)
-    i=case obj
-      when :w then 0
-      when :x then 1
-      when :y then 2
-      when :z then 3
-      end
-    @stack[-1][i]=value
-  end
+#   def set_stackvalue(obj,value)
+#     i=case obj
+#       when :w then 0
+#       when :x then 1
+#       when :y then 2
+#       when :z then 3
+#       end
+#     @stack[-1][i]=value
+#   end
   def get_byte(i=nil)
-    global = i == nil
+    global = i==nil
     i = @index if global
     r=@data[i]
     @index += 1  if global
@@ -369,32 +353,35 @@ class VFParser
     @index += 4
     r
   end
+  # Read a string with at most count bytes. Does not add \0 to the string.
   def get_chars(count,i=nil)
     ret=""
     global = i==nil
     i = @index if global
-    
-    count.times { |count|
-      c=@data[i + count]
+   
+    count.times { |coumt|
+      c=@data[i + coumt]
       ret << c.chr if c > 0
     }
     @index += count if global
-    ret
+    return ret.size==0  ? nil : ret 
   end
-  def get_bytes(count,signed,index=nil)
-    raise "index == nil (sorry, not implemented)" unless index
-    a=@data[index]
+  def get_bytes(count,signed,i=nil)
+    global = i==nil 
+    i=@index if global
+    a=@data[i]
     if (count==4) or signed
       if a >= 128
         a -= 256
       end
     end
-    index +=1
+    i +=1
     while count > 1
-      a = a * 256 + @data[index]
-      index +=1
+      a = a * 256 + @data[i]
+      i +=1
       count -=1
     end
+    @index += count if global
     return a
   end
   def out_as_fix(x)

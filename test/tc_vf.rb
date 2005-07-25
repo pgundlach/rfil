@@ -13,7 +13,8 @@ class TestVF < Test::Unit::TestCase
     vf=VF.new
     vf.read_file(filename)
     assert_equal("tricky2.vf", vf.filename)
-    assert_equal([{:scale=>1.0, :designsize=>10.0, :name=>"phvr8r", :checksum=>0}], vf.fontlist)
+    assert_equal([{:scale=>1.0, :designsize=>10.0, :name=>"phvr8r",
+                    :area=>nil, :checksum=>0}], vf.fontlist)
   end
 
 end

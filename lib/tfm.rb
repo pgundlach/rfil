@@ -153,7 +153,6 @@ class TFMParser
     parse_lig_kern
     # exten?
 
-#    ligtable
     return @tfm
   end # parse
 
