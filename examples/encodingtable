@@ -1,40 +1,51 @@
 #!/usr/bin/env ruby -w
 #--
-# Last Change:
+# Last Change: Tue Aug  2 15:09:01 2005
 #++
 =begin rdoc
 = encodingtable -- print out a table with different encodings in colums
 
-This is mainly an example how to use the ENC and kpathsea class. Edit
-the file contents to get a different table.
+This is mainly an example how to use the ENC and Kpathsea class. 
 
-Example:
+== Usage
+ encodingtable encoding [encoding ...]
+
+
+== Example
+ 
+ $ ./encodingtable ec texnansi 8r 8a
+
  dec | oct |hex | ECEncoding       | TeXnANSIEncoding | TeXBase1Encoding | StandardEncoding |
  --------------------------------------------------------------------------------------------
    0 |   0 |  0 | grave            | ---              | ---              | ---              |
    1 |   1 |  1 | acute            | Euro             | dotaccent        | ---              |
    2 |   2 |  2 | circumflex       | ---              | fi               | ---              |
    3 |   3 |  3 | tilde            | ---              | fl               | ---              |
- ...
+   4 |   4 |  4 | dieresis         | fraction         | fraction         | ---              |
+   5 |   5 |  5 | hungarumlaut     | dotaccent        | hungarumlaut     | ---              |
+  ...
 ---
 Author:: Patrick Gundlach <patrickg@despammed.com>
 =end
+
+# :enddoc:
 
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
 require 'enc'
 require 'kpathsea'
 
-
-encnames=%w( ec.enc texnansi.enc 8r.enc 8a.enc )
+unless ARGV.size > 0
+  puts "Usage: #{File.basename($0)} encoding ..."
+  exit
+end
 
 fmt=" %-16.16s |"
 
-
 encodings=[]
 kpse=Kpathsea.new
-encnames.each { |e|
-  encodings.push(ENC.new(kpse.open_file(e,'enc')))  
+ARGV.each { |e|
+  encodings.push(ENC.new(kpse.open_file(e.chomp(".enc")+".enc",'enc')))  
 }
 
 
