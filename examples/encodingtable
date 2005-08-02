@@ -1,0 +1,53 @@
+#!/usr/bin/env ruby -w
+#--
+# Last Change:
+#++
+=begin rdoc
+= encodingtable -- print out a table with different encodings in colums
+
+This is mainly an example how to use the ENC and kpathsea class. Edit
+the file contents to get a different table.
+
+Example:
+ dec | oct |hex | ECEncoding       | TeXnANSIEncoding | TeXBase1Encoding | StandardEncoding |
+ --------------------------------------------------------------------------------------------
+   0 |   0 |  0 | grave            | ---              | ---              | ---              |
+   1 |   1 |  1 | acute            | Euro             | dotaccent        | ---              |
+   2 |   2 |  2 | circumflex       | ---              | fi               | ---              |
+   3 |   3 |  3 | tilde            | ---              | fl               | ---              |
+ ...
+---
+Author:: Patrick Gundlach <patrickg@despammed.com>
+=end
+
+$:.unshift File.join(File.dirname(__FILE__), "..", "lib")
+
+require 'enc'
+require 'kpathsea'
+
+
+encnames=%w( ec.enc texnansi.enc 8r.enc 8a.enc )
+
+fmt=" %-16.16s |"
+
+
+encodings=[]
+kpse=Kpathsea.new
+encnames.each { |e|
+  encodings.push(ENC.new(kpse.open_file(e,'enc')))  
+}
+
+
+print "dec | oct |hex |"
+encodings.each { |e| print sprintf(fmt,e.encname) }
+
+
+0.upto(255) { |slot|
+  print "\n"+"-"*(16 + encodings.size * 19 ) if slot % 32 == 0
+
+  print sprintf("\n%3d | %3o | %2x |", slot,slot,slot)
+  encodings.each { |e|
+    print sprintf(fmt, e[slot]==".notdef" ? "---" :  e[slot])
+  }
+}
+puts
