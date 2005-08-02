@@ -22,6 +22,7 @@ You might find the examples shipped with RFIL useful.
 
 afm2tfm.rb:: Install a single font. As with afm2tfm (the program shipped with dvips), you can reencode a font and fake caps.
 afminfo:: Give information about an afm file (metrics, glyph information).
+encodingtable:: Print out a table with encodings/glyphnames/slots
 pldiff:: Compare two metric files and output all differences.
 plinfo:: Show information about a TeX metric file.
 rfont:: Simple installer that handles a family of fonts (reguar, italic, bold...)
