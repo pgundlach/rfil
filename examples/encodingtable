@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby -w
 #--
-# Last Change: Tue Aug  2 15:09:01 2005
+# Last Change: Wed Aug  3 21:01:18 2005
 #++
 =begin rdoc
 = encodingtable -- print out a table with different encodings in colums
@@ -8,7 +8,7 @@
 This is mainly an example how to use the ENC and Kpathsea class. 
 
 == Usage
- encodingtable encoding [encoding ...]
+ encodingtable encoding[.enc] [encoding[.enc] ...]
 
 
 == Example
@@ -30,13 +30,15 @@ Author:: Patrick Gundlach <patrickg@despammed.com>
 
 # :enddoc:
 
+
+
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
 require 'enc'
 require 'kpathsea'
 
 unless ARGV.size > 0
-  puts "Usage: #{File.basename($0)} encoding ..."
+  puts "Usage: #{File.basename($0)} encoding[.enc] ..."
   exit
 end
 
@@ -45,7 +47,9 @@ fmt=" %-16.16s |"
 encodings=[]
 kpse=Kpathsea.new
 ARGV.each { |e|
-  encodings.push(ENC.new(kpse.open_file(e.chomp(".enc")+".enc",'enc')))  
+  kpse.open_file(e.chomp('.enc')+'.enc','enc') { |f|
+    encodings.push(ENC.new(f))
+  }
 }
 
 
