@@ -405,7 +405,7 @@ class TFMWriter
     }
   end
   def checksum
-    return 0,0,0,0
+    return out_qbyte(@tfm.checksum)
   end
 
   def out_bcpl(string,len)
@@ -430,6 +430,15 @@ class TFMWriter
     a1=int % 256
     a0=int / 256
     return [a0,a1]
+  end
+  def out_qbyte(int)
+    a3=int % 256
+    int = int / 256
+    a2 = int % 256
+    int = int / 256
+    a1=int % 256
+    a0=int / 256
+    return [a0,a1,a2,a3]
   end
   
   # looks ok

@@ -21,7 +21,6 @@ class TestTFM < Test::Unit::TestCase
     assert_equal(256,tfm.chars.size)
   end
   def test_write
-    return
     filename="tricky.tfm"
     f=File.open(filename)
     tfm=TFM.new
