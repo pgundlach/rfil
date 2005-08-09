@@ -1,5 +1,5 @@
 #--
-# Last Change: Fri Jul 15 19:08:39 2005
+# Last Change: Thu Aug  4 00:31:00 2005
 #++
 # == Accessing PL (property lists)
 # The PL class and its subclasses are helpful if you want to read or
@@ -19,6 +19,9 @@
 # #ligtable. After you are done, either write out the pl file with
 # #write_tfm or #write_vf, or get a +pltotf+ and +vpltovf+ compatible
 # string representation with #to_s.
+# ---
+# This class is currently being replaced by the TFM and VF classes, so
+# don't rely on this class to stay alive.
 # 
 
 class PL
