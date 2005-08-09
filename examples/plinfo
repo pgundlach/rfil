@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #--
-# Last Change: Mon Jul 11 23:13:56 2005
+# Last Change: Tue Aug  9 08:50:06 2005
 #++
 =begin rdoc
 == plinfo -- output information about a (v)pl file.
@@ -26,8 +26,9 @@ require 'ostruct'
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
 
-require 'pl'
-require 'plparser'
+require 'tfm'
+#require 'pl'
+#require 'plparser'
 require 'kpathsea'
 require 'enc'
 
@@ -60,44 +61,49 @@ def dump_maininfo(filename)
   puts "General font information:"
   puts "========================="
   print "filename=#{File.basename(filename)} "
-  puts @isvpl ? "(vpl)" : "(pl)"
-  puts "Family: #{@pl.family}"
-  puts "Designsize: #{@pl.designsize}"
-  puts "Codingscheme: #{@pl.codingscheme}"
+  # puts @isvpl ? "(vpl)" : "(pl)"
+  puts "Family: #{@tfm.fontfamily}"
+  puts "Designsize: #{@tfm.designsize}"
+  puts "Codingscheme: #{@tfm.codingscheme}"
   puts "Fontdimen:"
-  @pl.fontdimen.each {|key,value|
-    puts "  #{key} = #{value}"
+  paramname=%w( SLANT SPACE STRETCH SHRINK XHEIGHT QUAD EXTRASPACE )
+    if @tfm.codingscheme=="TeX math symbols"
+      paramname += %w(NUM1 NUM2 NUM3 DENOM1 DENOM2 SUP1 SUP2 SUP3
+                      SUB1 SUB2 SUPDROP)
+    elsif @tfm.codingscheme=="TeX math extension"
+      paramname += %w(DEFAULT_RULE_THICKNESS BIG_OP_SPACING1
+      BIG_OP_SPACING2 BIG_OP_SPACING3 BIG_OP_SPACING4 BIG_OP_SPACING5) 
+    end
+
+  (1..@tfm.params.size-1).each {|i|
+    puts "  #{paramname[i-1]} = #{@tfm.params[i]}"
   }
 end
 
 def dump_charsinfo
-  stdformat="%7s|"
+  stdformat="%9s|"
   count=0
   0.upto(255)  { |i|
-    if count % 20 == 0
-      puts "\n   slot|  width| height|  depth|     ic|  kern?|   lig?|  extra| char"
-      puts "-------|-------|-------|-------|-------|-------|-------|-------|-----"
-    end
-    if c=@pl[i]
-      if c[:ligkern]
-        has_krn= c[:ligkern][:krn] ? "yes" : "no"
-        has_lig= c[:ligkern][:lig] ? "yes" : "no"
-      else
-        has_krn=has_lig="no"
-        end
+    if c=@tfm.chars[i]
+      if count % 32 == 0
+        puts "\n slot|   width |  height |   depth |      ic |lig/kern?|   extra |  char"
+        puts "-----|---------|---------|---------|---------|---------|---------|-------"
+      end
+
+      has_krn= c[:lig_kern] ?  "yes" : ""
       extra = ""
       char = @options.encoding ? @options.encoding[i] : ""
-      puts sprintf(stdformat*8+" %s", "#{i}","#{c[:charwd]}","#{c[:charht]}","#{c[:chardp]}","#{c[:charic]}", has_krn,has_lig,"",char)
+      puts sprintf("%5s|"+stdformat*6+" %s", "#{i}","#{c[:charwd]}","#{c[:charht]}","#{c[:chardp]}","#{c[:charic]}", has_krn,"",char)
       count += 1
+      
     end
+
   }
 end
 
 ARGV.each { |plfilename|
-  f=File.open(plfilename)
-  @pl=PL.new().parse(f.read)
-  f.close
-  @isvpl= plfilename =~ /\.vpl$/
+  @tfm=TFM.new()
+  @tfm.read_pl(plfilename)
   dump_maininfo(plfilename)
   if @options.listchars
     dump_charsinfo
