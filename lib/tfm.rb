@@ -1,6 +1,6 @@
 # tfm.rb - Access  information of a TeX font metric file. 
 #--
-# Last Change: Thu Aug 11 14:45:44 2005
+# Last Change: Thu Aug 11 16:31:47 2005
 #++
 
 class TFM
@@ -1024,11 +1024,12 @@ class TFM
   end
 
 
-    # _plfile_ is a File object. (Future: File and String (pathname))
-  def read_pl(plfile)
-    File.open(plfile) { |f|
+    # _plfile_ is a filename (String). (Future: File and String (pathname))
+  def read_pl(plfilename)
+    File.open(plfilename) { |f|
       parse_pl(f.read)
     }
+    return self
   end
   def parse_pl(plstring)
     p=PLParser.new(self)

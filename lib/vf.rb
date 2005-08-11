@@ -1,6 +1,6 @@
 # vf.rb -- Class that models TeX's virtual fonts.
 #--
-# Last Change: Thu Aug 11 14:46:10 2005
+# Last Change: Thu Aug 11 16:32:01 2005
 #++
 
 require 'tfm'
@@ -675,11 +675,12 @@ class VF < TFM
     @fontlist=[]
   end
   
-  # _vplfile_ is a File object. (Future: File and String (pathname))
-  def read_vpl(vplfile)
-    File.open(vplfile) { |f|
+  # _vplfile_ is a filename (String). (Future: File and String (pathname))
+  def read_vpl(vplfilename)
+    File.open(vplfilename) { |f|
       parse_vpl(f.read)
     }
+    return self
   end
   def parse_vpl(vplstring)
     v=VPLParser.new(self)
