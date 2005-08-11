@@ -1,6 +1,6 @@
 # vf.rb -- Class that models TeX's virtual fonts.
 #--
-# Last Change: Tue Aug  9 16:24:46 2005
+# Last Change: Thu Aug 11 14:46:10 2005
 #++
 
 require 'tfm'
@@ -57,16 +57,16 @@ class VF < TFM
           # the metadata?         
           @vfobj.fontlist[fontnumber]={}
           checksum=get_qbyte
-          @vfobj.fontlist[fontnumber][:checksum]=checksum
+          # @vfobj.fontlist[fontnumber][:checksum]=checksum
           scale=get_fix_word
           @vfobj.fontlist[fontnumber][:scale]=scale
           dsize = get_fix_word
-          @vfobj.fontlist[fontnumber][:designsize]=dsize
+          # @vfobj.fontlist[fontnumber][:designsize]=dsize
           a = get_byte   # length of area (directory?)
           l = get_byte   # length of fontname
           area=get_chars(a)
           name=get_chars(l)
-          @vfobj.fontlist[fontnumber][:name]=name
+          # @vfobj.fontlist[fontnumber][:name]=name
           @kpse.open_file(name,'tfm') { |file|
             @vfobj.fontlist[fontnumber][:tfm]=TFM.new.read_tfm(file)
           }
@@ -576,17 +576,18 @@ class VF < TFM
     def get_mapfont
       @vf.fontlist=[]
       t = @vf.fontlist[get_num] = {}
+      t[:tfm]=TFM.new
       thislevel=@level
       while @level >= thislevel
         case k=keyword
         when "FONTNAME"
-          t[:name]=get_string
+          t[:tfm].pathname=get_string
         when "FONTCHECKSUM"
-          t[:checksum]=get_num
+          t[:tfm].checksum=get_num
         when "FONTAT"
           t[:scale]=get_num
         when "FONTDSIZE"
-          t[:designsize]=get_num
+          t[:tfm].designsize=get_num
         else
           raise "Unknown property in MAPFONT section: #{k}"
         end
@@ -656,10 +657,7 @@ class VF < TFM
 
   # fontlist is an array of Hashes with the following keys:
   # [<tt>:scale</tt>] Relative size of the font
-  # [<tt>:designsize</tt>] Arbitrary 
-  # [<tt>:name</tt>]    Filename of the font. Without path.
-  # [<tt>:area</tt>]    'Path' of the font. Often nil.
-  # [<tt>:checksum</tt>] Checksum of that font.
+  # [<tt>:tfm</tt>] TFM object.
   attr_accessor :fontlist
 
   # This is the same Array as in TFM. Besides the keys <tt>:charwd</tt>,
@@ -679,10 +677,14 @@ class VF < TFM
   
   # _vplfile_ is a File object. (Future: File and String (pathname))
   def read_vpl(vplfile)
-    v=VPLParser.new(self)
     File.open(vplfile) { |f|
-      v.parse(f)
+      parse_vpl(f.read)
     }
+  end
+  def parse_vpl(vplstring)
+    v=VPLParser.new(self)
+    v.parse(vplstring)
+    return self
   end
 
   # _file_ is either a string (pathname) of a File object (must
@@ -761,12 +763,17 @@ class VF < TFM
     str << out_chars(indent)
     str
   end
-
+
+  #######
+  private
+  #######
+
   def out_chars(indent)
     str = ""
     chars.each_with_index { |c,i|
       next unless c
-      str << "(CHARACTER O #{sprintf("%o",i)}\n"
+      # str << "(CHARACTER O #{sprintf("%o",i)}\n"
+      str << "(CHARACTER D %d\n" % i
       [:charwd,:charht,:chardp,:charic].each { |dim|
         str << indent + "(#{dim.to_s.upcase} R #{c[dim]})\n" if c[dim]!=0.0
       }
@@ -776,7 +783,7 @@ class VF < TFM
           
           case instr
           when :setchar
-            str << indent*2 + "(SETCHAR D #{rest[0]})\n"
+            str << indent*2 + "(SETCHAR D %d)\n" % rest[0].to_i
           when :setrule
             str << indent*2 + "(SETRULE R #{rest[0]} R #{rest[1]})\n"
           when :noop
@@ -810,10 +817,10 @@ class VF < TFM
     
     fontlist.each_with_index { |f,i|
       str << "(MAPFONT D %d\n" % i
-      str << indent + "(FONTNAME #{f[:name]})\n"
-      str << indent + "(FONTCHECKSUM O %o)\n" % f[:checksum]
-      str << indent + "(FONTAT R #{f[:scale]})\n"
-      str << indent + "(FONTDSIZE R #{f[:designsize]})\n"
+      str << indent + "(FONTNAME %s)\n" % f[:tfm].filename
+      str << indent + "(FONTCHECKSUM O %o)\n" % f[:tfm].checksum
+      str << indent + "(FONTAT R %f)\n" % (f[:scale] ? f[:scale].to_f : 1.0)
+      str << indent + "(FONTDSIZE R %f)\n" % f[:tfm].designsize
       str << indent + ")\n"
     }
     str
