@@ -196,13 +196,16 @@ class TestPL < Test::Unit::TestCase
     assert_equal(28,pl.ligtable[45][:krn][0][0])
   end
   def test_fontdimen
+    # obsolete, pl class will be removed
+    return
+    
     require 'font'
     font=RFI::Font.new
     font.load_variant("savorg__.afm")
     font.mapenc="8r"
     font.texenc="ec"
     pl=PL.new(true)
-    v = font.vpl(font.mapenc,font.texenc[0])
+    v = font.to_vf(font.mapenc,font.texenc[0])
     assert_equal(10.0,v.designsize)
     assert_equal({:space=>300, :stretch=>200, :shrink=>100, :xheight=>415,
                    :quad=>1000, :extraspace=>111 },v.fontdimen)

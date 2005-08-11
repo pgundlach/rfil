@@ -6,8 +6,6 @@ $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
 require 'font'
 require 'enc'
-require 'pl'
-require 'plparser'
 require 'kpathsea'
 require 'pp'
 
@@ -46,19 +44,9 @@ class TestFont < Test::Unit::TestCase
     font.copy(fc,:digits)
     font.mapenc="8r"
     font.texenc="ec"
-    v = font.vpl(font.mapenc,font.texenc[0])
-    a=[{:fontname=>"8r-savorg__-orig"}, {:fontname=>"8r-savoscrg-orig"}]
-    assert_equal(a,v.mapfont)
-    v.mapfont=v.mapfont
-    #roundtrip
-    assert_equal(a,v.mapfont)
-    v.mapfont=[{:fontname=>"foo", :fontat=>12}]
-    b="(MAPFONT D 0
-   (FONTNAME foo)
-   (FONTAT D 12)
-   )
-"
-    assert_equal(b,v.mapfont(true).to_s)
+    vf = font.to_vf(font.mapenc,font.texenc[0])
+    assert_equal("8r-savorg__-orig",vf.fontlist[0][:tfm].filename)
+    assert_equal("8r-savoscrg-orig",vf.fontlist[1][:tfm].filename)
   end
 
   def test_vpl
@@ -94,97 +82,41 @@ class TestFont < Test::Unit::TestCase
     font.load_variant("savorg__.afm")
     font.mapenc=a
     font.texenc=b
-    str=font.vpl(font.mapenc,font.texenc[0]).to_s
-    pl=PL.new(true)
-    pl.parse(str)
+    str=font.to_vf(font.mapenc,font.texenc[0]).to_s
+    # puts str
+    vf=VF.new()
+    vf.parse_vpl(str)
+    assert_equal("Installed with rfi library",vf.vtitle)
+    assert_equal("SAVOY",vf.fontfamily)
+    assert_equal("MAPENC + TEXENC",vf.codingscheme)
+    assert_equal(10.0,vf.designsize)
+    assert_equal([nil, 0.0, 0.3, 0.3, 0.1, 0.415, 1.0],vf.params)
+    assert_equal("minienc-savorg__-orig",vf.fontlist[0][:tfm].filename)
+    assert_equal([[[:krn, 17, 0.024], [:krn, 18, 0.024], [:krn, 12, 0.015], 
+                     [:krn, 10, -0.008]], [[:krn, 11, 0.021]]],  vf.lig_kern)
 
-    assert_equal("Installed with rfi library",pl.vtitle)
-    assert_equal("Savoy",pl.family)
-    assert_equal("mapenc + texenc",pl.codingscheme)
-    assert_equal(10.0,pl.designsize)
-    assert_equal({:space=>300, :stretch=>200, :shrink=>100, :xheight=>415,
-                   :quad=>1000, :extraspace=>111, },pl.fontdimen)
-    
-    assert_equal({:fontname=>"minienc-savorg__-orig"},
-                 pl.mapfont[0])
-    a={
-      11=>[[[17, 24],
-          [18, 24],
-          [12, 15],
-          [10, -8]], []],
-      17=>[[[11, 21]], []],
-      18=>[[[11, 21]], []]}
-    b=pl.ligtable
-    a.each { |num,kernlig|
-      kern,lig=kernlig
-      kern.each { |k|
-        assert(b[num][:krn].member?(k))
-      }
-      lig.each { |l|
-        assert(b[num][1].member?(l))
-      }
-    }
     ce=[
-      # c
-      {:slot=>10,
-        :chardp=>14,
-        :charwd=>433,
-        :charht=>426},
-      # A
-      {:slot=>11,
-        :chardp=>2,
-        :charic=>12,
-        :charwd=>632,
-        :charht=>564,
-        :map=>[[:setchar, 1]]},
-      # b
-      {:slot=>12,
-        :chardp=>13,
-        :charwd=>517,
-        :charht=>730,
-        :map=>[[:setchar, 2]]},
-      # germandbls
-      {:slot=>13,
-        :chardp=>12,
-        :charwd=>520,
-        :charht=>733,
-        :map=>[[:setchar, 3]]
-        },
-      # ae 
-      {:slot=>14,
-        :chardp=>13,
-        :charwd=>674,
-        :charht=>427,
-        :map=>[[:setchar,4]]
-        },
-      # AE
-      {:slot=>15,
-        :chardp=>2,
-        :charwd=>889,
-        :charht=>669,
-        :map=>[[:setchar, 5]]
-      },
-      # dotlessi
-      {:slot=>16,
-        :chardp=>2.0,
-        :charwd=>246.0,
-        :charht=>436.0,
-        :map=>[[:setchar, 6]]
-      },
-      # hyphen
-      {:slot=>17,
-        :charwd=>207.0,
-        :map=>[[:setchar, 7]],
-        :charht=>240.0},
-      # hyphen
-      {:slot=>18,
-        :charwd=>207.0,
-        :map=>[[:setchar, 7]],
-        :charht=>240.0}]
-
-    pl.get_charentries.each_with_index { |charentry,i|
-      assert_equal(ce[i],charentry)
-    }
+    {:charht=>0.426, :dvi=>[[:setchar, 10]], :chardp=>0.014, :charwd=>0.433},
+    {:charht=>0.564,
+      :charic=>0.012,
+      :dvi=>[[:setchar, 1]],
+      :lig_kern=>0,
+      :chardp=>0.002,
+      :charwd=>0.632},
+    {:charht=>0.73, :dvi=>[[:setchar, 2]], :chardp=>0.013, :charwd=>0.517},
+    {:charht=>0.733, :dvi=>[[:setchar, 3]], :chardp=>0.012, :charwd=>0.52},
+    {:charht=>0.427, :dvi=>[[:setchar, 4]], :chardp=>0.013, :charwd=>0.674},
+    {:charht=>0.669, :dvi=>[[:setchar, 5]], :chardp=>0.002, :charwd=>0.889},
+    {:charht=>0.436, :dvi=>[[:setchar, 6]], :chardp=>0.002, :charwd=>0.246},
+    {:charht=>0.24, :dvi=>[[:setchar, 7]], :lig_kern=>1, :charwd=>0.207},
+    {:charht=>0.24, :dvi=>[[:setchar, 7]], :lig_kern=>1, :charwd=>0.207},
+    {:charht=>0.68, :dvi=>[[:setrule, 0.4, 0.4]], :chardp=>0.013,
+        :charwd=>0.804}]
+    
+    for i in 10..19
+      assert_equal(ce[i-10],vf.chars[i])
+    end
+    return
   end
   def test_pl_lig_nolig
     font=RFI::Font.new
@@ -193,18 +125,16 @@ class TestFont < Test::Unit::TestCase
 
     font.texenc="8r"
     
-    plligs  =font.pl(font.texenc[0],:noligs=>false).to_s
-    plnoligs=font.pl(font.texenc[0],:noligs=>true).to_s
-    ligs=PL.new().parse(plligs)
-    noligs=PL.new().parse(plnoligs)
-    ligs[font.texenc[0].glyph_index['hyphen'].min]
-    assert_equal(nil,noligs[font.texenc[0].glyph_index['hyphen'].min][:ligkern])
-    l=RFI::LigKern.new({:krn=>[[2, 11.0], [65, 21.0], [84, -48.0],
-                           [86, -23.0], [87, -31.0], [89, -42.0]],
-                         :alias=>Set.new([173]),
-                         :lig=>[RFI::LIG.new(45,45,150,"LIG"),
-                           RFI::LIG.new(45,173,150,"LIG")]})
-    assert_equal(l,ligs[font.texenc[0].glyph_index['hyphen'].min][:ligkern])
+    plligs  =font.to_tfm(font.texenc[0],:noligs=>false).to_s
+    plnoligs=font.to_tfm(font.texenc[0],:noligs=>true).to_s
+    ligs=TFM.new.parse_pl(plligs)
+    noligs=TFM.new.parse_pl(plnoligs)
+    assert_equal(0,noligs.lig_kern.size)
+    hyphen=font.texenc[0].glyph_index['hyphen'].min
+    lk=[[:lig, 45, 150], [:lig, 173, 150], [:krn, 86, -0.023],
+      [:krn, 87, -0.031], [:krn, 65, 0.021], [:krn, 2, 0.011],
+      [:krn, 89, -0.042], [:krn, 84, -0.048]]
+    assert_equal(lk,ligs.lig_kern[ligs.chars[hyphen][:lig_kern]])
   end
 
   def test_pl
@@ -222,75 +152,27 @@ class TestFont < Test::Unit::TestCase
     a[8]="hyphen"
     a[9]="copyright"
     a[10]="c"
-#    a.update_glyph_index
+    #    a.update_glyph_index
     a.filename="minienc"
     font.load_variant("savorg__.afm")
     font.mapenc=a
 
-    str=font.pl_nolig(a).to_s
-    npl=PL.new(false)
-    npl.parse(str)
-    ce=[
-      # A
-      {:charic=>12,
-        :slot=>1,
-        :chardp=>2,
-        :charwd=>632,
-        :charht=>564
-      },
-      # b
-      {:slot=>2,
-        :chardp=>13,
-        :charwd=>517,
-        :charht=>730
-      },
-      # germandbls
-      {:slot=>3,
-        :chardp=>12,
-        :charwd=>520,
-        :charht=>733
-      },
-      # ae
-      {:slot=>4,
-        :chardp=>13,
-        :charwd=>674,
-        :charht=>427
-      },
-      # AE
-      {
-        :slot=>5,
-        :chardp=>2,
-        :charwd=>889,
-        :charht=>669
-      },
-      # dotlessi
-      {
-        :slot=>6,
-        :chardp=>2,
-        :charwd=>246,
-        :charht=>436},
-      # hyphen  (ht looks strange!)
-      # afm2tfm (and then tftopl) leads to  be something like
-      # wd: 0.207, ht: .702
-      {:slot=>7,
-        :charwd=>207,
-        :charht=>240},
-      # hyphen
-      {:slot=>8,
-        :charwd=>207,
-        :charht=>240},
-      # copyright
-      {:slot=>9,
-        :chardp=>13,
-        :charwd=>804,
-        :charht=>680},
-      # c
-      {:slot=>10,
-        :chardp=>14,
-        :charwd=>433,
-        :charht=>426}]
+    str=font.to_tfm(a,:noligs=>true).to_s
+    tfm=TFM.new
+    tfm.parse_pl(str)
+    ce=[nil,{:charic=>0.012, :chardp=>0.002, :charwd=>0.632, :charht=>0.564},
+      {:chardp=>0.013, :charwd=>0.517, :charht=>0.73},
+      {:chardp=>0.012, :charwd=>0.52, :charht=>0.733},
+      {:chardp=>0.013, :charwd=>0.674, :charht=>0.427},
+      {:chardp=>0.002, :charwd=>0.889, :charht=>0.669},
+      {:chardp=>0.002, :charwd=>0.246, :charht=>0.436},
+      {:charwd=>0.207, :charht=>0.24},
+      {:charwd=>0.207, :charht=>0.24},
+      {:chardp=>0.013, :charwd=>0.804, :charht=>0.68},
+      {:chardp=>0.014, :charwd=>0.433, :charht=>0.426},
+    ]
     count=0
-    npl.get_charentries.each_with_index { |charentry,i|
+    tfm.chars.each_with_index { |charentry,i|
       count += 1
       assert_equal(ce[i],charentry)
     }
@@ -305,7 +187,7 @@ class TestFont < Test::Unit::TestCase
     fontmaplines.each { |fm|
       assert(mapline.member?(fm), "#{fm} is not recognized")
     }
-end
+  end
   
   def test_vpl_fontname
     font=RFI::Font.new
