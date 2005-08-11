@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #--
-# Last Change: Tue Aug  9 08:50:06 2005
+# Last Change: Thu Aug 11 16:27:37 2005
 #++
 =begin rdoc
 == plinfo -- output information about a (v)pl file.
@@ -27,8 +27,6 @@ $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
 
 require 'tfm'
-#require 'pl'
-#require 'plparser'
 require 'kpathsea'
 require 'enc'
 

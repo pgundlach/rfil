@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby -w
 #--
-# Last Change: Mon Jul 18 14:35:42 2005
+# Last Change: Thu Aug 11 17:11:44 2005
 #++
 =begin rdoc
 
@@ -34,10 +34,11 @@ require 'ostruct'
 # $: is the ruby input path - add the lib/ subdir
 $:.unshift File.join(File.dirname(__FILE__),"..","lib")
 
-require 'pl'
-require 'plparser'
 require 'kpathsea'
 require 'enc'
+require 'tfm'
+require 'vf'
+
 
 def showmap(mapary)
   str = ""
@@ -52,24 +53,20 @@ end
 def plopen(filename)
   case filename
   when /\.tfm$/
-    return `tftopl #{filename}`
+    return TFM.new.read_tfm(filename)
   when /\.vf$/
-    # bug in vftpl:
     # change to that dir first
     currentdir=Dir.getwd
     dirname=File.dirname(filename)
     Dir.chdir(dirname)
     fn=File.basename(filename)
-    run="vftovp #{fn} #{fn.chomp("vf")}tfm"
-    pl=`#{run}`
+    vf=VF.new.read_vf(filename)
     Dir.chdir(currentdir)
-    return pl
-  when /\.v?pl$/
-    str=nil
-    File.open(filename) { |f|
-      str = f.read
-    }
-    return str
+    return vf
+  when /\.pl$/
+    return TFM.new.read_pl(filename)
+  when /\.vpl$/
+    return TFM.new.read_pl(filename)
   else
     puts "Unknown format: #{filename}"
     exit 1
@@ -144,40 +141,46 @@ if ARGV.size != 2
 end
 
 
-p1 = PL.new
-p1.parse(plopen(ARGV[0]))
-p2 = PL.new
-p2.parse(plopen(ARGV[1]))
-
-d1= p1.designunits ? 1000.0/p1.designunits : 1000.0
-d2= p2.designunits ? 1000.0/p2.designunits : 1000.0
-
-if d1!=d2
-  puts "designunits differ: #{1000/d1} vs. #{1000/d2}"
-end
+p1 = plopen(ARGV[0])
+p2 = plopen(ARGV[1])
 
 percent = options.delta ? options.delta/50.0 : 0
 
-[:family,:codingscheme,:designsize].each { |sym|
+[:fontfamily,:codingscheme,:designsize].each { |sym|
   if p1.send(sym) != p2.send(sym)
     puts "#{sym} differ: #{p1.send(sym)} vs #{p2.send(sym)}"
   end
 }
 
 
-fd1 = p1.fontdimen
-fd2 = p2.fontdimen
+fd1 = p1.params
+fd2 = p2.params
 str = ""
-[:space, :stretch, :shrink, :xheight, :quad, :slant, :extraspace].each { |dim|
-  next if fd1[dim] == fd2[dim]
-  if fd1[dim]==nil 
-    str << "Difference in #{dim}: nil vs. #{fd2[dim]}" << "\n"
-  elsif fd2[dim]==nil
-    str << "Difference in #{dim}: #{fd2[dim]} vs. nil" << "\n"
-  elsif (fd1[dim] * d1 - fd2[dim] * d2).abs > fd1[dim] * d1 * percent
-    str << "Difference in #{dim}: #{fd1[dim]*d1} vs. #{fd2[dim]*d2}" << "\n" 
+if fd1.size != fd2.size
+  str << "Difference in number of parameters (fontdimen)"
+end
+
+paramname=%w( X SLANT SPACE STRETCH SHRINK XHEIGHT QUAD EXTRASPACE )
+if p1.codingscheme=="TeX math symbols"
+  paramname += %w(NUM1 NUM2 NUM3 DENOM1 DENOM2 SUP1 SUP2 SUP3
+                      SUB1 SUB2 SUPDROP)
+elsif p1.codingscheme=="TeX math extension"
+  paramname += %w(DEFAULT_RULE_THICKNESS BIG_OP_SPACING1
+      BIG_OP_SPACING2 BIG_OP_SPACING3 BIG_OP_SPACING4 BIG_OP_SPACING5) 
+end
+
+for i in 1..fd1.size
+  next if fd1[i] == fd2[i]
+  if fd1[i]==nil
+    str << "Difference in #{paramname[i]}: nil vs. #{fd2[i]}" << "\n"
+  elsif
+    fd2[i]==nil
+    str << "Difference in #{paramname[i]}: #{fd1[i]} vs. nil"  << "\n"
+  elsif (fd1[i] - fd2[i] ).abs > fd1[i] * percent
+    str << "Difference in #{paramname[i]}: #{fd1[i]} vs. #{fd2[i]}" << "\n" 
   end
-}
+end
+
 if str.size > 0
   puts "--------------------"
   puts "fondimen difference:"
@@ -188,12 +191,17 @@ end
 exit if options.skip==true
 str= ""
 0.upto(255) do |i|
-  a=p1[i]
-  b=p2[i]
-  next if a==b
-  if p1[i]==nil
+  a=p1.chars[i]
+  b=p2.chars[i]
+  next unless a and b
+  l1=a[:lig_kern] ? p1.lig_kern[a[:lig_kern]] : nil
+  l2=b[:lig_kern] ? p2.lig_kern[b[:lig_kern]] : nil
+
+  next if a==b and l1==l2
+
+  if a==nil
     str << "#{i}: no character at this slot in font 1" << "\n"
-  elsif p2[i]==nil
+  elsif b==nil
     str << "#{i}: no character at this slot in font 2" << "\n"
   else
     chr=""
@@ -203,70 +211,73 @@ str= ""
         chr << "  Difference in #{dim}: nil vs. #{b[dim]}" << "\n"
       elsif b[dim]==nil
         chr << "  Difference in #{dim}: #{b[dim]} vs. nil" << "\n"
-      elsif (a[dim] * d1 - b[dim] * d2).abs > a[dim] * d1 *percent
-        chr << "  Difference in #{dim}: #{a[dim]*d1} vs. #{b[dim]*d2}" << "\n"
+      elsif (a[dim]  - b[dim]).abs > a[dim] * percent
+        chr << "  Difference in #{dim}: #{a[dim]} vs. #{b[dim]}" << "\n"
       end
     }
-    if a[:ligkern] and b[:ligkern]
-      if a[:ligkern][:lig] != b[:ligkern][:lig]
-        chr << "  Difference in lig information"  << "\n"
-        if a[:ligkern][:lig]  
-          a[:ligkern][:lig].each { |lig|
-            chr << "  | " << lig.inspect << "\n"
-          }
-        else
-          chr << "nil"
-        end
-        chr << "  vs.\n"
-        if b[:ligkern][:lig]
-          b[:ligkern][:lig].each { |lig|
-            chr << "  | " << lig.inspect << "\n"
-          }
-        else
-          chr << "nil"
-        end
-      end
-      if a[:ligkern][:krn] != b[:ligkern][:krn] and options.ignore_kern != true
-        chr << "  Difference in kern information" << "\n"
-        if a[:ligkern][:krn]
-          (a[:ligkern][:krn] - b[:ligkern][:krn]).each { |lig|
-            if options.mapencoding
-              chr <<  "  | [#{options.mapencoding[lig[0]]} #{lig[1]}]\n"
-            else
-              chr << "  | " << lig.inspect << "\n"
-            end
-          }
-        else
-          chr << "nil"
-        end
-        chr << "  vs.\n"
-        if b[:ligkern][:krn]
-          (b[:ligkern][:krn] - a[:ligkern][:krn]).each { |lig|
-            if options.mapencoding
-              chr <<  "  | [#{options.mapencoding[lig[0]]} #{lig[1]}]\n"
-            else
-              chr << "  | " << lig.inspect << "\n"
-            end
-          }
-        else
-          chr << "nil"
-        end
+    if  l1 != l2  and options.ignore_kern != true
+      chr << "  Difference in kern information" << "\n"
+      if l1==nil
+        str << "  no lig/kern information for first font \n"
+      elsif l2==nil
+        str << "  no lig/kern information for second font \n"
+      else
+        chr << "  in font1 but not in font 2:" << (l1 - l2).join(" ").to_s << "\n"
+        chr << "  in font2 but not in font 1:" << (l2 - l1).join(" ").to_s << "\n"
       end
     end
-    if  a[:map] != b[:map] 
+      
+#     if a[:ligkern] and b[:ligkern]
+#       if a[:ligkern][:lig] != b[:ligkern][:lig]
+#         chr << "  Difference in lig information"  << "\n"
+#         if a[:ligkern][:lig]  
+#           a[:ligkern][:lig].each { |lig|
+#             chr << "  | " << lig.inspect << "\n"
+#           }
+#         else
+#           chr << "nil"
+#         end
+#         chr << "  vs.\n"
+#         if b[:ligkern][:lig]
+#           b[:ligkern][:lig].each { |lig|
+#             chr << "  | " << lig.inspect << "\n"
+#           }
+#         else
+#           chr << "nil"
+#         end
+#       end
+#         if a[:ligkern][:krn]
+#           (a[:ligkern][:krn] - b[:ligkern][:krn]).each { |lig|
+#             if options.mapencoding
+#               chr <<  "  | [#{options.mapencoding[lig[0]]} #{lig[1]}]\n"
+#             else
+#               chr << "  | " << lig.inspect << "\n"
+#             end
+#           }
+#         else
+#           chr << "nil"
+#         end
+#         chr << "  vs.\n"
+#         if b[:ligkern][:krn]
+#           (b[:ligkern][:krn] - a[:ligkern][:krn]).each { |lig|
+#             if options.mapencoding
+#               chr <<  "  | [#{options.mapencoding[lig[0]]} #{lig[1]}]\n"
+#             else
+#               chr << "  | " << lig.inspect << "\n"
+#             end
+#           }
+#         else
+#           chr << "nil"
+#         end
+    #end
+#    end
+    if  a[:dvi] != b[:dvi] 
       chr << "  Difference in map\n"
       chr << showmap(a[:map])
       chr << "  vs.\n"
       chr << showmap(b[:map])
     end
 
-    if ( a[:comment] != b[:comment] ) and ( options.ignore_comments != true)
-      chr << "  Difference in comment" << "\n"
-      chr << a[:comment].to_s
-      chr << "\nvs.\n"
-      chr << b[:comment].to_s
-      chr << "\n"
-    end
     if chr.length > 0
       str << "#{i}: "
       if options.texencoding
