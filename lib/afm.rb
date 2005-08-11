@@ -1,8 +1,7 @@
-# Last Change: Thu Jul 21 01:14:03 2005
+# Last Change: Wed Aug 10 19:47:47 2005
 
 require 'rfi'
 require 'strscan'
-require 'pl'
 require 'fontmetric'
 require 'pathname'
 

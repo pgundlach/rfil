@@ -1,6 +1,6 @@
 # tfm.rb - Access  information of a TeX font metric file. 
 #--
-# Last Change: Tue Aug  9 16:31:07 2005
+# Last Change: Thu Aug 11 14:45:44 2005
 #++
 
 class TFM
@@ -755,10 +755,9 @@ class TFM
       }
     end
 
-    # Parse the given pl file. _obj_ is a file object (or something
-    # similar, it should respond to _read_.
+    # Parse the given pl file. _obj_ should be a string.
     def parse (obj)
-      @s=StringScanner.new(obj.read)
+      @s=StringScanner.new(obj)
       @level=0
       while k=keyword
         if m=@syntax[k]
@@ -861,7 +860,8 @@ class TFM
       @tfm.face=get_num
     end
     def get_codingscheme
-      @tfm.codingscheme=get_string
+      @tfm.codingscheme=get_balanced
+      eat_closing_paren
     end
     def eat_closing_paren
       while @s.scan(/\s*\n?\)\n?/)
@@ -895,7 +895,7 @@ class TFM
     end
     def get_string
       @s.skip(/\s/)
-      s= @s.scan(/[[:alnum:]`' :]+/)
+      s= @s.scan(/[[:alnum:]`'_\- :]+/)
       @s.scan(/\)\s*\n/)
       @level -= 1
       return s
@@ -1014,6 +1014,9 @@ class TFM
     @chars=[]
     @lig_kern=[]
     @params=[]
+    @face=0
+    @designsize=10.0
+    @checksum=0
     @fontfamily="UNSPECIFIED"
   end
   def filename # :nodoc:
@@ -1021,14 +1024,18 @@ class TFM
   end
 
 
-    # _plfile_ is the filename of the pl file.
+    # _plfile_ is a File object. (Future: File and String (pathname))
   def read_pl(plfile)
-    plp=PLParser.new(self)
     File.open(plfile) { |f|
-      plp.parse(f)
+      parse_pl(f.read)
     }
   end
-  
+  def parse_pl(plstring)
+    p=PLParser.new(self)
+    p.parse(plstring)
+    return self
+  end
+
   # _file_ is either a File object (or something similar, it must
   # respond to :read) or a string containing the full pathname to the
   # tfm file. Returns the TFM object.
@@ -1084,6 +1091,11 @@ class TFM
     str << out_chars(indent)
     str
   end
+
+  #######
+  private
+  #######
+
   def out_head(indent)
     str ="(FAMILY #{fontfamily.upcase})\n"
     str << "(FACE F #{FACE[face]})\n"
@@ -1095,7 +1107,8 @@ class TFM
     str = ""
     chars.each_with_index { |c,i|
       next unless c
-      str << "(CHARACTER O #{sprintf("%o",i)}\n"
+      # str << "(CHARACTER O #{sprintf("%o",i)}\n"
+      str << "(CHARACTER D %d\n" % i
       [:charwd,:charht,:chardp,:charic].each { |dim|
         str << indent + "(#{dim.to_s.upcase} R #{c[dim]})\n" if c[dim]!=0.0
       }
@@ -1126,13 +1139,13 @@ class TFM
     str
   end
   def out_ligtable(indent)
+    return "" if @lig_kern.size==0
     str = "(LIGTABLE\n"
     lk_char=[]
     # first appearance of a char is the index, all chars for the same
     # instructions is the value
     # e.g. firstchar_chars[8]=[8,9] if chars 8 and 9 point to the same instr.
     firstchar_chars=[]
-    
     @chars.each_with_index {|c,i|
       next unless c
       next unless instr=c[:lig_kern]
@@ -1144,11 +1157,10 @@ class TFM
         lk_char[instr] = [i]
       end
     }
-    
+
     lk_char.each{ |a|
       firstchar_chars[a[0]]=a
     }
-    
     firstchar_chars.each { |a|
       next unless a
       a.each { |l|
