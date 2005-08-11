@@ -6,10 +6,7 @@ $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
 require 'font'
 require 'enc'
-require 'pl'
-require 'plparser'
 require 'kpathsea'
-require 'pp'
 
 class TestFontb < Test::Unit::TestCase
   def test_write
