@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Wed Jul 20 19:58:19 2005
+# Last Change: Thu Aug 11 13:59:48 2005
 #++
 require 'set'
 
@@ -9,17 +9,17 @@ require 'afm'
 require 'truetype'
 require 'enc'
 require 'kpathsea'
-require 'pl'
-
+require 'tfm'
+require 'vf'
 
 class RFI
   
   # Main class to manipulate and combine font metrics. This is mostly a
   # convenience class, if you don't want to do the boring stuff
-  # yourself. You can 'load' a font, manipulate the data and create a pl
-  # and vpl file. It is used in conjunction with FontCollection, a class
+  # yourself. You can 'load' a font, manipulate the data and create a tfm
+  # and vf file. It is used in conjunction with FontCollection, a class
   # that contains several Font objects (perhaps a font family).
-  # The Font class relys on PL to write out the property lists, on the
+  # The Font class relys on TFM/VF to write out the tfm and vf files, on the
   # subclasses of RFI, especially on RFI::Glyphlist that knows about a
   # lot of things about the char metrics, ENC for handling the encoding
   # information and, of course, FontMetric and its subclasses to read a
@@ -29,6 +29,8 @@ class RFI
     end 
 
     include Helper
+
+    RULE=[:setrule, 0.4, 0.4]
     
     # The encoding that the PDF/PS expects (what is put before
     # "ReEncodeFont" in the mapfile). If not set, use the setting from
@@ -175,66 +177,25 @@ class RFI
       v.fontat=capheight
       v.chars.fake_caps(capheight)
     end
+   
 
-    
-    # Return PL (property list) object that represents the tfm file of
-    # the font. enc is the encoding of the tfm file, which must be an
-    # ENC object. No ligature and or kerning information is put into the
-    # pl file. *obsolete* -> use pl(enc,noligs=>true) instead.
-    def pl_nolig(enc)
-      pl=PL.new(false)
-      pl.family=@defaultfm.familyname
-      pl.codingscheme=enc.encname
-      pl.designsize=10.0
-      pl.designunits=1000
+    # Return tfm object for that font. _enc_ is the encoding of the
+    # tfm file, which must be an ENC object. Ligature and kerning
+    # information is put into the tfm file unless <tt>:noligs</tt> is
+    # set to true in the opts.
+    def to_tfm(enc,opts={})
+      tfm=TFM.new
+      tfm.fontfamily=@defaultfm.familyname
+      tfm.codingscheme=enc.encname
+      tfm.designsize=10.0
+      
+      tfm.params[1]=(@slant - @efactor * Math::tan(@defaultfm.italicangle * Math::PI / 180.0)) / 1000.0
 
-      fd={}
-      fd[:slant]=@slant - @efactor * Math::tan(@defaultfm.italicangle * Math::PI / 180.0)
-      fd[:space]=transform(@defaultfm.space,0)
-      fd[:stretch]=@defaultfm.isfixedpitch ? 0 : transform(300,0)
-      fd[:shrink]=@defaultfm.isfixedpitch ? 0 : transform(100,0)
-      fd[:xheight]=@defaultfm.xheight
-      fd[:quad]=transform(1000,0)
-
-      # @defaultfm.chars.slant_extend(@slant,@efactor)
-
-      pl.fontdimen=fd
-      enc.each_with_index{ |char,i|
-        next if char==".notdef"
-        thisglyph=@defaultfm.chars[char]
-        next unless thisglyph
-        thisglyph.efactor=@efactor
-        thisglyph.slant=@slant
-        glyphhash={}
-        glyphhash[:comment]=char
-        [:charwd, :charht, :chardp, :charic].each { |sym|
-          glyphhash[sym]=thisglyph.send(sym)
-        }
-        pl[i]=glyphhash
-      }
-      pl
-    end
-
-    # Return PL (property list) object that represents the tfm file of
-    # the font. enc is the encoding of the tfm file, which must be an
-    # ENC object. Ligature and kerning information is put into the pl
-    # file unless <tt>:noligs</tt> is set to true in the opts.
-    def pl(enc,opts={})
-      # puts "font#pl called with encoding #{enc.encname}"
-      plist=PL.new(false)
-      plist.family=@defaultfm.familyname
-      plist.codingscheme=enc.encname
-      plist.designsize=10.0
-      plist.designunits=1000
-
-      fd={}
-      fd[:slant]=@slant - @efactor * Math::tan(@defaultfm.italicangle * Math::PI / 180.0)
-      fd[:space]=transform(@defaultfm.space,0)
-      fd[:stretch]=@defaultfm.isfixedpitch ? 0 : transform(300,0)
-      fd[:shrink]=@defaultfm.isfixedpitch ? 0 : transform(100,0)
-      fd[:xheight]=@defaultfm.xheight
-      fd[:quad]=transform(1000,0)
-      plist.fontdimen=fd
+      tfm.params[2]=(transform(@defaultfm.space,0)) / 1000.0
+      tfm.params[3]=(@defaultfm.isfixedpitch ? 0 : transform(0.3,0))
+      tfm.params[4]=(@defaultfm.isfixedpitch ? 0 : transform(0.1,0)) 
+      tfm.params[5]=@defaultfm.xheight / 1000.0
+      tfm.params[6]=transform(1.0,0)
 
       charhash=enc.glyph_index.dup
       
@@ -249,231 +210,115 @@ class RFI
 
         thischar.efactor=@efactor
         thischar.slant=@slant
-        # puts "char=#{char}, charhash[char]=#{charhash[char].inspect}"
-        allslots=charhash[char].sort
-        firstslot=allslots.shift
-        charhash.delete(char)
         
-        ligkern=RFI::LigKern.new
-        thischar.lig_data.each_value { |lig|
-          if (enc.glyph_index.has_key? lig.right) and
-              (enc.glyph_index.has_key? lig.result)
-            # lig is like "hyphen ..." but needs to be in a format like
-            # "45 .."
-            ligkern[:lig] = lig.to_pl(enc)
-          end
+        c={}
+        charhash[char].each { |slot|
+          tfm.chars[slot]=c
         }
-        thischar.kern_data.each { |dest,kern|
-          if (enc.glyph_index.has_key? dest)
-            enc.glyph_index[dest].each { |slot|
-              
-              tmp=[slot,(kern[0]*@efactor)]
-              if ligkern[:krn]
-                ligkern[:krn].push(tmp)
-              else
-                ligkern[:krn]=[tmp]
-              end
-            }
-          end
-        }
+        charhash.delete(char)
 
-        charentry={}
-        if ( (ligkern[:krn] and ligkern[:krn].size!=0) or
-               (ligkern[:lig] and ligkern[:lig].size!=0) ) and
-            opts[:noligs] != true
-          charentry[:ligkern]=ligkern
-        end
-
-        charentry[:comment]=char
         [:charwd, :charht, :chardp, :charic].each { |sym|
-          charentry[sym]=thischar.send(sym)
-        }
-        plist[i]=charentry
-        allslots.each { |otherslot|
-          charentry[:ligkern]=firstslot
-          plist[otherslot]=charentry
+          c[sym]=thischar.send(sym) / 1000.0
         }
       }
-      plist
+      if opts[:noligs] != true
+        tfm_lig(tfm,enc)
+      end
+
+      return tfm
     end
     
-    # Return a PL (virtual property list) object that represents a vf
-    # file of the font. _mapenc_ and _texenc_ must be an ENC object.
-    # _mapenc_ is the destination encoding (of the fonts in the mapfile)
-    # and _texenc_ is is the encoding of the resulting tfm file. They
-    # may be the same.
-    
-    def vpl(mapenc,texenc)
-      
+    # Return vf object for that font. _mapenc_ and _texenc_ must be an
+    # ENC object. _mapenc_ is the destination encoding (of the fonts
+    # in the mapfile) and _texenc_ is is the encoding of the resulting
+    # tfm file. They may be the same.
+    def to_vf(mapenc,texenc)
       raise ArgumentError, "mapenc must be an ENC object" unless mapenc.respond_to? :encname
       raise ArgumentError, "texenc must be an ENC object" unless texenc.respond_to? :encname
-      
-      vplplist=PL.new(true)
-      vplplist.vtitle="Installed with rfi library"
-      vplplist.add_comment(" Please edit that VTITLE if you edit this file")
-      vplplist.family=@defaultfm.familyname
-      vplplist.codingscheme= if mapenc.encname != texenc.encname
+      vf=VF.new
+      vf.vtitle="Installed with rfi library"
+      vf.fontfamily=@defaultfm.familyname
+      vf.codingscheme= if mapenc.encname != texenc.encname
                                mapenc.encname + " + " + texenc.encname
                              else
                                mapenc.encname
                              end
-      vplplist.designsize=10.0
-      vplplist.designunits=1000
+      vf.designsize=10.0
       fm=@defaultfm
-      fd={}
-      fd[:slant]=@slant - @efactor * Math::tan(fm.italicangle * Math::PI / 180.0)
-      fd[:space]=transform(fm.space,0)
-      #fd[:space]=fm.transform(fm.space,0)
-      fd[:stretch]=fm.isfixedpitch ? 0 : transform(200,0)
-      fd[:shrink]=fm.isfixedpitch ? 0 : transform(100,0)
-      fd[:xheight]=fm.xheight
-      fd[:quad]=transform(1000,0)
-      fd[:extraspace]=fm.isfixedpitch ? fm.space : transform(111,0)
-      vplplist.fontdimen=fd
-
-      map=[]
-      fontmapping=find_used_fonts()
-      fontmapping.each_with_index { |fontnumber,i|
-        maph={}
-        maph[:fontname]=map_fontname(mapenc,fontnumber)
-        if @variants[fontnumber].fontat != 1
-          maph[:fontat]=@variants[fontnumber].fontat * 1000
-        end
-        map.push(maph)
-      }
-      vplplist.mapfont=map
       
-      charhash=texenc.glyph_index.dup
-      # now for the ligatures
-      # we should ignore duplicate ligature/kern entries in the future!
-      texenc.each_with_index  { |char,i|
-        next if char == ".notdef"
-        
-        # ignore those not in dest 
-        # next unless mapenc.glyph_index[char]
-        next unless mapenc.glyph_index.include?(char)
+      vf.params[1]=(@slant - @efactor * Math::tan(@defaultfm.italicangle * Math::PI / 180.0)) / 1000.0
+      vf.params[2]=(transform(@defaultfm.space,0)) / 1000.0
+      vf.params[3]=(@defaultfm.isfixedpitch ? 0 : transform(0.3,0))
+      vf.params[4]=(@defaultfm.isfixedpitch ? 0 : transform(0.1,0)) 
+      vf.params[5]=@defaultfm.xheight / 1000.0
+      vf.params[6]=transform(1,0) 
+      vf.params[7]==fm.isfixedpitch ? fm.space : transform(0.111,0)
 
-        # next if this glyph is unknown
+      # mapfont
+      find_used_fonts.each_with_index { |fontnumber,i|
+        fl=vf.fontlist[fontnumber]={}
+        tfm=fl[:tfm]=TFM.new
+        tfm.pathname=map_fontname(mapenc,fontnumber)
+        fl[:scale]=@variants[fontnumber].fontat
+      }
+
+      charhash=texenc.glyph_index.dup
+      texenc.each_with_index  { |char,i|
+        next if char==".notdef"
+        
         thischar=@defaultfm.chars[char]
         next unless thischar
 
         # ignore those chars we have already encountered
         next unless charhash.has_key?(char)
-        
 
         thischar.efactor=@efactor
         thischar.slant=@slant
-
-        allslots=charhash[char].sort
-        firstslot=allslots.shift
+        
+        c={}
+        charhash[char].each { |slot|
+          vf.chars[slot]=c
+        }
         charhash.delete(char)
-        
-        # (there might be some more slots left, but let's first do the lig)
-        
-        
-        # lig
-        ligkern=RFI::LigKern.new
+        c[:dvi]=dvi=[]
 
-        # right must be duplicated!
-        #
-        # 127: hyphen
-        #   Difference in lig information
-        #   | [LIG 127 + 45 => 21]
-        #   | [LIG 127 + 127 => 21]
-        #   vs.
-        #   | [LIG 127 + 45 => 21]
-        # 
-        thischar.lig_data.each_value { |lig|
-          if (texenc.glyph_index.has_key? lig.right) and
-              (texenc.glyph_index.has_key? lig.result)
-            # lig is like "hyphen ..." but needs to be in a format like
-            # "45 .."
-            ligkern[:lig] = lig.to_pl(texenc)
-          end
-        }
-
-        # kern
-        thischar.kern_data.each { |dest,kern|
-          if (texenc.glyph_index.has_key? dest)
-            texenc.glyph_index[dest].each { |slot|
-              
-              tmp=[slot,(kern[0]*@efactor)]
-              if ligkern[:krn]
-                ligkern[:krn].push(tmp)
-              else
-                ligkern[:krn]=[tmp]
-              end
-            }
-          end
-        }
-
-        
-        charentry={}
-        if (ligkern[:krn] and ligkern[:krn].size!=0) or
-            (ligkern[:lig] and ligkern[:lig].size!=0)
-          charentry[:ligkern]=ligkern
+        if thischar.fontnumber > 0
+          dvi << [:selectfont,thischar.fontnumber]
         end
-        
-        # charinfo
-        [:charwd, :charht, :chardp, :charic].each { |sym|
-          charentry[sym]=thischar.send(sym)
-        }
-
-        # puts "looking at #{char}, mapenc[#{i}]=#{mapenc[i]}"
-        # map
-        mapneeded=(thischar.fontnumber != 0 or
-                     (mapenc.glyph_index[char].member?(i)==false) or
-                     (allslots.size > 0 ) or
-                     thischar.pcc_data
-                   )
-        if mapneeded
-          # puts "mapneeded: for #{char} (thischar.mapto=#{thischar.mapto})"
-          # destchar
-
-          # cleanup!!
-          if thischar.pcc_data
-            # (MAP
-            #   (SELECTFONT D 1)
-            #   (SETCHAR C S)
-            #   (SETCHAR C S)
-            #  )
-
-            tmp=[]
-            tmp.push [:selectfont, thischar.fontnumber]
-            thischar.pcc_data.each { |d|
-              smallest = mapenc.glyph_index[d[0]].min
-              tmp.push [:setchar,smallest]
-            }
-            charentry[:map]=tmp
-          else
-            if thischar.fontnumber > 0
-              lookat = if thischar.mapto==nil
-                         char
-                       else
-                         thischar.mapto
-                       end
-              
-              # just map it to another font
-              smallest = mapenc.glyph_index[lookat].min
-              charentry[:map]=[[:setchar,smallest]]
-              charentry[:map].unshift([:selectfont,thischar.fontnumber])
+       
+        if thischar.pcc_data
+          thischar.pcc_data.each { |pcc|
+            if mapenc.glyph_index[pcc[0]]
+              dvi << [:setchar,mapenc.glyph_index[pcc[0]].min]
             else
-              # map it to the same font
-              smallest = mapenc.glyph_index[char].min
-              charentry[:map]=[[:setchar,smallest]]
-              
+              dvi << RULE
             end
+          }
+        elsif thischar.mapto
+          if mapenc.glyph_index[thischar.mapto]
+            if mapenc.glyph_index[thischar.mapto]
+              dvi << [:setchar, mapenc.glyph_index[thischar.mapto].min]
+            else
+              dvi << RULE
+            end
+          else
+            dvi << [:special, "unencoded glyph '#{char}'"]
+            dvi << RULE
           end
+        elsif mapenc.glyph_index[char]
+          dvi << [:setchar, mapenc.glyph_index[char].min]
+        else
+          dvi << RULE
         end
-        vplplist[i]=charentry
-        allslots.each { |otherslot|
-          charentry[:ligkern]=firstslot
-          vplplist[otherslot]=charentry
+        [:charwd, :charht, :chardp, :charic].each { |sym|
+          c[sym]=thischar.send(sym) / 1000.0
         }
-
       }
-      return vplplist
+      tfm_lig(vf,texenc)
+
+      return vf
     end
+
 
     # Todo: document and test!
     def apply_ligkern_instructions(what)
@@ -562,30 +407,30 @@ class RFI
             puts "tfm: writing tfm: #{tfmfilename}" 
           end
           unless options[:dryrun]==true
-            pl(enc).write_tfm(tfmfilename)
+            tfm=to_tfm(enc)
+            tfm.pathname=tfmfilename
+            tfm.save(true)
           end
         }
       }
 
       if write_vf
-        # vf
         encodings=Set.new
         texenc.each { |te|
           encodings.add mapenc ? mapenc : te
         }
         texenc.each { |te|
           outenc = mapenc ? mapenc : te
-          # vplfilename=File.join(vpldir,tex_fontname(te) + ".vpl")
           vffilename= File.join(vfdir, tex_fontname(te) + ".vf")
-          vplfilename= File.join(vfdir, tex_fontname(te) + ".vpl")
           tfmfilename=File.join(tfmdir,tex_fontname(te) + ".tfm")
           if options[:verbose]==true
             puts "vf: writing tfm: #{tfmfilename}"
             puts "vf: writing vf: #{vffilename}"
           end
           unless options[:dryrun]==true
-            vpl(outenc,te).write_vf(vffilename,tfmfilename)
-            # vpl(outenc,te).write_vpl(vplfilename)
+            vf=to_vf(outenc,te)
+            vf.pathname=vffilename
+            vf.save(true)
           end
         }
       end
@@ -769,6 +614,47 @@ class RFI
     #######
     private
     #######
+    def tfm_lig(tfm,enc)
+      charhash=enc.glyph_index.dup
+      
+      enc.each_with_index  { |char,i|
+        next if char==".notdef"
+        
+        thischar=@defaultfm.chars[char]
+        next unless thischar
+
+        # ignore those chars we have already encountered
+        next unless charhash.has_key?(char)
+        lk=[]
+        
+        thischar.lig_data.each_value { |lig|
+          if (enc.glyph_index.has_key? lig.right) and
+              (enc.glyph_index.has_key? lig.result)
+            # lig is like "hyphen ..." but needs to be in a format like
+            # "45 .."
+            lk += lig.to_tfminstr(enc)
+          end
+        }
+        thischar.kern_data.each { |dest,kern|
+          if (enc.glyph_index.has_key? dest)
+            enc.glyph_index[dest].each { |slot|
+              lk << [:krn, slot,(kern[0]*@efactor)/1000.0]
+            }
+          end
+        }
+        next if lk.size==0
+        instrnum = tfm.lig_kern.size
+        tfm.lig_kern << lk
+        
+        charhash[char].each { |slot|
+          c=tfm.chars[slot] ||= {}
+          c[:lig_kern]=instrnum
+        }
+        charhash.delete(char)
+      }
+      return tfm
+    end
+
     def construct_fontname(encoding,varnumber=0)
       encodingname=if String === encoding
                      encoding
@@ -795,7 +681,7 @@ class RFI
     end
     
     def transform (x,y)
-      (@efactor * x + @slant * y).round
+      @efactor * x + @slant * y
     end
 
   end # class Font
