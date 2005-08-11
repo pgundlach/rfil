@@ -1,6 +1,6 @@
 # rfi.rb -- general use classes
 #--
-# Last Change: Thu Jul 21 00:23:13 2005
+# Last Change: Thu Aug 11 14:48:55 2005
 #++
 # = RFI
 # Everything that does not fit somewhere else gets included in the
@@ -283,6 +283,7 @@ class RFI
     @@encligops = ["=:", "|=:", "|=:>", "=:|", "=:|>", "|=:|", "|=:|>", "|=:|>>"]
     @@vpligops = ["LIG", "/LIG", "/LIG>", "LIG/", "LIG/>", "/LIG/",
       "/LIG/>", "/LIG/>>"]
+    @@symligops = [:lig, :"lig/",  :"/lig",  :"/lig/", :"lig/>", :"/lig>", :"/lig/>", :"/lig/>>"]
 
     # First glyph of a two glyph sequence before it is turned into a
     # ligature.
@@ -358,6 +359,16 @@ class RFI
         LIG.new(:left=>left, :right=>rightslot, :result=>result, :type=>type)
       }
     end
+    # Return an array that is suitable for tfm
+    def to_tfminstr(encoding)
+      encoding.glyph_index[@right].sort.collect { |rightslot|
+        left=encoding.glyph_index[@left].min
+        # right=encoding.glyph_index[@right].min
+        result=encoding.glyph_index[@result].min
+        type=@@symligops[@type]
+        [type,rightslot,result]
+      }
+    end
     def inspect
       "[#{@type.to_s.upcase} #@left + #@right => #@result]"
     end
@@ -366,7 +377,7 @@ class RFI
   require 'forwardable'
 
   # Stores information about kerning and ligature information. Allows
-  # deep copy of ligature and kerning information.
+  # deep copy of ligature and kerning information. Obsolete. Don't use.
   class LigKern
     extend Forwardable
     # Optional parameter initializes the new LigKern object.
