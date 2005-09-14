@@ -1,6 +1,6 @@
 #--
 # enc.rb - read and parse TeX's encoding files
-# Last Change: Thu Jul 21 19:33:30 2005
+# Last Change: Fri Aug 19 14:09:14 2005
 #++
 # See the class ENC for the api description.
 
@@ -107,12 +107,22 @@ class ENC # < DelegateClass(Array)
       return false unless @encname==obj.encname
     end
     
+    return false unless obj.respond_to?(:[])
     0.upto(255) { |i|
       return false if @encvector[i]!=obj[i]
     }
     true
   end
 
+  # todo: document and test
+  def -(obj)
+    tmp=[]
+    for i in 0..255
+      tmp[i]=obj[i]
+    end
+    @encvector - tmp
+  end
+  
   # also updates the glyph_index
   def []=(i,obj) # :nodoc:
     if obj==nil and @encvector[i] != nil
