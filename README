@@ -12,7 +12,7 @@ these.
 == Roadmap
 
 Accessing Encodings:: See the ENC class to read and write <tt>.enc</tt>-files.
-Accessing Property Lists:: Use the PL class to read and write (virtual) property lists.
+Accessing TFM/VF files:: Use the TFM and VF classes to read and write TeX font metrics and virtual fonts.
 Accessing font metrics:: See the FontMetric class and the subclass AFM to read and write the font metric files.
 Installing a font(set):: See below for examples.
 
