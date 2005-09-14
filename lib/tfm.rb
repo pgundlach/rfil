@@ -1,6 +1,6 @@
 # tfm.rb - Access  information of a TeX font metric file. 
 #--
-# Last Change: Thu Aug 11 16:31:47 2005
+# Last Change: Thu Aug 18 21:38:46 2005
 #++
 
 class TFM
@@ -503,40 +503,42 @@ class TFM
       
       @instr_index=[]
       @lig_kern=[]
-
+      
       total_instr=instructions.size
-      instr_left=total_instr
-      thisinstr=instructions.shift
-
-      while (256  - @lig_kern.size / 4) - instr_left - thisinstr.size / 4 > 0
-        @instr_index[total_instr-instr_left]=@lig_kern.size / 4
-        @lig_kern += thisinstr
+      if total_instr > 0
+        instr_left=total_instr
         thisinstr=instructions.shift
-        instr_left -= 1
+        
+        while (256  - @lig_kern.size / 4) - instr_left - thisinstr.size / 4 > 0
+          @instr_index[total_instr-instr_left]=@lig_kern.size / 4
+          @lig_kern += thisinstr
+          thisinstr=instructions.shift
+          instr_left -= 1
+        end
+
+        # undo last changes, since these don't fit into the @lig_kern
+        # array (first 256 elements) (yes, this is ugly)
+        instructions.unshift thisinstr
+        
+      
+      
+        pos=@lig_kern.size / 4 + instr_left
+        count=@instr_index.size
+
+        # now fill the indirect nodes, calculate the starting points of
+        # the instructions
+        instructions.each { |i|
+          @instr_index[count]=@lig_kern.size / 4
+          count += 1
+          @lig_kern += [ 129, 0, (pos / 256) , (pos % 256) ]
+          pos += i.size / 4
+        }
+        
+        # now we continue with the instructions
+        instructions.each { |i|
+          @lig_kern += i
+        }
       end
-
-      # undo last changes, since these don't fit into the @lig_kern
-      # array (first 256 elements) (yes, this is ugly)
-      instructions.unshift thisinstr
-
-      
-      
-      pos=@lig_kern.size / 4 + instr_left
-      count=@instr_index.size
-
-      # now fill the indirect nodes, calculate the starting points of
-      # the instructions
-      instructions.each { |i|
-        @instr_index[count]=@lig_kern.size / 4
-        count += 1
-        @lig_kern += [ 129, 0, (pos / 256) , (pos % 256) ]
-        pos += i.size / 4
-      }
-
-      # now we continue with the instructions
-      instructions.each { |i|
-        @lig_kern += i
-      }
       @nl = @lig_kern.size / 4
 
       @kerns=[]
@@ -923,7 +925,7 @@ class TFM
       eat_closing_paren
       value
     end
-  end
+  end #class pl parser
 
 
 
@@ -951,10 +953,10 @@ class TFM
 
   # Filename sans path of the tfm file. To change this attribute, set
   # pathname. 
-  documented_as_reader :filename
+  documented_as_reader :tfmfilename
 
   # Path to the tfm file.
-  attr_accessor :pathname
+  attr_accessor :tfmpathname
 
   # Checksum of the tfm file.
   attr_accessor :checksum
@@ -1018,9 +1020,10 @@ class TFM
     @designsize=10.0
     @checksum=0
     @fontfamily="UNSPECIFIED"
+    @verbose=false
   end
-  def filename # :nodoc:
-    File.basename(@pathname)
+  def tfmfilename # :nodoc:
+    File.basename(@tfmpathname)
   end
 
 
@@ -1045,12 +1048,12 @@ class TFM
     p.verbose=@verbose
     if file.respond_to? :read
       if file.respond_to? :path
-        @pathname=file.path
+        @tfmpathname=file.path
       end
       p.parse(file.read)
     else
       # we assume it is a string
-      @pathname=file
+      @tfmpathname=file
       case file
       when /\.tfm$/
         File.open(file) { |f|
@@ -1066,12 +1069,12 @@ class TFM
   # If _overwrite_ is true, we will replace existing files without
   # raising Errno::EEXIST.
   def save(overwrite=false)
-    raise Errno::EEXIST if File.exists?(@pathname) and not overwrite
-    puts "saving #{@pathname}..." if @verbose
-    File.open(@pathname,"wb") { |f|
+    raise Errno::EEXIST if File.exists?(@tfmpathname) and not overwrite
+    puts "saving #{@tfmpathname}..." if @verbose
+    File.open(@tfmpathname,"wb") { |f|
       write_file(f)
     }
-    puts "saving #{@pathname}...done" if @verbose
+    puts "saving #{@tfmpathname}...done" if @verbose
   end
   
   # _file_ is a File object (or something similar, it must
