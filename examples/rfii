@@ -1,0 +1,251 @@
+#!/usr/bin/env ruby -w
+
+
+require 'rfii.tab'
+require 'pp'
+require 'ostruct'
+require 'fileutils'
+
+$:.unshift File.join(File.dirname(__FILE__),"..","lib")
+
+require 'fontcollection'
+require 'kpathsea'
+
+class RFII
+  def initialize
+    @instructions=[]
+    @known_encodings=Hash.new
+    @fontset=nil
+    @kpse=Kpathsea.new
+    @known_outputfiles=[:vf,:sty,:tfm,:typescript,:fd,:map]
+    @fontfiles_copied=nil
+    @vendor=nil
+    @texencodings=[]
+    @psencoding=[]
+    @fontroot=File.expand_path(Dir.pwd)
+    @options=OpenStruct.new
+    @options.verbose=false
+    @options.dryrun=false
+    @options.tds=true
+    @fc=nil
+  end
+  
+  def parse_file(filename)
+    f=File.open(filename)
+    @s=StringScanner.new(f.read)
+    f.close
+    @mode=:normal
+    @line=1
+    yyparse(self,:scan)
+  end
+  
+  def on_error(error_token_id,error_value,value_stack)
+    # puts "error"
+    error=token_to_str(error_token_id)
+    p error_value,value_stack
+    puts "parse error near line #@line, exiting, next string: '#{error_value}#{@s.rest[0..20]}...'"
+    exit 1
+    # the default action would be:
+    # raise ParseError
+  end
+  
+  def ensure_encoding(enc)
+    unless @known_encodings.has_key?(enc)
+      puts "Unknown encoding #{enc} in line #{@line}"
+      exit 1
+    end
+  end
+
+  def get_encodings(symbols)
+    symbols.collect { |encoding|
+      ensure_encoding(encoding)
+      @known_encodings[encoding]
+    }
+  end
+  def get_encoding(symbol)
+    return :none if symbol==:none or symbol==:same_as_texencoding
+    ensure_encoding(symbol)
+    @known_encodings[symbol]
+  end
+
+  def get_fonts(ident)
+    towrite=[]
+    case ident
+    when [:all],nil
+      towrite=@fontset.keys
+    else
+      towrite=ident
+    end
+    fontlist=[]
+    towrite.each{ |font|
+      if @fontset.has_key?(font)
+        fontlist << @fontset[font]
+      else
+        puts "Font for #{ident} in line #{@line} unknown, ignoring"
+      end
+    }
+    fontlist
+  end
+  def run_instructions
+    @instructions.each { |line,i|
+      @line=line
+      instr,*rest=i
+      case instr
+      when :useencoding
+        # this should be in parser:
+        if rest[1]==:none or rest[1]==:same_as_texencoding
+          puts "invalid encoding name"
+          exit 1
+        end
+        @kpse.open_file(rest[0],"enc") { |encfile|
+          @known_encodings[rest[1]]=ENC.new(encfile)
+        }
+      when :psencoding
+        @psencoding=get_encoding(rest[0])
+      when :texencoding
+        @texencodings=get_encodings(rest[0])
+      when :fontroot
+        @fontroot=File.expand_path(rest[0])
+        unless File.exists?(@fontroot) and File.directory?(@fontroot)
+          puts "fontroot (#{@fontroot})is not a valid directory"
+          exit 1
+        end
+      when :fontsource
+        @fontsource=File.expand_path(rest[0])
+        unless File.exists?(@fontsource) and File.directory?(@fontsource)
+          puts "fontsource (#{@fontsource})is not a valid directory"
+          exit 1
+        end
+      when :newfont
+        @fontset={}
+        @fontfiles_copied={}
+        @fc=RFI::FontCollection.new
+        @fc.options[:dryrun]=@options.dryrun
+        @fc.options[:verbose]=@options.verbose
+        @fc.vendor=@vendor
+        @fc.name=rest[0]
+        @fc.set_dirs({:base=>@fontroot, :tds=>@options.tds})
+        @fc.mapenc=@psencoding
+        @fc.texenc=@texencodings
+        @fc.style=rest[1]
+      when :useafm
+        fontfilename=rest[0]
+        ident=rest[1]
+        srcpath=File.join(@fontsource,fontfilename)
+        unless @fontfiles_copied.has_key?(fontfilename) and @options.copyfonts
+          @fontfiles_copied[fontfilename]=true # dummy value, used as Set
+          
+          if @options.verbose
+            puts "copy #{srcpath} to #{@fc.dirs[:afm]}"
+          end
+          unless @options.dryrun
+            @fc.ensure_dir(@fc.dirs[:afm])
+            FileUtils.cp(srcpath,@fc.dirs[:afm])
+          end
+          if @options.verbose
+            puts "copy #{srcpath.chomp(".afm")}.pfb to #{@fc.dirs[:type1]}"
+          end
+          unless @options.dryrun
+            @fc.ensure_dir(@fc.dirs[:type1])
+            FileUtils.cp(srcpath.chomp(".afm")+".pfb",@fc.dirs[:type1])
+          end
+        end
+        f=RFI::Font.new(@fc)
+        i=f.load_variant(File.join(@fontsource,fontfilename))
+        @fontset[ident]=f
+        case ident
+        when :italic
+          f.variant=:italic
+        when :slanted
+          f.variant=:slanted
+        when :bold
+          f.weight=:bold
+        when :bolditalic
+          f.variant=:italic
+          f.weight=:bold
+        when :boldslanted
+          f.variant=:slanted
+          f.weight=:bold
+        when :smallcaps
+          f.variant=:smallcaps
+        end
+      when :write
+        # p rest
+        texencodings =  if rest[2]
+                          get_encodings(rest[2])
+                        else
+                          @texencodings
+                        end
+        
+        psencoding  = rest[3] ? get_encoding(rest[3]) : @psencoding
+        rest[0].each { |filetype|
+          case filetype
+          when :vf
+            get_fonts(rest[1]).each { |font|
+              font.texenc=texencodings
+              font.mapenc=psencoding
+              font.write_files({:mapfile=>false})
+            }
+          when :map
+            m = get_fonts(rest[1]).collect { |font|
+              font.texenc=texencodings
+              font.mapenc=psencoding
+              font.maplines
+            }
+            mapdir=@fc.get_dir(:map); @fc.ensure_dir(mapdir)
+            mapfilename=File.join(mapdir,@fc.name+".map")
+            if @options.verbose
+              puts "writing mapfile to #{mapfilename}"
+            end
+            unless @options.dryrun
+              File.open(mapfilename, "w") {|file|
+                file.puts m
+              }
+            end
+          when :fd
+            @fc.run_temps(:latex)
+          when :typescript
+            @fc.run_temps(:context)
+          else
+            puts "unknown filetype: #{filetype}, ignoring"
+          end
+        }
+      when :vendor
+        @vendor=rest[0]
+        if @fc  and @fc.respond_to?(:vendor=)
+          @fc.vendor=@vendor
+        end
+      when :set
+        kw,values=rest
+        case kw
+        when :verbose,:dryrun,:tds,:copyfonts
+          if [:true,:false].member?(values)
+            @options.send(kw.to_s+"=",values==:true)
+          else
+            puts "Warning: unkown value for '#{kw}' in line #{@line}, must be one of 'true' or 'false'"
+          end
+        end
+      when :apply
+        instr=rest[0]
+        case instr
+        when :slant
+          font=rest[1]
+          # p @fontset.has_key?(font)
+          @fontset[font].slant=0.167
+        else
+          puts "Unknown instruction (#{instr}) for apply in line #{@line}. Exiting."
+        end
+      else
+        puts "Unknown instruction (#{instr}) in line #{@line}. Exiting."
+        exit 1
+      end
+    }
+    # p @psencoding
+    # p @texencodings
+    # pp @fc
+  end
+end
+
+parser = RFII.new
+parser.parse_file("test/inputfile")
+parser.run_instructions
