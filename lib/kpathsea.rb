@@ -1,5 +1,5 @@
 # kpathsea.rb - libkpathsea access for ruby
-# Last Change: Wed Jun 29 19:50:08 2005
+# Last Change: Sat Aug 20 00:19:29 2005
 #
 # There won't be a C version soon, because the likpathsea does not
 # like to be linked with ruby on my system (OS X Tiger).
@@ -33,7 +33,7 @@ class Kpathsea
   # the File.open method.
   def open_file(name,fmt="tex")
     loc=self.find_file(name,fmt)
-    raise Errno::ENOENT, "#{loc}" unless loc
+    raise Errno::ENOENT, "#{name}" unless loc
     if block_given?
       File.open(loc) { |file|
         yield file
