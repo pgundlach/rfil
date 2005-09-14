@@ -8,28 +8,35 @@ class TypescriptWriterConTeXt < RFI::Plugin
   
   def initialize(fontcollection)
     @fc=fontcollection
-    super(:context)
+    super(:context,:typescript)
   end
 
+  STOPTYPESCRIPT="\\stoptypescript\n\n"
+  
   def run_plugin
     ret=[]
+    str=""
+    puts "running context plugin" if @fc.options[:verbose]
     @fc.texenc.each { |e|
-      h={}
-      h[:type]=:typescript
-      h[:filename],h[:contents]=typescript(e)
-      ret.push(h)
+      str << typescript(e)
+      str << "\n"
     }
+    h={}
+    h[:type]=:typescript
+    h[:filename],h[:contents]=["type-#{@fc.name}.tex",str]
+    ret.push(h)
     ret
   end
 
+  # Returns hash: Style, font
   def find_fonts
     ret={}
-    @fc.fonts.each { |font,other|
-      ret[""]=font if other[:variant]==:regular and other[:weight]==:regular and font.style==:sans
-      ret["Roman"]=font if other[:variant]==:regular and other[:weight]==:regular and font.style!=:sans
-      ret["Bold"]=font if other[:variant]==:regular and other[:weight]==:bold
-      ret["Italic"]=font if other[:variant]==:italic and other[:weight]==:regular
-      ret["Caps"]=font if other[:variant]==:smallcaps and other[:weight]==:regular
+    @fc.fonts.each { |font|
+      ret[""]=font if font.variant==:regular and font.weight==:regular 
+#      ret[""]=font if font.variant==:regular and font.weight==:regular and font.style!=:sans
+      ret["Bold"]=font if font.variant==:regular and font.weight==:bold
+      ret["Italic"]=font if font.variant==:italic and font.weight==:regular
+      ret["Caps"]=font if font.variant==:smallcaps and font.weight==:regular
     }
     ret
   end
@@ -37,6 +44,10 @@ class TypescriptWriterConTeXt < RFI::Plugin
     contextenc=case e.encname
                when "ECEncoding"
                  "ec"
+               when "TS1Encoding"
+                 "ts1"
+               when "T1Encoding"
+                 "tex256"
                when "TeXBase1Encoding"
                  "8r"
                else
@@ -46,7 +57,7 @@ class TypescriptWriterConTeXt < RFI::Plugin
     contextstyle=case @fc.style
                  when :sans
                    "Sans"
-                 when :roman
+                 when :roman, :serif
                    "Serif"
                  when :typewriter
                    "Typewriter"
@@ -54,26 +65,26 @@ class TypescriptWriterConTeXt < RFI::Plugin
                    raise "unknown style found: #{@fc.style}"
                  end
     tmp = ""
-
-    tmp << "\\starttypescript[#{@fc.style}][#{@fc.fontname}][name]\n"
+    fontname=@fc.name
+    tmp << "\\starttypescript[#{@fc.style}][#{fontname}][name]\n"
     find_fonts.sort{ |a,b| a[0] <=> b[0]}.each { |style,font|
       tmp << "\\definefontsynonym [#{contextstyle}"
+      p style
       tmp << "#{style}" if style.length > 0
-      tmp << "] [#{@fc.fontname}"
+      tmp << "] [#{fontname}"
       tmp << "-#{style}" if style.length > 0
       tmp << "]\n"
     }
-    tmp << "\\stoptypsescript\n\n"
+    tmp << STOPTYPESCRIPT
 
-    tmp << "\\starttypescript[#{@fc.style}][#{@fc.fontname}][#{contextenc}]\n"
+    tmp << "\\starttypescript[#{@fc.style}][#{fontname}][#{contextenc}]\n"
     find_fonts.sort{ |a,b| a[0] <=> b[0]}.each { |style,font|
-      tmp << "\\definefontsynonym [#{@fc.fontname}"
+      tmp << "\\definefontsynonym [#{fontname}"
       tmp << "-#{style}" if style.length > 0
       tmp << "][#{font.tex_fontname(e)}]\n"
     }
-    tmp << "\\stoptypsescript\n\n"
+    tmp << STOPTYPESCRIPT
 
-    return ["type-#{@fc.fontname}.tex",tmp]
-    
+    return tmp
   end
 end
