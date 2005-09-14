@@ -25,10 +25,10 @@ class RFI
       end
     end
     def set_mapenc(enc) # :nodoc:
-      @mapenc=nil
+      @mapenc=enc
       
-      # nil is perfectly valid
-      return if enc == nil
+      # nil/:none is perfectly valid
+      return if enc==nil or enc==:none
       
       if enc.instance_of?(ENC)
         @mapenc = enc
@@ -65,8 +65,8 @@ class RFI
         }
       elsif arg.instance_of? Hash
         if arg[:tds]==true
-          suffix = if @vendor and @fontname
-                     File.join(@vendor,@fontname)
+          suffix = if @vendor and @name
+                     File.join(@vendor,@name)
                    else
                      ""
                    end
@@ -95,7 +95,7 @@ class RFI
                     else
                       raise "unknown type"
                     end
-            @dirs[t] = File.join(@basedir,subdir)
+            @dirs[t] = File.join(arg[:base],subdir)
           }
         else
           arg.each { |key,value|
