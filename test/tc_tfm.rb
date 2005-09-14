@@ -29,7 +29,7 @@ class TestTFM < Test::Unit::TestCase
     tfm.read_tfm(f)
     f.close
     assert_equal(17,tfm.face)
-    assert_equal("tricky.tfm",tfm.filename)
+    assert_equal("tricky.tfm",tfm.tfmfilename)
     assert_equal(10.1234,tfm.designsize)
     assert_equal(256,tfm.chars.size)
     assert_equal(0.27799,tfm.params[2])
@@ -48,7 +48,7 @@ class TestTFM < Test::Unit::TestCase
       tfm.save
     }
 
-    tfm.pathname="/tmp/newtfm.tfm"
+    tfm.tfmpathname="/tmp/newtfm.tfm"
     tfm.designsize=10.12345
     tfm.chars[254][:charht]=0.712493
     tfm.chars[255][:charht]=0.712492

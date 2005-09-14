@@ -98,6 +98,7 @@ class TestRFI < Test::Unit::TestCase
     }
 
   end
+  # Tcaron <-> tquoteright
   def test_glyphlist_uc_lc
     require 'font'
     font=RFI::Font.new

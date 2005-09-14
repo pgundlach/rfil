@@ -1,4 +1,4 @@
-#!/opt/ruby/1.8/bin/ruby
+#!/opt/ruby/1.8/bin/ruby -w
 
 require 'test/unit'
 
@@ -45,8 +45,8 @@ class TestFont < Test::Unit::TestCase
     font.mapenc="8r"
     font.texenc="ec"
     vf = font.to_vf(font.mapenc,font.texenc[0])
-    assert_equal("8r-savorg__-orig",vf.fontlist[0][:tfm].filename)
-    assert_equal("8r-savoscrg-orig",vf.fontlist[1][:tfm].filename)
+    assert_equal("8r-savorg__-orig",vf.fontlist[0][:tfm].tfmfilename)
+    assert_equal("8r-savoscrg-orig",vf.fontlist[1][:tfm].tfmfilename)
   end
 
   def test_vpl
@@ -91,7 +91,7 @@ class TestFont < Test::Unit::TestCase
     assert_equal("MAPENC + TEXENC",vf.codingscheme)
     assert_equal(10.0,vf.designsize)
     assert_equal([nil, 0.0, 0.3, 0.3, 0.1, 0.415, 1.0],vf.params)
-    assert_equal("minienc-savorg__-orig",vf.fontlist[0][:tfm].filename)
+    assert_equal("minienc-savorg__-orig",vf.fontlist[0][:tfm].tfmfilename)
     assert_equal([[[:krn, 17, 0.024], [:krn, 18, 0.024], [:krn, 12, 0.015], 
                      [:krn, 10, -0.008]], [[:krn, 11, 0.021]]],  vf.lig_kern)
 
