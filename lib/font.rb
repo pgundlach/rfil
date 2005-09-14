@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Thu Aug 11 13:59:48 2005
+# Last Change: Thu Aug 18 21:46:07 2005
 #++
 require 'set'
 
@@ -11,6 +11,8 @@ require 'enc'
 require 'kpathsea'
 require 'tfm'
 require 'vf'
+
+
 
 class RFI
   
@@ -28,8 +30,27 @@ class RFI
     def self.documented_as_accessor(*args) # :nodoc:
     end 
 
-    include Helper
+    # lookup_meth
+    def self.lookup_meth(*args)
+      args.each do |arg|
+        define_method(arg) do
+          if @fontcollection
+            @fontcollection.instance_variable_get("@#{arg}")
+          else
+            instance_variable_get("@#{arg}")
+          end
+        end
+        define_method("#{arg}=") do |v|
+          instance_variable_set("@#{arg}", v)
+        end
+      end
+    end
 
+    
+    lookup_meth :style, :write_vf
+
+    include Helper
+    
     RULE=[:setrule, 0.4, 0.4]
     
     # The encoding that the PDF/PS expects (what is put before
@@ -62,9 +83,16 @@ class RFI
 
     documented_as_accessor :style
 
+    # :regular, :bold, :black, :light
+    attr_accessor :weight
+
+    # :regular, :italic, :slanted, :smallcaps
+    attr_accessor :variant
+    
     # :dryrun, :verbose, see also fontcollection
     attr_accessor :options
 
+    # all the loaded 
     attr_accessor :variants
     # If fontcollection is supplied, we are now part as the
     # fontcollection. You can set mapenc and texenc in the fontcollection
@@ -75,6 +103,9 @@ class RFI
       # we are part of a fontcollection
       @fontcollection=fontcollection
       # @defaultfm=FontMetric.new
+      @weight=:regular
+      @variant=:regular
+      @defaultfm=nil
       @efactor=1.0
       @slant=0.0
       @capheight=nil
@@ -99,7 +130,7 @@ class RFI
     end
 
     # hook run after font has been loaded by load_variant
-    def after_load_hook (*args,&b)
+    def after_load_hook
     end
     # Read a font(metric file). Return a number that identifies the font.
     # The first font read is the default font. 
@@ -131,7 +162,7 @@ class RFI
             end
           }
         end
-        raise Errno::ENOENT unless fm
+        raise Errno::ENOENT,"Font not found: #{fm}" unless fm
         fm.read(fontname)
         raise ScriptError, "Fontname is not set" unless fm.name
       elsif fontname.respond_to? :charwd
@@ -228,20 +259,20 @@ class RFI
       return tfm
     end
     
-    # Return vf object for that font. _mapenc_ and _texenc_ must be an
-    # ENC object. _mapenc_ is the destination encoding (of the fonts
+    # Return vf object for that font. _mapenc_l_ and _texenc_ must be an
+    # ENC object. _mapenc_l_ is the destination encoding (of the fonts
     # in the mapfile) and _texenc_ is is the encoding of the resulting
     # tfm file. They may be the same.
-    def to_vf(mapenc,texenc)
-      raise ArgumentError, "mapenc must be an ENC object" unless mapenc.respond_to? :encname
+    def to_vf(mapenc_l,texenc)
+      raise ArgumentError, "mapenc must be an ENC object" unless mapenc_l.respond_to? :encname
       raise ArgumentError, "texenc must be an ENC object" unless texenc.respond_to? :encname
       vf=VF.new
       vf.vtitle="Installed with rfi library"
       vf.fontfamily=@defaultfm.familyname
-      vf.codingscheme= if mapenc.encname != texenc.encname
-                               mapenc.encname + " + " + texenc.encname
+      vf.codingscheme= if mapenc_l.encname != texenc.encname
+                               mapenc_l.encname + " + " + texenc.encname
                              else
-                               mapenc.encname
+                               mapenc_l.encname
                              end
       vf.designsize=10.0
       fm=@defaultfm
@@ -258,7 +289,7 @@ class RFI
       find_used_fonts.each_with_index { |fontnumber,i|
         fl=vf.fontlist[fontnumber]={}
         tfm=fl[:tfm]=TFM.new
-        tfm.pathname=map_fontname(mapenc,fontnumber)
+        tfm.tfmpathname=map_fontname(mapenc_l,fontnumber)
         fl[:scale]=@variants[fontnumber].fontat
       }
 
@@ -288,16 +319,16 @@ class RFI
        
         if thischar.pcc_data
           thischar.pcc_data.each { |pcc|
-            if mapenc.glyph_index[pcc[0]]
-              dvi << [:setchar,mapenc.glyph_index[pcc[0]].min]
+            if mapenc_l.glyph_index[pcc[0]]
+              dvi << [:setchar,mapenc_l.glyph_index[pcc[0]].min]
             else
               dvi << RULE
             end
           }
         elsif thischar.mapto
-          if mapenc.glyph_index[thischar.mapto]
-            if mapenc.glyph_index[thischar.mapto]
-              dvi << [:setchar, mapenc.glyph_index[thischar.mapto].min]
+          if mapenc_l.glyph_index[thischar.mapto]
+            if mapenc_l.glyph_index[thischar.mapto]
+              dvi << [:setchar, mapenc_l.glyph_index[thischar.mapto].min]
             else
               dvi << RULE
             end
@@ -305,8 +336,8 @@ class RFI
             dvi << [:special, "unencoded glyph '#{char}'"]
             dvi << RULE
           end
-        elsif mapenc.glyph_index[char]
-          dvi << [:setchar, mapenc.glyph_index[char].min]
+        elsif mapenc_l.glyph_index[char]
+          dvi << [:setchar, mapenc_l.glyph_index[char].min]
         else
           dvi << RULE
         end
@@ -326,7 +357,7 @@ class RFI
     end  
 
     # Return a string or an array of strings that should be put in a mapfile.
-    def maplines(opts={})
+    def maplines()
       # "normally" (afm2tfm)
       # savorg__ Savoy-Regular " mapenc ReEncodeFont " <savorg__ <mapenc.enc
 
@@ -408,7 +439,7 @@ class RFI
           end
           unless options[:dryrun]==true
             tfm=to_tfm(enc)
-            tfm.pathname=tfmfilename
+            tfm.tfmpathname=tfmfilename
             tfm.save(true)
           end
         }
@@ -429,7 +460,8 @@ class RFI
           end
           unless options[:dryrun]==true
             vf=to_vf(outenc,te)
-            vf.pathname=vffilename
+            vf.tfmpathname=tfmfilename
+            vf.vfpathname=vffilename
             vf.save(true)
           end
         }
@@ -461,6 +493,7 @@ class RFI
     end
 
     def mapenc  # :nodoc:
+      return nil if @mapenc == :none
       if @mapenc==nil and @fontcollection
         @fontcollection.mapenc
       else
@@ -500,35 +533,7 @@ class RFI
       File.join(get_dir(:map),@defaultfm.name + ".map")
     end
 
-    # untested, put in helper
-    def style        # :nodoc:
-      if @fontcollection
-        @fontcollection.style
-      else
-        @style
-      end
-    end
-    def style=(obj)         # :nodoc:
-      @style=obj
-    end
-    #   def options         # :nodoc:
-    #     if @fontcollection
-    #       @fontcollection.options
-    #     else
-    #       @options
-    #     end
-    #   end
     
-    def write_vf        # :nodoc:
-      if @fontcollection
-        @fontcollection.write_vf
-      else
-        @write_vf
-      end
-    end
-    def write_vf= (obj) # :nodoc:
-      @write_vf=obj
-    end
     
     # Copy glyphs from one font to the default font. _fontnumber_ is the
     # number that is returned from load_variant, _glyphlist_ is whatever
