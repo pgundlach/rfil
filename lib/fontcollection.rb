@@ -1,5 +1,7 @@
+#--
 # fontcollection.rb
-# Last Change: Wed Jul 20 21:28:31 2005
+# Last Change: Thu Aug 18 19:51:54 2005
+#++
 
 require 'rfi'
 require 'font'
@@ -19,9 +21,9 @@ class RFI
 
     attr_accessor :vendor
 
-    attr_accessor :fontname
+    # attr_accessor :fontname
     
-    # Name of the font collection
+    # Name of the font (collection)
     attr_accessor :name
     
     # One object or one or more objects in an array that describe the
@@ -37,7 +39,7 @@ class RFI
     documented_as_accessor :texenc
 
     # hash of directories for writing files. Default to current working
-    # directory. The setting in the Font object overrides the setting here.  
+    # directory. The setting in the Font object overrides the setting here.
     attr_accessor :dirs
 
     attr_accessor :fonts
@@ -55,10 +57,11 @@ class RFI
     def initialize()
       @kpse=Kpathsea.new
       @basedir=nil
+      @name=nil
       @texenc=nil
       @mapenc=nil
       @write_vf=true
-      @fonts={}
+      @fonts=[]
       @options={:verbose=>false,:dryrun=>false}
       @style=nil
       @dirs={}
@@ -92,44 +95,42 @@ class RFI
         raise ArgumentError, "parameter does not look like a font"
       end
       fontnumber=@fonts.size
-      @fonts[font]={}
-      @fonts[font][:fontnumber]=fontnumber
+      @fonts << font
+      # @fonts[font][:fontnumber]=fontnumber
       
-      class << font
-        def after_load_hook
-          @fontcollection.guess_parameters(self,@colnum)
-        end
-      end
+#       class << font
+#         def after_load_hook
+#           @fontcollection.guess_parameters(self,@colnum)
+#         end
+#       end
       return fontnumber
     end
     
     def run_temps(name)
-      if @temps.has_key?(name)
-        
-        # doc for run_plugin
-        # Return the contents of the file that should be used by the TeX
-        # macro package, i.e a typescript for ConTeXt or an fd-file for
-        # Context. Return value is an Array of Hashes. The Hash has three
-        # different keys:
-        # [<tt>:type</tt>] The type of the file, should be either <tt>:fd</tt> or <tt>:typescript</tt>.
-        # [<tt>:filename</tt>] the filename (without a path) of the file
-        # [<tt>:contents</tt>] the contents of the file.
 
-        files=@temps[name].run_plugin
-        if files.respond_to?(:each)
-          files.each { |fh|
-            dir=get_dir(fh[:type])
-            filename=File.join(dir,fh[:filename])
-            puts "writing file #{filename}" if @options[:verbose]
-            
-            unless @options[:dryrun]
-              ensure_dir(dir)
-              File.open(filename,"w") { |f| f << fh[:contents] }              
-            end
-          }
-        end
-      else
-        raise "don't know plugin #{name}"
+      raise "don't know plugin #{name}" unless @temps.has_key?(name)
+      
+      # doc for run_plugin
+      # Return the contents of the file that should be used by the TeX
+      # macro package, i.e a typescript for ConTeXt or an fd-file for
+      # Context. Return value is an Array of Hashes. The Hash has three
+      # different keys:
+      # [<tt>:type</tt>] The type of the file, should be either <tt>:fd</tt> or <tt>:typescript</tt>.
+      # [<tt>:filename</tt>] the filename (without a path) of the file
+      # [<tt>:contents</tt>] the contents of the file.
+
+      files=@temps[name].run_plugin
+      if files.respond_to?(:each)
+        files.each { |fh|
+          dir=get_dir(fh[:type])
+          filename=File.join(dir,fh[:filename])
+          puts "writing file #{filename}" if @options[:verbose]
+          
+          unless @options[:dryrun]
+            ensure_dir(dir)
+            File.open(filename,"w") { |f| f << fh[:contents] }              
+          end
+        }
       end
     end
     def guess_parameters(font,collectionnumber)
@@ -166,13 +167,14 @@ class RFI
       }
       mapfile.flatten
     end
-    def mapenc       # :nodoc
+    def mapenc        # :nodoc:
+      return nil if @mapenc==:none
       @mapenc
     end
-    def mapenc=(enc) # :nodoc:
+    def mapenc= (enc)  # :nodoc:
       set_mapenc(enc)
     end
-    def texenc       # :nodoc
+    def texenc       # :nodoc:
       if @texenc
         @texenc
       else
@@ -184,7 +186,7 @@ class RFI
         return ret
       end
     end
-    def texenc=(enc) # :nodoc:
+    def texenc= (enc) # :nodoc:
       @texenc=[]
       set_encarray(enc,@texenc)
     end
@@ -193,7 +195,6 @@ class RFI
     end
     def write_files(options={})
       mapdir=get_dir(:map); ensure_dir(mapdir)
-      
       
       @fonts.each {|font|
         font.write_files(:mapfile => false)
