@@ -1,6 +1,6 @@
 # vf.rb -- Class that models TeX's virtual fonts.
 #--
-# Last Change: Thu Aug 11 16:32:01 2005
+# Last Change: Thu Aug 18 21:48:58 2005
 #++
 
 require 'tfm'
@@ -395,7 +395,7 @@ class VF < TFM
         @data+=out_fix_word(f[:scale])
         @data+=out_fix_word(f[:tfm].designsize)
         @data+=[0]
-        @data += out_string(f[:tfm].filename.chomp('.tfm'))
+        @data += out_string(f[:tfm].tfmfilename.chomp('.tfm'))
       }
       
       # now for the chars
@@ -581,7 +581,7 @@ class VF < TFM
       while @level >= thislevel
         case k=keyword
         when "FONTNAME"
-          t[:tfm].pathname=get_string
+          t[:tfm].tfmpathname=get_string
         when "FONTCHECKSUM"
           t[:tfm].checksum=get_num
         when "FONTAT"
@@ -655,6 +655,14 @@ class VF < TFM
   def self.documented_as_reader(*args) #:nodoc:
   end
 
+  # Filename sans path of the vf file. To change this attribute, set
+  # vfpathname. 
+  documented_as_reader :vffilename
+
+  # Path to the vf file.
+  attr_accessor :vfpathname
+
+
   # fontlist is an array of Hashes with the following keys:
   # [<tt>:scale</tt>] Relative size of the font
   # [<tt>:tfm</tt>] TFM object.
@@ -674,7 +682,11 @@ class VF < TFM
     @vtitle=""
     @fontlist=[]
   end
-  
+
+  def vffilename # :nodoc:
+    File.basename(@vfpathname)
+  end
+
   # _vplfile_ is a filename (String). (Future: File and String (pathname))
   def read_vpl(vplfilename)
     File.open(vplfilename) { |f|
@@ -694,12 +706,12 @@ class VF < TFM
     p=VFReader.new(self)
     if file.respond_to? :read
       if file.respond_to? :path
-        @pathname=file.path
+        @vfpathname=file.path
       end
       p.parse(file.read)
     else
       # we assume it is a string
-      @pathname=file
+      @vfpathname=file
       case file
       when /\.vf$/
         File.open(file) { |f|
@@ -710,8 +722,8 @@ class VF < TFM
       end
     end
     t=TFMReader.new(self)
-    tfmpathname=@pathname.chomp(".vf")+".tfm"
-    File.open(tfmpathname){ |f|
+    @tfmpathname=@vfpathname.chomp(".vf")+".tfm"
+    File.open(@tfmpathname){ |f|
       t.parse(f.read)
     }
     return self
@@ -720,19 +732,19 @@ class VF < TFM
   # If _overwrite_ is true, we will replace existing files without
   # raising Errno::EEXIST.
   def save(overwrite=false)
-    tfmpathname=@pathname.chomp(".vf")+".tfm"
-    raise Errno::EEXIST if File.exists?(@pathname) and not overwrite
-    raise Errno::EEXIST if File.exists?(tfmpathname) and not overwrite
-    puts "saving #{@pathname}..." if @verbose
-    File.open(@pathname,"wb") { |f|
+    # tfmpathname=@vfpathname.chomp(".vf")+".tfm"
+    raise Errno::EEXIST if File.exists?(@vfpathname) and not overwrite
+    raise Errno::EEXIST if File.exists?(@tfmpathname) and not overwrite
+    puts "saving #{@vfpathname}..." if @verbose
+    File.open(@vfpathname,"wb") { |f|
       write_vf_file(f)
     }
-    puts "saving #{@pathname}...done" if @verbose
-    puts "saving #{tfmpathname}..." if @verbose
-    File.open(tfmpathname,"wb") { |f|
+    puts "saving #{@vfpathname}...done" if @verbose
+    puts "saving #{@tfmpathname}..." if @verbose
+    File.open(@tfmpathname,"wb") { |f|
       write_tfm_file(f)
     }
-    puts "saving #{@pathname}...done" if @verbose
+    puts "saving #{@tfmpathname}...done" if @verbose
 
   end
 
@@ -818,7 +830,7 @@ class VF < TFM
     
     fontlist.each_with_index { |f,i|
       str << "(MAPFONT D %d\n" % i
-      str << indent + "(FONTNAME %s)\n" % f[:tfm].filename
+      str << indent + "(FONTNAME %s)\n" % f[:tfm].tfmfilename
       str << indent + "(FONTCHECKSUM O %o)\n" % f[:tfm].checksum
       str << indent + "(FONTAT R %f)\n" % (f[:scale] ? f[:scale].to_f : 1.0)
       str << indent + "(FONTDSIZE R %f)\n" % f[:tfm].designsize
