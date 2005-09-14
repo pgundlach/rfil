@@ -1,6 +1,6 @@
 # rfi.rb -- general use classes
 #--
-# Last Change: Thu Aug 11 14:48:55 2005
+# Last Change: Thu Aug 18 19:56:45 2005
 #++
 # = RFI
 # Everything that does not fit somewhere else gets included in the
@@ -17,10 +17,14 @@ class RFI
     # Name of the plugin. A Symbol or a String.
     attr_reader :name
 
+    attr_reader :filetypes
+    
     # Create a new plugin. _name_ is the name of the plugin (it must
-    # be a Symbol or a String).
-    def initialize(name)
+    # be a Symbol or a String). _filetypes_ is a list of symbols, of
+    # what files the plugin is capable of writing.
+    def initialize(name,*filetypes)
       @name=name
+      @filetypes=filetypes
     end
     
     # Return an Array of files that should be written on the user's
@@ -505,8 +509,9 @@ class RFI
       end
     end
     
-    # update all glyph entries to see what the uppercase or the
-    # lowercase variants are
+    # Update all glyph entries to see what the uppercase or the
+    # lowercase variants are. Warning!! Tcaron <-> tquoteright in
+    # non-unicode fonts.
     def update_uc_lc_list
       # we need this list only when faking small caps (which will, of
       # course, never happen!)
