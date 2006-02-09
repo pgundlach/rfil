@@ -6,10 +6,11 @@ require 'fileutils'
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
 require 'pp'
-require 'tfm'
+require 'tex/tfm'
 
 
 class TestTFM < Test::Unit::TestCase
+  include TeX
   def test_parse
     t=TFM.new
     t.read_pl("tricky.pl")
@@ -55,14 +56,6 @@ class TestTFM < Test::Unit::TestCase
      tfm.save(true)
     str=""
     tfm.write_file(str)
-    # pp str
-#     filename="/tmp/newtfm.tfm"
-#     f=File.open(filename)
-#     tfm=TFM.new
-#     tfm.verbose=true
-#     tfm.read_tfm(f)
-#     f.close
-    
   end
 
 end

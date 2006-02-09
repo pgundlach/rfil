@@ -4,10 +4,10 @@ require 'test/unit'
 
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
-require 'pp'
-require 'vf'
+require 'tex/vf'
 
 class TestVF < Test::Unit::TestCase
+  include TeX
   def test_parse
     vf=VF.new
     vf.read_vpl("tricky2.vpl")

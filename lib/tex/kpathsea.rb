@@ -1,12 +1,12 @@
+#--
 # kpathsea.rb - libkpathsea access for ruby
-# Last Change: Thu Feb  9 16:39:31 2006
-#
-# There won't be a C version soon, because the likpathsea does not
-# like to be linked with ruby on my system (OS X Tiger).
+# Last Change: Thu Feb  9 16:58:02 2006
+#++
 
-# Finds TeX related files with the standard kpathsea method
 
 module TeX
+
+  # Find TeX related files with help of the 'kpsewhich' program.
   class Kpathsea
     # _progname_ defaults to the name of the main Ruby script.
     # _progname_ is used to find program specific files as in
