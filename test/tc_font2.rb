@@ -5,10 +5,9 @@ require 'test/unit'
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
 require 'font'
-require 'enc'
-require 'kpathsea'
 
 class TestFontb < Test::Unit::TestCase
+  include TeX
   def test_write
     t=Time.new
     # I want to see which files actually changed. A more clever solution?

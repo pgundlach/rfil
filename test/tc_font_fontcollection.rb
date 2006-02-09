@@ -6,10 +6,9 @@ $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
 require 'font'
 require 'fontcollection'
-require 'enc'
-require 'kpathsea'
 
 class TestFontFontCollection < Test::Unit::TestCase
+  include TeX
   def setup
     @kpse=Kpathsea.new
     @kpse.open_file("ec.enc","enc") { |f|
@@ -62,7 +61,7 @@ class TestFontFontCollection < Test::Unit::TestCase
     # vpl has been overridden be font
     assert_equal("/tmp",font.get_dir(:vpl))
     fc.set_dirs("/tmp")
-    fc.set_dirs(:tds=>true)
+    fc.set_dirs(:tds=>true, :base=>"/tmp")
     # !! check next 4 assertions, are incorrect (trailing /) XXXX
     
 #    assert_equal("/tmp/fonts/source/vpl/",fc.get_dir(:vpl))

@@ -1,16 +1,16 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Thu Aug 18 21:46:07 2005
+# Last Change: Thu Feb  9 17:08:03 2006
 #++
 require 'set'
 
 require 'helper'
 require 'afm'
 require 'truetype'
-require 'enc'
-require 'kpathsea'
-require 'tfm'
-require 'vf'
+require 'tex/enc'
+require 'tex/kpathsea'
+require 'tex/tfm'
+require 'tex/vf'
 
 
 
@@ -27,6 +27,7 @@ class RFI
   # information and, of course, FontMetric and its subclasses to read a
   # font. 
   class Font
+    include TeX
     def self.documented_as_accessor(*args) # :nodoc:
     end 
 

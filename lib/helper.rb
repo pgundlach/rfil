@@ -6,8 +6,10 @@
 # Here we define methods that are used in Font and FontCollection. 
 
 require 'fileutils'
+require 'tex/kpathsea'
 class RFI
   module Helper
+    include TeX
     def set_encarray(enc,where) #:nodoc:
       if enc.instance_of?(ENC)
         where.push(enc)

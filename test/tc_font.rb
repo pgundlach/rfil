@@ -5,11 +5,9 @@ require 'test/unit'
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
 require 'font'
-require 'enc'
-require 'kpathsea'
-require 'pp'
 
 class TestFont < Test::Unit::TestCase
+  include TeX
   def setup
     @kpse=Kpathsea.new
     @kpse.open_file("ec.enc","enc") { |f|
