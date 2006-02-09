@@ -1,10 +1,12 @@
 # tfm.rb - Access  information of a TeX font metric file. 
 #--
-# Last Change: Thu Aug 18 21:38:46 2005
+# Last Change: Thu Feb  9 17:00:12 2006
 #++
 
-class TFM
-  class TFMReader
+module TeX
+
+  class TFM
+    class TFMReader
     # reading a tfm file is about 10 times faster than doing
     # `tftop xyz.pl` and using PL#parse. And only a bit slower than
     # `tftop xyz.pl > /dev/null` alone. (1.3 secs. vs. 0.9 secs. - 10 times)
@@ -292,7 +294,7 @@ class TFM
     end
   end
   
-
+  
 
   class TFMWriter
     # More output to stdout
@@ -520,8 +522,8 @@ class TFM
         # array (first 256 elements) (yes, this is ugly)
         instructions.unshift thisinstr
         
-      
-      
+        
+        
         pos=@lig_kern.size / 4 + instr_left
         count=@instr_index.size
 
@@ -734,7 +736,7 @@ class TFM
 
   end
 
-
+  
 
   # Parse a pl (property list) file.
   class PLParser
@@ -918,7 +920,7 @@ class TFM
             when "F"
               t=@s.scan(/(M|B|L)(R|I)(R|C|E)/)
               ['MRR','MIR','BRR','BIR','LRR','LIR','MRC','MIC','BRC','BIC',
-          'LRC','LIC','MRE','MIE','BRE','BIE','LRE','LIE'].index(t)
+               'LRC','LIC','MRE','MIE','BRE','BIE','LRE','LIE'].index(t)
             else
               raise "not implemented yet"
             end
@@ -927,15 +929,15 @@ class TFM
     end
   end #class pl parser
 
-
+  
 
   # :stopdoc:
   LIGOPS= [  :lig, :"lig/",  :"/lig",  :"/lig/",
-              nil, :"lig/>", :"/lig>", :"/lig/>",
-              nil, nil,      nil,      :"/lig/>>" ]
+             nil, :"lig/>", :"/lig>", :"/lig/>",
+             nil, nil,      nil,      :"/lig/>>" ]
   
   FACE = ['MRR','MIR','BRR','BIR','LRR','LIR','MRC','MIC','BRC','BIC',
-    'LRC','LIC','MRE','MIE','BRE','BIE','LRE','LIE']
+          'LRC','LIC','MRE','MIE','BRE','BIE','LRE','LIE']
 
   NOTAG=0
   LIGTAG=1
@@ -1027,7 +1029,7 @@ class TFM
   end
 
 
-    # _plfile_ is a filename (String). (Future: File and String (pathname))
+  # _plfile_ is a filename (String). (Future: File and String (pathname))
   def read_pl(plfilename)
     File.open(plfilename) { |f|
       parse_pl(f.read)
@@ -1181,8 +1183,9 @@ class TFM
         end
       }
       str << indent + "(STOP)\n"
-   }
-   str << indent + ")\n"
-   str
-  end
-end # class TFM
+        }
+        str << indent + ")\n"
+          str
+        end
+      end # class TFM
+end # module TeX
