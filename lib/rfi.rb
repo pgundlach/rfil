@@ -1,6 +1,6 @@
 # rfi.rb -- general use classes
 #--
-# Last Change: Thu Aug 18 19:56:45 2005
+# Last Change: Thu Mar  9 15:44:54 2006
 #++
 # = RFI
 # Everything that does not fit somewhere else gets included in the
@@ -436,13 +436,10 @@ class RFI
     @@vpligops = ["LIG", "/LIG", "/LIG>", "LIG/", "LIG/>", "/LIG/",
       "/LIG/>", "/LIG/>>"]
 
-    # return an array with name of glyphs that are represented by the
-    # symbol _glyphlist_. Since I cannot think of a clever name,
-    # please excuse this incredibly stupid name. If you have a
-    # sensible name, just change it (and all references, of course).
-    #
+    # Return an array with name of glyphs that are represented by the
+    # symbol _glyphlist_.
     # These symbols are defined: :lowercase, :uppercase, :digits
-    def foo(glyphlist)
+    def get_glyphlist(glyphlist)
       ret=[]
       unless glyphlist.instance_of? Symbol
           raise ArgumentError, "glyphlist must be a symbol" 

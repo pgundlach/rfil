@@ -59,7 +59,6 @@ Run <tt>make</tt> in order to create the documentation in the
 subdirectory <tt>doc/</tt>. Open <tt>doc/index.html</tt> in your
 browser and voila, see all classes and methods documented.
 
----
 ==Other Stuff
 
 Author:: Patrick Gundlach <patrickg@despammed.com>

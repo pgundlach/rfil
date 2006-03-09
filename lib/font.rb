@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Mon Mar  6 15:02:00 2006
+# Last Change: Thu Mar  9 15:45:10 2006
 #++
 require 'set'
 
@@ -545,7 +545,7 @@ class RFI
       tocopy=[]
       case glyphlist
       when Symbol
-        tocopy=@defaultfm.chars.foo(glyphlist)
+        tocopy=@defaultfm.chars.get_glyphlist(glyphlist)
       when Array
         tocopy=glyphlist
       end

@@ -115,8 +115,7 @@ class TestRFI < Test::Unit::TestCase
     assert_equal('S',gl['germandbls'].capitalize)
     assert_equal(nil,gl['A'].capitalize)
   end
-  def test_foo
-    # stupid name, I know (please change it)
+  def test_get_glyphlist
     require 'font'
     font=RFI::Font.new
     font.load_variant("savorg__.afm")
@@ -124,19 +123,19 @@ class TestRFI < Test::Unit::TestCase
     lc=["a", "aacute", "acircumflex", "adieresis", "ae", "agrave", "aring", "atilde", "b", "c", "ccedilla", "d", "dotlessi", "e", "eacute", "ecircumflex", "edieresis", "egrave", "eth", "f", "g", "germandbls", "h", "i", "iacute", "icircumflex", "idieresis", "igrave", "j", "k", "l", "lslash", "m", "n", "ntilde", "o", "oacute", "ocircumflex", "odieresis", "oe", "ograve", "oslash", "otilde", "p", "q", "r", "s", "scaron", "t", "thorn", "u", "uacute", "ucircumflex", "udieresis", "ugrave", "v", "w", "x", "y", "yacute", "ydieresis", "z", "zcaron"]
     uc=["Acircumflex", "Lslash", "A", "B", "C", "D", "E", "Udieresis", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "Oslash", "Odieresis", "P", "Q", "OE", "R", "S", "T", "Thorn", "U", "V", "W", "Uacute", "X", "Idieresis", "Ydieresis", "Y", "Z", "Egrave", "Edieresis", "Aring", "Ccedilla", "Oacute", "Ocircumflex", "Otilde", "Scaron", "Ugrave", "Ucircumflex", "Agrave", "Ecircumflex", "AE", "Aacute", "Iacute", "Atilde", "Icircumflex", "Zcaron", "Ograve", "Eth", "Eacute", "Adieresis", "Yacute", "Igrave", "Ntilde"]
     digits=%w(one two three four five six seven eight nine zero)
-    tmp=gl.foo(:lowercase)
+    tmp=gl.get_glyphlist(:lowercase)
     assert_equal(tmp.size,lc.size)
     lc.each { |g|
       assert(tmp.member?(g))
     }
 
-    tmp=gl.foo(:uppercase)
+    tmp=gl.get_glyphlist(:uppercase)
     assert_equal(tmp.size,uc.size)
     uc.each { |g|
       assert(tmp.member?(g))
     }
     # this test is trivial -> remove?
-    tmp=gl.foo(:digits)
+    tmp=gl.get_glyphlist(:digits)
     assert_equal(tmp.size,digits.size)
     digits.each { |g|
       assert(tmp.member?(g),"#{g} is not in 'digits'")
