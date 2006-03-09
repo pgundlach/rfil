@@ -9,7 +9,9 @@ require 'fileutils'
 $:.unshift File.join(File.dirname(__FILE__),"..","lib")
 
 require 'fontcollection'
-require 'kpathsea'
+require 'tex/kpathsea'
+
+include TeX
 
 class RFII
   def initialize
@@ -212,7 +214,7 @@ class RFII
         }
       when :vendor
         @vendor=rest[0]
-        if @fc  and @fc.respond_to?(:vendor=)
+        if @fc and @fc.respond_to?(:vendor=)
           @fc.vendor=@vendor
         end
       when :set

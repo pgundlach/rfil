@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Thu Feb  9 17:08:03 2006
+# Last Change: Mon Mar  6 15:02:00 2006
 #++
 require 'set'
 
@@ -163,7 +163,7 @@ class RFI
             end
           }
         end
-        raise Errno::ENOENT,"Font not found: #{fm}" unless fm
+        raise Errno::ENOENT,"Font not found: #{fontname}" unless fm
         fm.read(fontname)
         raise ScriptError, "Fontname is not set" unless fm.name
       elsif fontname.respond_to? :charwd

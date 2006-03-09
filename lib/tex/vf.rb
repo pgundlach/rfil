@@ -1,6 +1,6 @@
 # vf.rb -- Class that models TeX's virtual fonts.
 #--
-# Last Change: Thu Feb  9 17:04:16 2006
+# Last Change: Mon Mar  6 14:18:42 2006
 #++
 
 require 'tex/tfm'
@@ -735,6 +735,7 @@ module TeX
     # raising Errno::EEXIST.
     def save(overwrite=false)
       # tfmpathname=@vfpathname.chomp(".vf")+".tfm"
+      raise "tfmpathname not set" unless @tfmpathname
       raise Errno::EEXIST if File.exists?(@vfpathname) and not overwrite
       raise Errno::EEXIST if File.exists?(@tfmpathname) and not overwrite
       puts "saving #{@vfpathname}..." if @verbose

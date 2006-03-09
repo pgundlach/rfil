@@ -505,7 +505,7 @@ module TeX
       
       @instr_index=[]
       @lig_kern=[]
-      
+
       total_instr=instructions.size
       if total_instr > 0
         instr_left=total_instr
@@ -516,30 +516,33 @@ module TeX
           @lig_kern += thisinstr
           thisinstr=instructions.shift
           instr_left -= 1
+          break if instr_left.zero?
         end
 
-        # undo last changes, since these don't fit into the @lig_kern
-        # array (first 256 elements) (yes, this is ugly)
-        instructions.unshift thisinstr
+        unless instr_left.zero?
+          # undo last changes, since these don't fit into the @lig_kern
+          # array (first 256 elements) (yes, this is ugly)
+          instructions.unshift thisinstr
+          
         
         
-        
-        pos=@lig_kern.size / 4 + instr_left
-        count=@instr_index.size
-
-        # now fill the indirect nodes, calculate the starting points of
-        # the instructions
-        instructions.each { |i|
-          @instr_index[count]=@lig_kern.size / 4
-          count += 1
-          @lig_kern += [ 129, 0, (pos / 256) , (pos % 256) ]
-          pos += i.size / 4
-        }
-        
-        # now we continue with the instructions
-        instructions.each { |i|
-          @lig_kern += i
-        }
+          pos=@lig_kern.size / 4 + instr_left
+          count=@instr_index.size
+          
+          # now fill the indirect nodes, calculate the starting points of
+          # the instructions
+          instructions.each { |i|
+            @instr_index[count]=@lig_kern.size / 4
+            count += 1
+            @lig_kern += [ 129, 0, (pos / 256) , (pos % 256) ]
+            pos += i.size / 4
+          }
+          
+          # now we continue with the instructions
+          instructions.each { |i|
+            @lig_kern += i
+          }
+        end
       end
       @nl = @lig_kern.size / 4
 
@@ -778,6 +781,9 @@ module TeX
 
     def get_character
       thischar = @tfm.chars[get_num] ||= {}
+      #       [:charwd, :charht, :chardp, :charic].each do |s|
+      #         thischar[s]=0.0
+      #       end
       thislevel=@level
       while @level >= thislevel
         case k=keyword

@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #--
-# Last Change: Wed Jul 20 23:57:03 2005
+# Last Change: Thu Mar  9 14:52:25 2006
 #++
 =begin rdoc
 == afm2tfm using the ruby font installer library
@@ -177,8 +177,9 @@ font.slant  =options.slant   || 0.0
 ploptions=options.ligkern==true ? {:noligs=>false} : {:noligs=>true}
 
 fn=font.map_fontname(font.mapenc) + ".tfm"
-font.pl(font.mapenc,ploptions).write_tfm(File.join(font.get_dir(:tfm),fn))
-
+f=font.to_tfm(font.mapenc,ploptions)
+f.tfmpathname=File.join(font.get_dir(:tfm),fn)
+f.save(true)
 
 if options.fakecaps
   fc = font.load_variant(inputfile)
@@ -194,10 +195,13 @@ if options.write_vf
              end
   vf= File.join(font.get_dir(:vf) ,vffilename+".vf")
   tfm=File.join(font.get_dir(:tfm),vffilename+ ".tfm")
-  vpl=font.vpl(font.mapenc,font.texenc[0])
+  vpl=font.to_vf(font.mapenc,font.texenc[0])
+  vpl.tfmpathname=File.join(font.get_dir(:tfm) ,vffilename + ".tfm")
+  vpl.vfpathname=File.join(font.get_dir(:vpl) ,vffilename + ".vf")
+  vpl.save(true)
   #  vplfile= File.join(font.get_dir(:vpl) ,vffilename + ".vpl")
   #  vpl.write_vpl(vplfile)
-  vpl.write_vf(vf,tfm)
+  #  vpl.write_vf(vf,tfm)
 end
 puts font.maplines
 

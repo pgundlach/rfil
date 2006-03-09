@@ -66,6 +66,9 @@ class RFI
           @dirs[sym]=arg
         }
       elsif arg.instance_of? Hash
+        if arg[:base]
+          @basedir=arg[:base]
+        end
         if arg[:tds]==true
           suffix = if @vendor and @name
                      File.join(@vendor,@name)
@@ -97,7 +100,7 @@ class RFI
                     else
                       raise "unknown type"
                     end
-            @dirs[t] = File.join(arg[:base],subdir)
+            @dirs[t] = File.join(@basedir,subdir)
           }
         else
           arg.each { |key,value|

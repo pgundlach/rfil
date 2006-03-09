@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby -w
 #--
-# Last Change: Thu Aug 11 17:11:44 2005
+# Last Change: Tue Mar  7 17:04:28 2006
 #++
 =begin rdoc
 
@@ -34,10 +34,10 @@ require 'ostruct'
 # $: is the ruby input path - add the lib/ subdir
 $:.unshift File.join(File.dirname(__FILE__),"..","lib")
 
-require 'kpathsea'
-require 'enc'
-require 'tfm'
-require 'vf'
+require 'tex/kpathsea'
+require 'tex/enc'
+require 'tex/tfm'
+require 'tex/vf'
 
 
 def showmap(mapary)
@@ -73,6 +73,7 @@ def plopen(filename)
   end
 end
 
+include TeX
 options=OpenStruct.new
 kpse=Kpathsea.new
 
@@ -206,7 +207,7 @@ str= ""
   else
     chr=""
     [:charwd, :charht, :chardp, :charic].each { |dim|
-      next if a[dim]==b[dim]
+      next if a[dim].to_f==b[dim].to_f
       if a[dim]==nil 
         chr << "  Difference in #{dim}: nil vs. #{b[dim]}" << "\n"
       elsif b[dim]==nil

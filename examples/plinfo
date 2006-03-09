@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 #--
-# Last Change: Thu Aug 11 16:27:37 2005
+# Last Change: Tue Mar  7 17:06:33 2006
 #++
 =begin rdoc
-== plinfo -- output information about a (v)pl file.
+== plinfo -- output information about a pl file.
 
   Usage: plinfo [options] tfmfile.pl [file...]
       -e, --encoding enc               set the encoding for the file
@@ -26,9 +26,11 @@ require 'ostruct'
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
 
-require 'tfm'
-require 'kpathsea'
-require 'enc'
+require 'tex/tfm'
+require 'tex/kpathsea'
+require 'tex/enc'
+
+include TeX
 
 kpse=Kpathsea.new
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby -w
 #--
-# Last Change: Mon Jul 11 23:15:13 2005
+# Last Change: Tue Mar  7 16:50:25 2006
 #++
 =begin rdoc
 
@@ -23,6 +23,7 @@ License::  Copyright (c) 2005 Patrick Gundlach.
 # :enddoc:
 
 require 'optparse'
+require 'ostruct'
 
 # $: is the ruby input path - add the lib/ subdir
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
@@ -211,22 +212,23 @@ class AFMinfo # :nodoc:
 
 end
 
-verbose = false
-metrics = false
-glyph = nil
-listglyphs = false
-generalinfo = true
+options=OpenStruct.new
+options.verbose = false
+options.metrics = false
+options.glyph = nil
+options.listglyphs = false
+options.generalinfo = true
 
 ARGV.options { |opt|
   opt.banner = "Usage: #{File.basename($0)} [options] afm-file[.afm]"
-  opt.on("--metrics", "-m", "show global metrics information") { metrics=true}
-  opt.on("--verbose", "-v", "verbose output") { verbose=true }
+  opt.on("--metrics", "-m", "show global metrics information") { options.metrics=true}
+  opt.on("--verbose", "-v", "verbose output") { options.verbose=true }
   opt.on("--[no-]info", "list general information (default)") { |x|
-    generalinfo=x }
-  opt.on("--list-glyphs", "-l", "list all available glyphs") { listglyphs=true }
+    options.generalinfo=x }
+  opt.on("--list-glyphs", "-l", "list all available glyphs") { options.listglyphs=true }
   opt.on("--glyphinfo g" , "-g", 
          "information about a specific glyph") { |arg| 
-    glyph = arg
+    options.glyph = arg
   }
     
   opt.on("--help", "-h", "Show this help") { puts opt; exit 0 }
@@ -241,13 +243,12 @@ unless ARGV.size==1
 end
 
 
-afm=AFM.new
-afm.verbose  = verbose
-# "foo.afm" and "foo" should read "foo.afm"
+afm=AFM.new(nil,:verbose => options.verbose)
+# both "filename.afm" and "filename" should read "filename.afm"
 afm.read(ARGV[0].chomp('.afm')+".afm")
 
 ai = AFMinfo.new(afm)
-ai.dump_maininfo if generalinfo
-ai.dump_metrics if metrics
-glyph && ai.dump_glyphinfo(glyph)
-ai.dump_glyphs if listglyphs
+ai.dump_maininfo if options.generalinfo
+ai.dump_metrics if options.metrics
+options.glyph && ai.dump_glyphinfo(options.glyph)
+ai.dump_glyphs if options.listglyphs

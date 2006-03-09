@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby -w
 #--
-# Last Change: Wed Jul 20 23:57:09 2005
+# Last Change: Tue Mar  7 17:17:13 2006
 #++
 =begin rdoc
 = rfont -- An example font installer
@@ -120,7 +120,7 @@ end
 
 
 
-fc.fontname=options.fontname
+fc.name=options.fontname
 fc.vendor=options.vendor
 
 if options.tds
