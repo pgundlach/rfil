@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby -w
 #--
-# Last Change: Wed Aug  3 21:01:18 2005
+# Last Change: Sat Mar 18 14:48:02 2006
 #++
 =begin rdoc
 = encodingtable -- print out a table with different encodings in colums
@@ -34,8 +34,10 @@ Author:: Patrick Gundlach <patrickg@despammed.com>
 
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
-require 'enc'
-require 'kpathsea'
+require 'tex/enc'
+require 'tex/kpathsea'
+
+include TeX
 
 unless ARGV.size > 0
   puts "Usage: #{File.basename($0)} encoding[.enc] ..."
