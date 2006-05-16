@@ -1,19 +1,23 @@
-#!/usr/bin/env ruby -w
+#!/usr/bin/env ruby
 
+# :enddoc:
 
-require 'rfii.tab'
 require 'pp'
 require 'ostruct'
 require 'fileutils'
 
-$:.unshift File.join(File.dirname(__FILE__),"..","lib")
 
-require 'fontcollection'
-require 'tex/kpathsea'
+require 'rfil/fontcollection'
+require 'rfil/tex/kpathsea'
 
-include TeX
+$:.unshift File.dirname($0)
+require 'rfii.tab'
 
-class RFII
+
+class RFII # :nodoc:
+  include RFIL
+  include TeX
+
   def initialize
     @instructions=[]
     @known_encodings=Hash.new

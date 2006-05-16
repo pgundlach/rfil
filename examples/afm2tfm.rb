@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #--
-# Last Change: Thu Mar  9 14:52:25 2006
+# Last Change: Tue May 16 18:10:52 2006
 #++
 =begin rdoc
 == afm2tfm using the ruby font installer library
@@ -40,7 +40,7 @@ the encoding given with the -p parameter.
 ---
 Remark: this is not the reimplementation I mentioned at the 35th NTG meeting.
 
-Author:: Patrick Gundlach <patrickg@despammed.com>
+Author:: Patrick Gundlach <patrick@gundla.ch>
 License::  Copyright (c) 2005 Patrick Gundlach.
            Released under the terms of the GNU General Public License
 =end 
@@ -60,12 +60,9 @@ License::  Copyright (c) 2005 Patrick Gundlach.
 
 require 'optparse'
 require 'ostruct'
+require 'rfil/font'
 
-$:.unshift File.join(File.dirname(__FILE__),"..","lib")
-
-
-require 'font'
-
+include RFIL
 options=OpenStruct.new
 
 ARGV.options { |opt|

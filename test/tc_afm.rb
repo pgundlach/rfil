@@ -4,7 +4,7 @@ require 'test/unit'
 
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
-require 'font/afm'
+require 'rfil/font/afm'
 
 class TestFont < Test::Unit::TestCase
   

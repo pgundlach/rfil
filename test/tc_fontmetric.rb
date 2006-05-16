@@ -4,13 +4,14 @@ require 'test/unit'
 
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
-require 'rfi'
-require 'font/metric'
+require 'rfil/rfi'
+require 'rfil/font/metric'
 
 
 # The samples are taken from afm2tfm output from savorg__.afm.
 
 class TestFontMetric < Test::Unit::TestCase
+  include RFIL
   def test_fm
     fm=Font::Metric.new
     fm.familyname="FamilyName"

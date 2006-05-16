@@ -4,11 +4,11 @@ require 'test/unit'
 
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
-require 'fontcollection'
-require 'font'
+require 'rfil/fontcollection'
+require 'rfil/font'
 
 class TestFontCollection < Test::Unit::TestCase
-
+  include RFIL
   def setup
     @fc=RFI::FontCollection.new()
   end

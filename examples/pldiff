@@ -1,6 +1,6 @@
-#!/usr/bin/env ruby -w
+#!/usr/bin/env ruby
 #--
-# Last Change: Tue Mar  7 17:04:28 2006
+# Last Change: Tue May 16 18:13:36 2006
 #++
 =begin rdoc
 
@@ -20,7 +20,7 @@
     
 
 ---
-Author:: Patrick Gundlach <patrickg@despammed.com>
+Author:: Patrick Gundlach <patrick@gundla.ch>
 License::  Copyright (c) 2005 Patrick Gundlach.
            Released under the terms of the GNU General Public License
 
@@ -31,13 +31,12 @@ License::  Copyright (c) 2005 Patrick Gundlach.
 require 'optparse'
 require 'ostruct'
 
-# $: is the ruby input path - add the lib/ subdir
-$:.unshift File.join(File.dirname(__FILE__),"..","lib")
+require 'rfil/tex/kpathsea'
+require 'rfil/tex/enc'
+require 'rfil/tex/tfm'
+require 'rfil/tex/vf'
 
-require 'tex/kpathsea'
-require 'tex/enc'
-require 'tex/tfm'
-require 'tex/vf'
+include RFIL
 
 
 def showmap(mapary)

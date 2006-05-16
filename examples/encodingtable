@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby -w
 #--
-# Last Change: Sat Mar 18 14:48:02 2006
+# Last Change: Tue May 16 18:11:49 2006
 #++
 =begin rdoc
 = encodingtable -- print out a table with different encodings in colums
@@ -25,18 +25,15 @@ This is mainly an example how to use the ENC and Kpathsea class.
    5 |   5 |  5 | hungarumlaut     | dotaccent        | hungarumlaut     | ---              |
   ...
 ---
-Author:: Patrick Gundlach <patrickg@despammed.com>
+Author:: Patrick Gundlach <patrick@gundla.ch>
 =end
 
 # :enddoc:
 
-
+require 'rfil/tex/enc'
+require 'rfil/tex/kpathsea'
 
-$:.unshift File.join(File.dirname(__FILE__), "..", "lib")
-
-require 'tex/enc'
-require 'tex/kpathsea'
-
+include RFIL
 include TeX
 
 unless ARGV.size > 0

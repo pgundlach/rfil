@@ -4,9 +4,10 @@ require 'test/unit'
 
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
-require 'font'
+require 'rfil/font'
 
 class TestFontb < Test::Unit::TestCase
+  include RFIL
   include TeX
   def test_write
     t=Time.new

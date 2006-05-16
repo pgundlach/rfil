@@ -4,14 +4,15 @@ require 'test/unit'
 
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
-require 'rfi'
+require 'rfil/rfi'
+require 'rfil/font'
 
 # The samples are taken from afm2tfm output from savorg__.afm.
 
 class Empty ; end
 
 class TestRFI < Test::Unit::TestCase
-
+  include RFIL
   def test_char
     c=RFI::Char.new
     c.name="hyphen"
@@ -100,7 +101,6 @@ class TestRFI < Test::Unit::TestCase
   end
   # Tcaron <-> tquoteright
   def test_glyphlist_uc_lc
-    require 'font'
     font=RFI::Font.new
     font.load_variant("savorg__.afm")
     gl=font.defaultfm.chars
@@ -116,7 +116,6 @@ class TestRFI < Test::Unit::TestCase
     assert_equal(nil,gl['A'].capitalize)
   end
   def test_get_glyphlist
-    require 'font'
     font=RFI::Font.new
     font.load_variant("savorg__.afm")
     gl=font.defaultfm.chars

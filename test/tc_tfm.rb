@@ -5,11 +5,11 @@ require 'fileutils'
 
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
-require 'pp'
-require 'tex/tfm'
+require 'rfil/tex/tfm'
 
 
 class TestTFM < Test::Unit::TestCase
+  include RFIL
   include TeX
   def test_parse
     t=TFM.new

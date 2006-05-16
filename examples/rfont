@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby -w
 #--
-# Last Change: Tue May 16 13:00:27 2006
+# Last Change: Tue May 16 18:15:03 2006
 #++
 =begin rdoc
 = rfont -- An example font installer
@@ -44,9 +44,10 @@ require 'optparse'
 require 'ostruct'
 require 'fileutils'
 
-$:.unshift File.join(File.dirname(__FILE__),"..","lib")
+require 'rfil/fontcollection'
 
-require 'fontcollection'
+include RFIL
+
 options=OpenStruct.new
 optionswritevf=true
 fc=RFI::FontCollection.new

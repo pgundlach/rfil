@@ -4,9 +4,10 @@ require 'test/unit'
 
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
-require 'tex/vf'
+require 'rfil/tex/vf'
 
 class TestVF < Test::Unit::TestCase
+  include RFIL
   include TeX
   def test_parse
     vf=VF.new

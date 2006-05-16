@@ -4,14 +4,14 @@
 # alike
 
 require 'test/unit'
-require 'pp'
 
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
-require 'font'
+require 'rfil/font'
 
 
 class TestMetric < Test::Unit::TestCase
+  include RFIL
   def test_fake_caps
     font=RFI::Font.new
     font.load_variant("savorg__.afm")

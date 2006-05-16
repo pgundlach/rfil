@@ -1,12 +1,12 @@
-#!/usr/bin/env ruby -w
+#!/usr/bin/env ruby
 #--
-# Last Change: Tue Mar  7 16:50:25 2006
+# Last Change: Tue May 16 18:09:09 2006
 #++
 =begin rdoc
 
-== afminfo - print out information about an afm file
+== afminfo - print out information about an afm or truetype font file
 
- Usage: afminfo [options] afm-file[.afm]
+ Usage: afminfo [options] afm-file.afm | truetypefont.ttf
    -m, --metrics                    show global metrics information
    -v, --verbose                    verbose output
        --[no-]info                  list general information (default)
@@ -15,7 +15,7 @@
    -h, --help                       Show this help
 
 ---
-Author:: Patrick Gundlach <patrickg@despammed.com>
+Author:: Patrick Gundlach <patrick@gundla.ch>
 License::  Copyright (c) 2005 Patrick Gundlach.
            Released under the terms of the GNU General Public License
 =end
@@ -24,11 +24,7 @@ License::  Copyright (c) 2005 Patrick Gundlach.
 
 require 'optparse'
 require 'ostruct'
-
-# $: is the ruby input path - add the lib/ subdir
-$:.unshift File.join(File.dirname(__FILE__), "..", "lib")
-
-require 'afm'
+require 'rfil/font/afm'
 
 
 # sorry for german - one day I'll change that into engish. --pg
@@ -243,9 +239,8 @@ unless ARGV.size==1
 end
 
 
-afm=AFM.new(nil,:verbose => options.verbose)
-# both "filename.afm" and "filename" should read "filename.afm"
-afm.read(ARGV[0].chomp('.afm')+".afm")
+# afm=Font::AFM.new(:verbose => options.verbose)
+afm=RFIL::Font::Metric.read(ARGV[0],:verbose => options.verbose)
 
 ai = AFMinfo.new(afm)
 ai.dump_maininfo if options.generalinfo
