@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby -w
 #--
-# Last Change: Tue Mar  7 17:17:13 2006
+# Last Change: Tue May 16 13:00:27 2006
 #++
 =begin rdoc
 = rfont -- An example font installer
@@ -32,7 +32,7 @@ This is the command line I used to install the Bitstream variant of the font 'Sy
 
 It works, but the <tt>.fd</tt>-file is not perfect yet.
 ---
-Author:: Patrick Gundlach <patrickg@despammed.com>
+Author:: Patrick Gundlach <patrick@gundla.ch>
 License::  Copyright (c) 2005 Patrick Gundlach.
            Released under the terms of the GNU General Public License
 
@@ -65,7 +65,8 @@ ret= ARGV.options { |opts|
     options.dryrun=true
   }
   opts.on("-m", "--list-plugin", "list available plugins") {
-    puts "#{fc.temps.join("\n")}"
+    puts "The following plugins are known:"
+    puts fc.plugins
     exit 0;
   }
   opts.on("-p ENCFILE", String,
@@ -116,6 +117,8 @@ if vendor_fontname
 end
 if options.vendor==nil or options.fontname==nil
   puts "You must name vendor and fontname this way: vendor/fontname"
+  puts "See --help for usage information"
+  exit(-1)
 end
 
 
@@ -123,9 +126,7 @@ end
 fc.name=options.fontname
 fc.vendor=options.vendor
 
-if options.tds
-  fc.set_dirs(:tds=>true)
-end
+fc.set_dirs(:tds=>true) if options.tds
 
 fonts=[]
 maplines=""
@@ -140,21 +141,19 @@ ARGV.each { |fontname|
   fonts.push f
 }
 
-fc.fonts.each { |font,params|
+fc.fonts.each { |font|
   puts "Processing font #{font.defaultfm.fontname}"
+  font.guess_weight_variant
   font.apply_ligkern_instructions(RFI::STDLIGKERN)
-#   puts "weight: #{params[:weight]}"
-#   puts "variant: #{params[:variant]}"
-#   puts "expert set" if params[:expert]==true
-#   puts "sc/osf"  if params[:smallcaps]==true
   font.write_files(:dryrun=>options.dryrun==true,
                    :verbose=>false, :mapfile=>false
                    )
   maplines << font.maplines.to_s
 }
 
+
 if options.copyfonts
-  fc.fonts.each { |font,ignore|
+  fc.fonts.each { |font|
     font.find_used_fonts.each {|varnumber|
       fontmetric=font.variants[varnumber]
       destdir=font.get_dir(fontmetric.outlinetype)
@@ -180,8 +179,6 @@ unless fc.options[:dryrun]
 end
 
 if options.plugin
-  options.plugin.each{ |m|
-    fc.run_temps(m.to_sym)
-  }
+  options.plugin.each { |m|  fc.run_plugin(m.to_sym)   }
 end
 

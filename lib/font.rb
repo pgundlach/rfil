@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Sat Mar 18 18:08:34 2006
+# Last Change: Tue May 16 13:14:28 2006
 #++
 require 'set'
 
@@ -11,6 +11,7 @@ require 'tex/enc'
 require 'tex/kpathsea'
 require 'tex/tfm'
 require 'tex/vf'
+require 'rfi'
 
 
 
@@ -82,6 +83,7 @@ class RFI
     # in the fontcollection.
     documented_as_accessor :write_vf
 
+    # sans, roman, typewriter
     documented_as_accessor :style
 
     # :regular, :bold, :black, :light
@@ -165,7 +167,8 @@ class RFI
         end
         raise Errno::ENOENT,"Font not found: #{fontname}" unless fm
         # We need more TeX-specific classes:
-        fm.glyph_class=RFI::Char
+         fm.glyph_class=RFI::Char
+#        fm.glyph_class=::Font::Glyph
         fm.chars=RFI::Glyphlist.new
         fm.read(fontname)
         raise ScriptError, "Fontname is not set" unless fm.name
@@ -618,6 +621,24 @@ class RFI
       tf=construct_fontname(encoding)
       tf << "-capitalized-#{(@capheight*1000).round}" if @capheight
       tf
+    end
+    def guess_weight_variant
+      fm=@defaultfm
+      # fm[:smallcaps] = false
+      # fm[:expert]  = false
+      [fm.fontname,fm.familyname,fm.weight].each { |fontinfo|
+        case fontinfo
+        when /italic/i
+          @variant=:italic
+        when /bold/i
+          @weight=:bold
+        when /smcaps/i
+          @variant=:smallcaps
+#         when /expert/i
+#           f[:expert] = true
+          # puts "expert"
+        end
+      }
     end
     
     #######

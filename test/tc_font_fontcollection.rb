@@ -82,5 +82,4 @@ class TestFontFontCollection < Test::Unit::TestCase
     fc.options[:verbose]=true
     assert_equal(true,font.options[:verbose])
   end
-
 end

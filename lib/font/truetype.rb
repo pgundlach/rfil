@@ -1,6 +1,6 @@
 # truetype.rb -- read truetype font metrics
 #--
-# Last Change: Sat Mar 18 18:17:32 2006
+# Last Change: Tue May 16 12:08:27 2006
 #++
 
 require 'font/afm'
@@ -9,8 +9,8 @@ module Font
 # Read TrueType fonts. Use like the AFM class.
   class TrueType < AFM
     def initialize
-      @outlinetype=:truetype
       super
+      @outlinetype=:truetype
     end
     def read(filename)
       @filename=File.basename(filename)

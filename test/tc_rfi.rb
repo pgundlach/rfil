@@ -80,8 +80,8 @@ class TestRFI < Test::Unit::TestCase
     }
 
     gl['hyphen'].kern_data={"A"=>[21,0],"T" => [-48,0]}
-    assert(gl['hyphen'].x_kerns.member?(["A", 21]))
-    assert(gl['hyphen'].x_kerns.member?(["T", -48]))
+    assert(gl['hyphen'].kerns_x.member?(["A", 21]))
+    assert(gl['hyphen'].kerns_x.member?(["T", -48]))
 
     gl['A']=RFI::Char.new('A')
     gl.apply_ligkern_instructions("A B =: C")

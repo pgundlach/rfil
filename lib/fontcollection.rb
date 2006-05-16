@@ -1,6 +1,6 @@
 #--
 # fontcollection.rb
-# Last Change: Thu Aug 18 19:51:54 2005
+# Last Change: Tue May 16 12:53:46 2006
 #++
 
 require 'rfi'
@@ -52,7 +52,7 @@ class RFI
     attr_accessor :options
     
     # list of temps
-    documented_as_reader :temps
+    documented_as_reader :plugins
     
     def initialize()
       @kpse=Kpathsea.new
@@ -68,7 +68,7 @@ class RFI
       @vendor=nil
       @fontname=nil
       set_dirs(Dir.getwd)
-      @temps={}
+      @plugins={}
       # find temps-plugins
       $:.each{ |d|
       a=Dir.glob(d+"/rfi_plugin_*.rb")
@@ -80,35 +80,28 @@ class RFI
         if Plugin > x
           t = x.new(self)
           n = t.name
-          if @temps.has_key?(n)
+          if @plugins.has_key?(n)
             raise "Name already registered"
           end
-          @temps[n]=t
+          @plugins[n]=t
         end
       }
       # done initializing plugins
     end
     
-    # Add a font to the collection.
+    # Add a font to the collection. Return the number of the font.
     def register_font (font)
       unless font.respond_to?(:maplines)
         raise ArgumentError, "parameter does not look like a font"
       end
       fontnumber=@fonts.size
       @fonts << font
-      # @fonts[font][:fontnumber]=fontnumber
-      
-#       class << font
-#         def after_load_hook
-#           @fontcollection.guess_parameters(self,@colnum)
-#         end
-#       end
       return fontnumber
     end
     
-    def run_temps(name)
+    def run_plugin(name)
 
-      raise "don't know plugin #{name}" unless @temps.has_key?(name)
+      raise "don't know plugin #{name}" unless @plugins.has_key?(name)
       
       # doc for run_plugin
       # Return the contents of the file that should be used by the TeX
@@ -119,7 +112,7 @@ class RFI
       # [<tt>:filename</tt>] the filename (without a path) of the file
       # [<tt>:contents</tt>] the contents of the file.
 
-      files=@temps[name].run_plugin
+      files=@plugins[name].run_plugin
       if files.respond_to?(:each)
         files.each { |fh|
           dir=get_dir(fh[:type])
@@ -133,32 +126,8 @@ class RFI
         }
       end
     end
-    def guess_parameters(font,collectionnumber)
-      f=@fonts[font]
-      fm=font.defaultfm
-      f[:variant]= :regular
-      f[:weight] = :regular
-      f[:smallcaps] = false
-      f[:expert]  = false
-      [fm.fontname,fm.familyname,fm.weight].each { |fontinfo|
-        case fontinfo
-        when /italic/i
-          # puts "italic"
-          f[:variant]=:italic
-        when /bold/i
-          f[:weight]=:bold
-          # puts "bold"
-        when /smcaps/i
-          f[:smallcaps]=true
-          # puts "smallcaps"
-        when /expert/i
-          f[:expert] = true
-          # puts "expert"
-        end
-      }
-    end
-    def temps #:nodoc:
-      @temps.keys
+    def plugins #:nodoc:
+      @plugins.keys
     end
     def mapfile
       mapfile=[]

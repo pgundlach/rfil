@@ -230,4 +230,11 @@ class TestFont < Test::Unit::TestCase
     font.defaultfm.chars['D'].fontnumber=d
     assert_equal([0,1,3],font.find_used_fonts)
   end
+  def test_guess_weight_variant
+    font=RFI::Font.new
+    font.load_variant("savob___.afm")
+    font.guess_weight_variant
+    assert_equal(:bold,font.weight)
+  end
+
 end

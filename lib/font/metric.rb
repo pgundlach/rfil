@@ -1,5 +1,5 @@
 # font/metric.rb - superclass for different font metric formats
-# Last Change: Sat Mar 18 18:20:38 2006
+# Last Change: Tue May 16 12:15:58 2006
 
 require 'font/glyph'
 
@@ -68,6 +68,7 @@ module Font
 
     def initialize
       @chars=Hash.new
+      @xheight=nil
       @glyph_class=Glyph
       @outlinetype=nil
       @info={}
