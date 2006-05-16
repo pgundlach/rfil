@@ -1,12 +1,12 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Thu Mar  9 15:45:10 2006
+# Last Change: Sat Mar 18 18:08:34 2006
 #++
 require 'set'
 
 require 'helper'
-require 'afm'
-require 'truetype'
+require 'font/afm'
+require 'font/truetype'
 require 'tex/enc'
 require 'tex/kpathsea'
 require 'tex/tfm'
@@ -142,9 +142,9 @@ class RFI
         if File.exists?(fontname)
           case File.extname(fontname)
           when ".afm"
-            fm=AFM.new
+            fm=::Font::AFM.new
           when ".ttf"
-            fm=TrueType.new
+            fm=::Font::TrueType.new
           else
             raise ArgumentError, "Unknown filetype: #{File.basename(fontname)}"
           end
@@ -155,15 +155,18 @@ class RFI
               fontname += ext
               case ext
               when ".afm"
-                fm=AFM.new
+                fm=::Font::AFM.new
               when ".ttf"
-                fm=TrueType.new
+                fm=::Font::TrueType.new
               end
               break
             end
           }
         end
         raise Errno::ENOENT,"Font not found: #{fontname}" unless fm
+        # We need more TeX-specific classes:
+        fm.glyph_class=RFI::Char
+        fm.chars=RFI::Glyphlist.new
         fm.read(fontname)
         raise ScriptError, "Fontname is not set" unless fm.name
       elsif fontname.respond_to? :charwd

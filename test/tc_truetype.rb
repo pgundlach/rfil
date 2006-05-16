@@ -4,12 +4,12 @@ require 'test/unit'
 
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
-require 'truetype'
+require 'font/truetype'
 
 class TestTrueType < Test::Unit::TestCase
   
   def test_startup
-    t=TrueType.new
+    t=Font::TrueType.new
     t.read("dustismo_roman.ttf")
   end
 

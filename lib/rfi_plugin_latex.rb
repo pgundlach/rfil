@@ -32,6 +32,8 @@ class FDWriterLaTeX < RFI::Plugin
                "8r"
              when "TS1Encoding"
                "TS1"
+             when "OT2AdobeEncoding"
+               "OT2"
              else
                raise "unknown latex encoding: #{e.encname}"
              end

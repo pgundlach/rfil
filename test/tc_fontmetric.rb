@@ -5,21 +5,20 @@ require 'test/unit'
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
 require 'rfi'
-require 'fontmetric'
+require 'font/metric'
 
 
 # The samples are taken from afm2tfm output from savorg__.afm.
 
 class TestFontMetric < Test::Unit::TestCase
-
   def test_fm
-    fm=FontMetric.new
+    fm=Font::Metric.new
     fm.familyname="FamilyName"
     assert_equal(fm.familyname,"FamilyName")
   end
 
   def test_filename
-    fm=FontMetric.new
+    fm=Font::Metric.new
     fm.pathname="foo.afm"
     assert_equal("foo.pfb",fm.fontfilename)
     
@@ -31,7 +30,7 @@ class TestFontMetric < Test::Unit::TestCase
   end
   
 #   def test_isupper_islower
-#     fm=FontMetric.new
+#     fm=FontFont::Metric.new
 #     fm.chars['hyphen']=RFI::Char.new('hyphen')
 #     # simple case:
 #     fm.chars['B']=RFI::Char.new('B')
@@ -69,7 +68,8 @@ class TestFontMetric < Test::Unit::TestCase
 #   end
 
   def test_fake_caps
-    fm=FontMetric.new
+    fm=Font::Metric.new
+    fm.chars=RFI::Glyphlist.new
     fm.chars['B']=RFI::Char.new('B')
     fm.chars['b']=RFI::Char.new('b')
     fm.chars['ogonek'] = RFI::Char.new('ogonek')
@@ -113,7 +113,7 @@ class TestFontMetric < Test::Unit::TestCase
   end
 #!!!! -> move to tc_font
   #   def test_transform
-#     fm=FontMetric.new
+#     fm=Font::Metric.new
 #     assert_equal(200,fm.transform(200,0))
 #     fm.efactor=0.5
 #     assert_equal(100,fm.transform(200,0))
