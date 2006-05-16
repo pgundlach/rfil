@@ -1,4 +1,4 @@
-# Last Change: Mon May 15 15:45:56 2006
+# Last Change: Tue May 16 14:40:57 2006
 
 # require 'rfi'
 
@@ -20,13 +20,12 @@ module Font
   #
   # === Read an afm file
   #  filename = "/opt/tetex/3.0/texmf/fonts/afm/urw/palatino/uplb8a.afm"
-  #  File.open(filename)  { |afmfile|
-  #     afm=AFM.new(afmfile)
-  #     afm.filename           # => "/opt/..../uplb8a.afm"
-  #     afm.count_charmetrics  # => 316
-  #     afm.encodingscheme     # => "AdobeStandardEncoding"
-  #     # ....
-  #  }
+  #  afm=AFM.new
+  #  afm.read(filename)
+  #  afm.filename           # => "/opt/..../uplb8a.afm"
+  #  afm.count_charmetrics  # => 316
+  #  afm.encodingscheme     # => "AdobeStandardEncoding"
+  #  # ....
   #
   class AFM < Metric
 
@@ -77,14 +76,6 @@ module Font
       @outlinetype=:type1
       @comment = ""
       @verbose=options[:verbose]==true
-#       if afm
-#         string = afm.respond_to?(:read) ? afm.read : afm
-#         if afm.respond_to?(:path)
-#           self.pathname=Pathname.new(afm.path).realpath.to_s
-#         end
-#         #p string
-#         parse(string)
-#       end
     end
 
     # Read the afm file given with _filename_. _filename_ must be full
@@ -287,7 +278,8 @@ module Font
             char.c = value.sub(/</,'0x').sub(/>/,'').to_i(16)
           when "WX"
             char.wx = value.to_i
-          when nil
+            # for "L", check  /var/www/mirror/system/tex/texmf-local/fonts/afm/jmn/hans/hans.afm
+          when "L", nil
             #ignore
           else
             char.send((key.downcase + "=").to_sym,value.to_i)

@@ -1,7 +1,9 @@
 # font/metric.rb - superclass for different font metric formats
-# Last Change: Tue May 16 12:15:58 2006
+# Last Change: Tue May 16 14:09:59 2006
 
 require 'font/glyph'
+#require 'font/afm'
+#require 'font/truetype'
 
 module Font
   # FontMetric is the superclass for font metrics. All information that
@@ -66,6 +68,19 @@ module Font
     # Class for new glyphs. Default is Glyph
     attr_accessor :glyph_class
 
+    def Metric.read(filename,options={})
+      case File.extname(filename)
+      when ".afm"
+        require 'font/afm'
+        return Font::AFM.new(options).read(filename)
+      when ".ttf"
+        require 'font/truetype'
+        return Font::TrueType.new(options).read(filename)
+      else
+        raise ArgumentError, "Unknown filetype: #{File.basename(filename)}"
+      end
+    end
+    
     def initialize
       @chars=Hash.new
       @xheight=nil
