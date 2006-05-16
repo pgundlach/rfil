@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Tue May 16 17:34:05 2006
+# Last Change: Tue May 16 19:21:33 2006
 #++
 require 'set'
 
@@ -15,8 +15,8 @@ require 'rfil/rfi'
 
 
 
-module RFIL
-  class RFI
+module RFIL # :nodoc:
+  class RFI # :nodoc:
     
     # Main class to manipulate and combine font metrics. This is mostly a
     # convenience class, if you don't want to do the boring stuff

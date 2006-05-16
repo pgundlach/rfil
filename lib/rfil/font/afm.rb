@@ -1,4 +1,4 @@
-# Last Change: Tue May 16 17:15:32 2006
+# Last Change: Tue May 16 19:11:20 2006
 
 # require 'rfi'
 
@@ -7,8 +7,8 @@ require 'pathname'
 
 require 'rfil/font/metric'
 
-module RFIL
-  module Font
+module RFIL # :nodoc:
+  module Font  # :nodoc:
     # = AFM -- Access type1 font metric files
     #
     # == General information

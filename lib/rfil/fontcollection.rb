@@ -1,13 +1,13 @@
 #--
 # fontcollection.rb
-# Last Change: Tue May 16 18:47:08 2006
+# Last Change: Tue May 16 19:02:11 2006
 #++
 
 require 'rfil/rfi'
 require 'rfil/font'
 require 'rfil/helper'
 
-module RFIL
+module RFIL # :nodoc: 
   class RFI
     # A set of fonts (regular,bold,italic). Used to write an fd-file for
     # LaTeX or a typescript for ConTeXt. Register different fonts and set

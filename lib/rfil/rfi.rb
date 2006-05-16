@@ -1,11 +1,11 @@
 # rfi.rb -- general use classes
 #--
-# Last Change: Tue May 16 17:38:25 2006
+# Last Change: Tue May 16 19:21:51 2006
 #++
 
 require 'rfil/font/glyph'
 
-module RFIL
+module RFIL # :nodoc: 
 
   # = RFI
   # Everything that does not fit somewhere else gets included in the
@@ -14,7 +14,7 @@ module RFIL
   # This class contains methods and other classes that are pretty much
   # useless of their own or are accessed in different classes.
   
-  class RFI
+  class RFI # :nodoc:
     
     # Super class for plugins. Just subclass this Plugin, set the name
     # when calling Plugin#new and implement run_plugin.

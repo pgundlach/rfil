@@ -4,7 +4,7 @@ Plugin for RFIL to create a typescript usable for ConTeXt.
 
 # :enddoc:
 
-class TypescriptWriterConTeXt < RFI::Plugin
+class TypescriptWriterConTeXt < RFIL::RFI::Plugin
   
   def initialize(fontcollection)
     @fc=fontcollection

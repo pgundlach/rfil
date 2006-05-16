@@ -8,7 +8,7 @@
 require 'fileutils'
 require 'rfil/tex/kpathsea'
 
-module RFIL
+module RFIL # :nodoc: 
   class RFI
     module Helper
       include TeX

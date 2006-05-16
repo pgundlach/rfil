@@ -1,10 +1,10 @@
 # tfm.rb - Access  information of a TeX font metric file. 
 #--
-# Last Change: Tue May 16 17:56:46 2006
+# Last Change: Tue May 16 19:12:26 2006
 #++
 
 module RFIL # :nodoc:
-  module TeX
+  module TeX # :nodoc:
 
     # TFM (TeX font metric) reader/writer class
     class TFM

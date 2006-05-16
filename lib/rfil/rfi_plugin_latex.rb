@@ -4,7 +4,7 @@ Plugin for RFIL to create a fontdefinition file (<tt>.fd</tt>) for LaTeX
 
 # :enddoc:
 
-class FDWriterLaTeX < RFI::Plugin
+class FDWriterLaTeX < RFIL::RFI::Plugin
   
   def initialize(fontcollection)
     @fc=fontcollection
