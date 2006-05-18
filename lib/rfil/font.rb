@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Tue May 16 19:21:33 2006
+# Last Change: Thu May 18 17:20:03 2006
 #++
 require 'set'
 
@@ -630,6 +630,8 @@ module RFIL # :nodoc:
         [fm.fontname,fm.familyname,fm.weight].each { |fontinfo|
           case fontinfo
           when /italic/i
+            @variant=:italic
+          when  /oblique/i
             @variant=:italic
           when /bold/i
             @weight=:bold
