@@ -37,7 +37,7 @@ class FDWriterLaTeX < RFIL::RFI::Plugin
              else
                raise "unknown latex encoding: #{e.encname}"
              end
-    filename="#{latexenc}#{@fc.name}.fd"
+    filename="#{latexenc.downcase}#{@fc.name}.fd"
 
     fd="\\ProvidesFile{#{filename}}
 \\DeclareFontFamily{#{latexenc}}{#{@fc.name}}{}
