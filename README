@@ -26,6 +26,7 @@ encodingtable:: Print out a table with encodings/glyphnames/slots
 pldiff:: Compare two metric files and output all differences.
 plinfo:: Show information about a TeX metric file.
 rfont:: Simple installer that handles a family of fonts (reguar, italic, bold...)
+rfii:: Yet another installer, work in progress.
 
 == Example usage of the RFI Library
 
@@ -51,13 +52,20 @@ to the main font.
  f.defaultfm.chars.apply_ligkern_instructions(RFI::STDLIGKERN)
  f.write_files
 
+== Installation
 
+Run <tt>ruby setup.rb config</tt> and afterwards <tt>ruby setup.rb
+install</tt> to install the library files in your system. You might
+need to be superuser/root for that. Now you should be able to use the
+examples. Perhaps start with <tt>afminfo</tt> or <tt>rfont</tt>. 
 
 == Creating the documentation
 
-Run <tt>make</tt> in order to create the documentation in the
+Run <tt>rake rdoc</tt> in order to create the documentation in the
 subdirectory <tt>doc/</tt>. Open <tt>doc/index.html</tt> in your
-browser and voila, see all classes and methods documented.
+browser and voila, see all classes and methods documented. If you
+don't have <tt>Rake</tt> installed, go to the homepage (see below) and
+read the online documentation.
 
 ==Other Stuff
 
