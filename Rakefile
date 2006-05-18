@@ -3,9 +3,9 @@
 require 'rake/rdoctask'
 require 'rake/packagetask'
 
-task :default => [:test]
-desc "Run all unittests"
+# task :default => [:test]
 
+desc "Run all unittests"
 task :test do
   ruby "test/unittest.rb"
 end
@@ -33,7 +33,9 @@ Rake::RDocTask.new do |rd|
   rd.options << "pghtml"
 end
 
-Rake::PackageTask.new("rfii","0.1") do  |p|
+Rake::PackageTask.new("rfil","0.2") do  |p|
   p.need_tar = true
-  p.package_files.include(interesting_files)
+  p.package_files.include(interesting_files,
+                          "setup.rb",
+                          "Rakefile")
 end
