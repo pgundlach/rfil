@@ -1,4 +1,4 @@
-#!/opt/ruby/1.8/bin/ruby -w
+#!/usr/bin/env ruby
 
 require 'test/unit'
 
