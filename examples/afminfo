@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #--
-# Last Change: Mon May 22 12:32:02 2006
+# Last Change: Mon May 22 12:38:42 2006
 #++
 =begin rdoc
 
@@ -30,6 +30,7 @@ require 'ostruct'
 require 'rfil/font/afm'
 require 'rfil/version'
 
+################################################## texttable.rb follows
 
 # Render a list of data column-wise or row-wise. TextTable is used to
 # print a table to the console, without a GUI.
@@ -134,7 +135,7 @@ class TextTable
   end
 end
 
-
+################################################## texttable.rb ends here
 
 class AFMinfo # :nodoc:
   def initialize (afm)
