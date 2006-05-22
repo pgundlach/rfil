@@ -1,86 +1,140 @@
 #!/usr/bin/env ruby
 #--
-# Last Change: Tue May 16 18:09:09 2006
+# Last Change: Mon May 22 12:32:02 2006
 #++
 =begin rdoc
 
 == afminfo - print out information about an afm or truetype font file
 
- Usage: afminfo [options] afm-file.afm | truetypefont.ttf
-   -m, --metrics                    show global metrics information
-   -v, --verbose                    verbose output
-       --[no-]info                  list general information (default)
-   -l, --list-glyphs                list all available glyphs
-   -g, --glyphinfo g                information about a specific glyph
-   -h, --help                       Show this help
-
+  Usage: afminfo [options] afm-file[.afm]
+      -m, --metrics                    show global metrics information
+      -v, --verbose                    verbose output
+          --[no-]info                  list general information (default)
+      -l, --list-glyphs                list all available glyphs
+      -g, --glyphinfo g                information about a specific glyph
+      -h, --help                       Show this help
+          --version                    Show version information
+  
 ---
 Author:: Patrick Gundlach <patrick@gundla.ch>
-License::  Copyright (c) 2005 Patrick Gundlach.
+License::  Copyright (c) 2006 Patrick Gundlach.
            Released under the terms of the GNU General Public License
 =end
 
 # :enddoc:
 
+AFMINFO_VERSION="0.1"
+
 require 'optparse'
 require 'ostruct'
 require 'rfil/font/afm'
+require 'rfil/version'
 
 
-# sorry for german - one day I'll change that into engish. --pg
-class TextTable # :nodoc:
-  def initialize (data,maxchars=80)
-    raise "Data must be an array of strings" unless data.kind_of? Array
-    @data = data
-    
-    @maxchars = 90
-    @maxwidth = 0
-    @data.each { |elt|
-      @maxwidth = @maxwidth > elt.length ? @maxwidth : elt.length
-    }
-    @spalten = (@maxchars/(@maxwidth + 1)).floor
-  end
-  
-  def zeilenweise
-    (0...@data.size).each { |x|
-      print sprintf("%-" + @maxwidth.to_s + "s",@data[x]) +
-        if (x+1) % @spalten == 0
+# Render a list of data column-wise or row-wise. TextTable is used to
+# print a table to the console, without a GUI.
+#
+# Example:
+#  data=%w(one two three four five six seven eight nine ten)
+#  puts TextTable.do_columns(data)
+#
+# This will print out this table:
+#  one   five  eight
+#  two   six   nine 
+#  three seven ten  
+#  four
+# see that the order is column one first, then second column ...
+#
+# Another posibility would be:
+#  puts TextTable.do_rows(data)
+# which outputs
+#  one   two   three
+#  four  five  six  
+#  seven eight nine 
+#  ten   
+
+
+class TextTable
+  class << self
+    #     def columns(data,maxchars=80)
+    #       m,c=count_columns=calculate_maxwidth_columns(data,maxchars)
+    #       return c
+    #     end
+
+    # def maxwidth(data,maxchars=80)
+    #       m,c=count_columns=calculate_maxwidth_columns(data,maxchars)
+    #       return m
+    #     end
+
+    # Arrange the data in columns. The total width is <= maxchars.
+    def do_columns(data,maxchars=80)
+      maxwidth,count_columns=calculate_maxwidth_columns(data,maxchars)
+      
+      tmp=""
+      # amount of data(rows) in each column. The first
+      # count_full_columns columns might have more rows then the last
+      # columns.
+      rowsmin = (data.size * 1.0 / count_columns).floor
+      rowsmax = (data.size * 1.0 / count_columns).ceil
+      count_full_columns = data.size % count_columns
+      
+      distribution=Array.new()
+      distribution[0]=0
+      count = 0
+      (0...count_columns).each { |col|
+        if col < count_full_columns
+          count += rowsmax
+        else 
+          count += rowsmin
+        end
+        distribution[col]= count
+      }
+      
+      distribution.unshift 0
+      (0...rowsmax).each { |row|
+        tmp <<((0...count_columns).collect { |column| 
+                 w = data[distribution[column] + row]
+                 if (column >= count_full_columns) and (row >= rowsmin)
+                   w = ""
+                 end
+                 sprintf("%-#{maxwidth}s",w)
+               }.join(' '))
+        tmp << "\n"
+      }
+      tmp 
+    end
+
+    # Arrange the data in rows.
+    def do_rows(data,maxchars=80)
+      maxwidth,count_columns=calculate_maxwidth_columns(data,maxchars)
+      tmp=""
+      (0...data.size).each { |x|
+        tmp << sprintf("%-#{maxwidth}s",data[x]) +
+        if (x+1) % count_columns == 0
           "\n"
         else
           " "
         end
-    }
-    puts
-  end
-  
-  def spaltenweise
-    zeilenmin = (@data.size * 1.0 / @spalten).floor
-    zeilenmax = (@data.size * 1.0 / @spalten).ceil
-    anz_volle_spalten = @data.size % @spalten
+      }
+      tmp << "\n"
+      tmp 
+    end
 
-    verteilung=Array.new()
-    verteilung[0]=0
-    count = 0
-    (0...@spalten).each { |col|
-      if col < anz_volle_spalten
-        count += zeilenmax
-      else 
-        count += zeilenmin
-      end
-      verteilung[col]= count
-    }
-    verteilung.unshift 0
-    (0...zeilenmax).each { |zeile|
-      puts((0...@spalten).collect { |spalte| 
-             w = @data[verteilung[spalte] + zeile]
-             if (spalte >= anz_volle_spalten) and (zeile >= zeilenmin)
-               w = ""
-             end
-             sprintf("%-" + @maxwidth.to_s + "s",w)
-           }.join(' '))
-    }
+    private
+
+    def calculate_maxwidth_columns(data,maxchars)
+      maxwidth = 0
+      data.each { |elt|
+        maxwidth = maxwidth > elt.length ? maxwidth : elt.length
+      }
+      columns = (maxchars/(maxwidth + 1)).floor
+      raise ArgumentError,"calculated columns == 0, need wider table" if columns==0
+      return maxwidth,columns
+    end
   end
 end
+
+
 
 class AFMinfo # :nodoc:
   def initialize (afm)
@@ -201,8 +255,7 @@ class AFMinfo # :nodoc:
     glyphlist.sort! { |a,b|
       a.casecmp b
     }
-    t = TextTable.new(glyphlist - removefromlist)
-    t.spaltenweise
+    puts TextTable.do_columns(glyphlist)
     puts "\n* = unencoded - only glyphs not mentioned above listed"
   end
 
@@ -228,8 +281,10 @@ ARGV.options { |opt|
   }
     
   opt.on("--help", "-h", "Show this help") { puts opt; exit 0 }
+  opt.on("--version", "Show version information") {
+    puts %Q{This is afminfo version #{AFMINFO_VERSION}, based on rfil version #{RFIL_VERSION}\n#{COPYRIGHT}\nMore information: #{HOMEPAGE}}; exit 0 }
   opt.separator  ""
-  opt.separator "Copyright (c) 2005 Patrick Gundlach"
+  opt.separator COPYRIGHT
   opt.parse!
 }
 
