@@ -1,7 +1,13 @@
 # Rakefile for rfii
+# Last Change: Fri May 19 20:05:37 2006
+
+
 
 require 'rake/rdoctask'
 require 'rake/packagetask'
+
+$:.unshift File.join(File.dirname(__FILE__), "lib")
+require "rfil/version"
 
 # task :default => [:test]
 
@@ -33,7 +39,7 @@ Rake::RDocTask.new do |rd|
   rd.options << "pghtml"
 end
 
-Rake::PackageTask.new("rfil","0.2") do  |p|
+Rake::PackageTask.new("rfil",RFIL_VERSION) do  |p|
   p.need_tar = true
   p.package_files.include(interesting_files,
                           "setup.rb",
