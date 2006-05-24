@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #--
-# Last Change: Tue May 16 21:01:40 2006
+# Last Change: Tue May 23 20:32:20 2006
 #++
 =begin rdoc
 = rfont -- An example font installer
@@ -132,7 +132,10 @@ fc.set_dirs(:tds=>true) if options.tds
 fonts=[]
 maplines=""
 
-
+if ARGV.empty?
+  puts "No fonts given.\nSee --help for usage information"
+  exit -1
+end
 fontoutlinedir=File.dirname(ARGV[0])
 
 ARGV.each { |fontname|
