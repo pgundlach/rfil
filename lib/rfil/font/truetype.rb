@@ -1,6 +1,6 @@
 # truetype.rb -- read truetype font metrics
 #--
-# Last Change: Tue May 16 17:16:56 2006
+# Last Change: Mi 24 Mai 2006 16:42:47 CEST
 #++
 
 require 'rfil/font/afm'
@@ -13,6 +13,12 @@ module RFIL
         super
         @outlinetype=:truetype
       end
+
+      # all relevant filenames of the font
+      def fontfilenames
+        return {:truetype => File.basename( @fontfilename || filename) }
+      end
+      
       def read(filename)
         @filename=File.basename(filename)
         @fontfilename=filename

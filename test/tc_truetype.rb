@@ -11,6 +11,8 @@ class TestTrueType < Test::Unit::TestCase
   def test_startup
     t=Font::TrueType.new
     t.read("dustismo_roman.ttf")
+    assert_equal(1,t.fontfilenames.size)
+    assert_equal({ :truetype => "dustismo_roman.ttf"} ,t.fontfilenames)
   end
   def test_outlinetype
     b=Font::TrueType.new

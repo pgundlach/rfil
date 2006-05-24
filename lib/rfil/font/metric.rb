@@ -1,5 +1,5 @@
 # font/metric.rb - superclass for different font metric formats
-# Last Change: Tue May 16 18:08:49 2006
+# Last Change: Mi 24 Mai 2006 16:13:14 CEST
 
 require 'rfil/font/glyph'
 #require 'font/afm'
@@ -123,6 +123,12 @@ module RFIL
         when /\.tt$/
           return filename
         end
+      end
+
+      # Return all relevant part of pyhsical font. May be used for
+      # copying all files.
+      def fontfilenames
+        raise ScriptError, "not implemented"
       end
     end
   end

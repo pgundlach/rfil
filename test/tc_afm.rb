@@ -7,13 +7,14 @@ $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 require 'rfil/font/afm'
 
 class TestFont < Test::Unit::TestCase
-  
+  include RFIL
   def test_some
     a=Font::AFM.new
     a.read("savorg__.afm")
     assert_equal(244,a.count_charmetrics)
     assert_equal("AdobeStandardEncoding", a.encodingscheme)
     assert_equal("savorg__.afm",a.filename)
+    assert_equal({ :afm => "savorg__.afm", :type1 => "savorg__.pfb" },a.fontfilenames)
     assert_match(/test\/savorg__\.afm$/, a.pathname)
     assert_raise(NoMethodError) { a.filename="foo" }
     a.pathname="foo/bar"

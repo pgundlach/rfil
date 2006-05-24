@@ -1,4 +1,4 @@
-# Last Change: Tue May 16 19:11:20 2006
+# Last Change: Mi 24 Mai 2006 16:42:25 CEST
 
 # require 'rfi'
 
@@ -79,6 +79,18 @@ module RFIL # :nodoc:
         @verbose=options[:verbose]==true
       end
 
+      # return a Hash of all relevant filenames. Keys are outlinetypes, 
+      def fontfilenames
+        f=File.basename(@fontfilename || filename)
+        sans_ext=case f
+                 when /\.afm$/
+                   f.chomp(".afm")
+                 when /\.pfb$/
+                   f.chomp("pfb")
+                 end
+        return {:afm => sans_ext + ".afm", :type1 => sans_ext + ".pfb"}
+      end
+      
       # Read the afm file given with _filename_. _filename_ must be full
       # path to the afm file, it does not perform any lookups. Returns self.
       def read (filename)
