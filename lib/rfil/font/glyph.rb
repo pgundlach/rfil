@@ -10,7 +10,7 @@ module RFIL
       # Glyphname
       attr_accessor :name
 
-      # Advance with
+      # Advance width
       attr_accessor :wx
 
       # Standard code slot (0-255 or -1 for unencoded)
