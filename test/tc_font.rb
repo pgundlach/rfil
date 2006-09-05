@@ -5,29 +5,29 @@ require 'test/unit'
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
 require 'rfil/font'
+require 'tex/kpathsea'
 
 class TestFont < Test::Unit::TestCase
-  include RFIL
-  include TeX
+  # include RFIL
   def setup
-    @kpse=Kpathsea.new
+    @kpse=TeX::Kpathsea.new
     @kpse.open_file("ec.enc","enc") { |f|
-      @ecenc=ENC.new(f)
+      @ecenc=TeX::ENC.new(f)
     }
     @kpse.open_file("texnansi.enc","enc") { |f|
-      @texnansienc=ENC.new(f)
+      @texnansienc=TeX::ENC.new(f)
     }
   end
   
   def test_startup
-    font=RFI::Font.new
+    font=RFIL::RFI::Font.new
     assert_raise(ArgumentError) {
       # font expects a FontCollection object if called w/ arg
-      RFI::Font.new("some class")
+      RFIL::RFI::Font.new("some class")
     }
   end
   def test_load_variant
-    font=RFI::Font.new
+    font=RFIL::RFI::Font.new
     # todo: ligatures,
     assert_equal(0,font.load_variant("savorg__.afm"))
     assert_equal(1,font.load_variant("savoi___.afm"))
@@ -37,7 +37,7 @@ class TestFont < Test::Unit::TestCase
     }
   end
   def test_mapfont
-    font=RFI::Font.new
+    font=RFIL::RFI::Font.new
     font.load_variant("savorg__.afm")
     fc=font.load_variant("savoscrg.afm")
     font.copy(fc,:digits)
@@ -49,8 +49,8 @@ class TestFont < Test::Unit::TestCase
   end
 
   def test_vpl
-    font=RFI::Font.new
-    a=ENC.new()
+    font=RFIL::RFI::Font.new
+    a=TeX::ENC.new()
     a.encname="mapenc"
     a[0]=".notdef"
     a[1]="A"
@@ -64,7 +64,7 @@ class TestFont < Test::Unit::TestCase
     a[9]="copyright"
     a[10]="c"
     a.filename="minienc"
-    b=ENC.new()
+    b=TeX::ENC.new()
     b.encname="texenc"
     b[10]="c"
     b[11]="A"
@@ -83,7 +83,7 @@ class TestFont < Test::Unit::TestCase
     font.texenc=b
     str=font.to_vf(font.mapenc,font.texenc[0]).to_s
     # puts str
-    vf=VF.new()
+    vf=TeX::VF.new()
     vf.parse_vpl(str)
     assert_equal("Installed with rfi library",vf.vtitle)
     assert_equal("SAVOY",vf.fontfamily)
@@ -118,16 +118,16 @@ class TestFont < Test::Unit::TestCase
     return
   end
   def test_pl_lig_nolig
-    font=RFI::Font.new
+    font=RFIL::RFI::Font.new
     font.load_variant("savorg__.afm")
-    font.apply_ligkern_instructions(RFI::STDLIGKERN)
+    font.apply_ligkern_instructions(RFIL::RFI::STDLIGKERN)
 
     font.texenc="8r"
     
     plligs  =font.to_tfm(font.texenc[0],:noligs=>false).to_s
     plnoligs=font.to_tfm(font.texenc[0],:noligs=>true).to_s
-    ligs=TFM.new.parse_pl(plligs)
-    noligs=TFM.new.parse_pl(plnoligs)
+    ligs=TeX::TFM.new.parse_pl(plligs)
+    noligs=TeX::TFM.new.parse_pl(plnoligs)
     assert_equal(0,noligs.lig_kern.size)
     hyphen=font.texenc[0].glyph_index['hyphen'].min
     lk=[[:lig, 45, 150], [:lig, 173, 150], [:krn, 86, -0.023],
@@ -137,8 +137,8 @@ class TestFont < Test::Unit::TestCase
   end
 
   def test_pl
-    font=RFI::Font.new
-    a=ENC.new()
+    font=RFIL::RFI::Font.new
+    a=TeX::ENC.new()
     a.encname="mapenc"
     a[0]=".notdef"
     a[1]="A"
@@ -157,7 +157,7 @@ class TestFont < Test::Unit::TestCase
     font.mapenc=a
 
     str=font.to_tfm(a,:noligs=>true).to_s
-    tfm=TFM.new
+    tfm=TeX::TFM.new
     tfm.parse_pl(str)
     ce=[nil,{:charic=>0.012, :chardp=>0.002, :charwd=>0.632, :charht=>0.564},
       {:chardp=>0.013, :charwd=>0.517, :charht=>0.73},
@@ -189,7 +189,7 @@ class TestFont < Test::Unit::TestCase
   end
   
   def test_vpl_fontname
-    font=RFI::Font.new
+    font=RFIL::RFI::Font.new
     font.load_variant("savorg__.afm")
     def font.m(a)
       # private:
@@ -200,7 +200,7 @@ class TestFont < Test::Unit::TestCase
 
   end
   def test_enc
-    font=RFI::Font.new
+    font=RFIL::RFI::Font.new
     font.texenc=[@ecenc,@texnansienc]
     assert_equal([@ecenc,@texnansienc],font.texenc)
 
@@ -213,16 +213,16 @@ class TestFont < Test::Unit::TestCase
   end
   
   def test_mapfilename
-    font=RFI::Font.new
+    font=RFIL::RFI::Font.new
     font.load_variant("savorg__.afm")
     assert_equal("savorg__.map", File.basename(font.mapfilename))
   end
   def test_ensure_font
-    font=RFI::Font.new
+    font=RFIL::RFI::Font.new
     assert_raise(ScriptError) {   font.fake_caps(1,1)   }
   end
   def test_find_used_fonts
-    font=RFI::Font.new
+    font=RFIL::RFI::Font.new
     font.load_variant("savorg__.afm")
     b = font.load_variant("savorg__.afm")
     c = font.load_variant("savorg__.afm")
@@ -232,7 +232,7 @@ class TestFont < Test::Unit::TestCase
     assert_equal([0,1,3],font.find_used_fonts)
   end
   def test_guess_weight_variant
-    font=RFI::Font.new
+    font=RFIL::RFI::Font.new
     font.load_variant("savob___.afm")
     font.guess_weight_variant
     assert_equal(:bold,font.weight)

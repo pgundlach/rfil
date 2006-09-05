@@ -5,14 +5,12 @@ require 'fileutils'
 
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
-require 'rfil/tex/tfm'
+require 'tex/tfm'
 
 
 class TestTFM < Test::Unit::TestCase
-  include RFIL
-  include TeX
   def test_parse
-    t=TFM.new
+    t=TeX::TFM.new
     t.read_pl("tricky.pl")
     assert_equal("TEXBASE1ENCODING", t.codingscheme)
     assert_equal(0.0,t.params[1])
@@ -25,7 +23,7 @@ class TestTFM < Test::Unit::TestCase
     assert(FileUtils.uptodate?(filename, filename.chomp('.tfm')+'.pl'),
            "Please make sure that the tfm file #{filename} is uptodate by running make")
     f=File.open(filename)
-    tfm=TFM.new
+    tfm=TeX::TFM.new
     # tfm.verbose=true
     tfm.read_tfm(f)
     f.close
@@ -41,7 +39,7 @@ class TestTFM < Test::Unit::TestCase
   def test_write
     filename="tricky.tfm"
     f=File.open(filename)
-    tfm=TFM.new
+    tfm=TeX::TFM.new
     # tfm.verbose=true
     tfm.read_tfm(f)
     f.close

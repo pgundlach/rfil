@@ -4,6 +4,8 @@
 # unittest.rb
 # this file runs all test
 
+$:.unshift  File.join(File.dirname(__FILE__), "..", "lib")
+
 require 'tex/kpathsea'
 Dir.chdir 'test' unless Dir.pwd =~ /test$/
 

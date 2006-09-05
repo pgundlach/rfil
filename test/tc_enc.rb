@@ -5,10 +5,9 @@ require 'test/unit'
 
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
-require 'rfil/tex/enc'
+require 'tex/enc'
 
 class TestENC < Test::Unit::TestCase
-  include RFIL
   include TeX
   def test_startup
     f=Tempfile.new("tc_enc")

@@ -8,7 +8,6 @@ require 'strscan'
 require 'set'
 require 'forwardable'
 
-module RFIL
   module TeX
 
     # = ENC -- Access encoding files
@@ -222,4 +221,3 @@ module RFIL
       end
     end #class Enc
   end 
-end

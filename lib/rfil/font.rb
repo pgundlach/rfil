@@ -7,10 +7,10 @@ require 'set'
 require 'rfil/helper'
 require 'rfil/font/afm'
 require 'rfil/font/truetype'
-require 'rfil/tex/enc'
-require 'rfil/tex/kpathsea'
-require 'rfil/tex/tfm'
-require 'rfil/tex/vf'
+require 'tex/enc'
+require 'tex/kpathsea'
+require 'tex/tfm'
+require 'tex/vf'
 require 'rfil/rfi'
 
 
@@ -120,7 +120,7 @@ module RFIL # :nodoc:
         @style=nil
         @dirs={}
         @origsuffix="-orig"
-        @kpse=Kpathsea.new
+        @kpse=::TeX::Kpathsea.new
         if fontcollection
           unless @fontcollection.respond_to?(:register_font)
             raise ArgumentError, "parameter does not look like a fontcollection"
@@ -223,7 +223,7 @@ module RFIL # :nodoc:
       # information is put into the tfm file unless <tt>:noligs</tt> is
       # set to true in the opts.
       def to_tfm(enc,opts={})
-        tfm=TFM.new
+        tfm=::TeX::TFM.new
         tfm.fontfamily=@defaultfm.familyname
         tfm.codingscheme=enc.encname
         tfm.designsize=10.0
@@ -274,7 +274,7 @@ module RFIL # :nodoc:
       def to_vf(mapenc_l,texenc)
         raise ArgumentError, "mapenc must be an ENC object" unless mapenc_l.respond_to? :encname
         raise ArgumentError, "texenc must be an ENC object" unless texenc.respond_to? :encname
-        vf=VF.new
+        vf=::TeX::VF.new
         vf.vtitle="Installed with rfi library"
         vf.fontfamily=@defaultfm.familyname
         vf.codingscheme= if mapenc_l.encname != texenc.encname
@@ -296,7 +296,7 @@ module RFIL # :nodoc:
         # mapfont
         find_used_fonts.each_with_index { |fontnumber,i|
           fl=vf.fontlist[fontnumber]={}
-          tfm=fl[:tfm]=TFM.new
+          tfm=fl[:tfm]=::TeX::TFM.new
           tfm.tfmpathname=map_fontname(mapenc_l,fontnumber)
           fl[:scale]=@variants[fontnumber].fontat
         }

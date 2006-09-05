@@ -6,23 +6,23 @@
 # Here we define methods that are used in Font and FontCollection. 
 
 require 'fileutils'
-require 'rfil/tex/kpathsea'
+require 'tex/kpathsea'
 
 module RFIL # :nodoc: 
   class RFI
     module Helper
       include TeX
       def set_encarray(enc,where) #:nodoc:
-        if enc.instance_of?(ENC)
+        if enc.instance_of?(TeX::ENC)
           where.push(enc)
         else
           enc.each { |e|
             if e.instance_of?(String)
               e = e.chomp(".enc") + ".enc"
               f=@kpse.open_file(e,"enc")
-              where.push(ENC.new(f))
+              where.push(TeX::ENC.new(f))
               f.close
-            elsif e.instance_of?(ENC)
+            elsif e.instance_of?(TeX::ENC)
               where.push(e)
             end
           }
@@ -34,16 +34,16 @@ module RFIL # :nodoc:
         # nil/:none is perfectly valid
         return if enc==nil or enc==:none
         
-        if enc.instance_of?(ENC)
+        if enc.instance_of?(TeX::ENC)
           @mapenc = enc
         else
           enc.find { |e|
             if e.instance_of?(String)
               e = e.chomp(".enc") + ".enc"
               @kpse.open_file(e,"enc") { |f|
-                @mapenc = ENC.new(f)
+                @mapenc = TeX::ENC.new(f)
               }
-            elsif e.instance_of?(ENC)
+            elsif e.instance_of?(TeX::ENC)
               @mapenc = e
             end
           }

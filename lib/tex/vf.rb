@@ -3,10 +3,9 @@
 # Last Change: Tue May 16 17:32:53 2006
 #++
 
-require 'rfil/tex/tfm'
-require 'rfil/tex/kpathsea'
+require 'tex/tfm'
+require 'tex/kpathsea'
 
-module RFIL
   module TeX
 
     # The vf (virtual font) files are described in vftovp and vptovf. They
@@ -845,4 +844,3 @@ module RFIL
     end #class VF
 
   end #module TeX
-end

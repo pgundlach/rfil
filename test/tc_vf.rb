@@ -4,19 +4,17 @@ require 'test/unit'
 
 $:.unshift File.join(File.dirname(__FILE__), "..", "lib")
 
-require 'rfil/tex/vf'
+require 'tex/vf'
 
 class TestVF < Test::Unit::TestCase
-  include RFIL
-  include TeX
   def test_parse
-    vf=VF.new
+    vf=TeX::VF.new
     vf.read_vpl("tricky2.vpl")
   end
   def test_read
     filename="tricky2.vf"
     assert(File.exists?(filename), "Please generate #{filename} by running make or vptovf.")
-    vf=VF.new
+    vf=TeX::VF.new
     vf.read_vf(filename)
     assert_equal("tricky2.vf", vf.vffilename)
     assert_equal("A TITLE", vf.vtitle)

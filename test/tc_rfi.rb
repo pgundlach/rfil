@@ -12,15 +12,14 @@ require 'rfil/font'
 class Empty ; end
 
 class TestRFI < Test::Unit::TestCase
-  include RFIL
   def test_char
-    c=RFI::Char.new
+    c=RFIL::RFI::Char.new
     c.name="hyphen"
     c.wx="207"
     c.c=45
     c.b=[0, 187, 207, 240]
     c.kern_data={"A"=>[21,0],"T" => [-48,0]}
-    lig=RFI::LIG.new("hyphen","endash","emdash",:"=:")
+    lig=RFIL::RFI::LIG.new("hyphen","endash","emdash",:"=:")
     c.lig_data = {'endash' => lig }
     assert_equal(c.llx,0)
     assert_equal(c.lly,187)
@@ -28,8 +27,8 @@ class TestRFI < Test::Unit::TestCase
   end
   def test_char_has_ligkern
     e=Empty.new
-    gl=RFI::Glyphlist.new
-    gl['endash']=RFI::Char.new('endash')
+    gl=RFIL::RFI::Glyphlist.new
+    gl['endash']=RFIL::RFI::Char.new('endash')
     c=gl['endash']
     assert_raise(ArgumentError,"has_ligkern? should throw an exception " +
                    "if argument does not respond to include?") {
@@ -47,14 +46,14 @@ class TestRFI < Test::Unit::TestCase
     assert(! c.has_ligkern?(['endash','B']))
   end
   def test_lig
-    lig=RFI::LIG.new("hyphen","endash","emdash",:"=:")
+    lig=RFIL::RFI::LIG.new("hyphen","endash","emdash",:"=:")
     assert_equal(lig.left,"hyphen")
     assert_equal(lig.right,"endash")
     assert_equal(lig.result,"emdash")
     assert_equal(lig.type,:"=:")
-    newlig=RFI::LIG.new(lig)
+    newlig=RFIL::RFI::LIG.new(lig)
     assert_equal(lig,newlig)
-    lig=RFI::LIG.new(:left=>"hyphen",:right=>"endash",:result=>"emdash",:type=>:"=:")
+    lig=RFIL::RFI::LIG.new(:left=>"hyphen",:right=>"endash",:result=>"emdash",:type=>:"=:")
     assert_equal(lig.left,"hyphen")
     assert_equal(lig.right,"endash")
     assert_equal(lig.result,"emdash")
@@ -62,14 +61,14 @@ class TestRFI < Test::Unit::TestCase
 
   end
   def test_glyphlist
-    gl=RFI::Glyphlist.new
-    gl['endash']=RFI::Char.new('endash')
+    gl=RFIL::RFI::Glyphlist.new
+    gl['endash']=RFIL::RFI::Char.new('endash')
     gl.apply_ligkern_instructions("endash hyphen =: emdash")
     assert_equal(gl['endash'].lig_data['hyphen'].result,'emdash')
 
-    gl['T']=RFI::Char.new('T')
-    gl['A']=RFI::Char.new('A')
-    gl['hyphen']=RFI::Char.new('hyphen')
+    gl['T']=RFIL::RFI::Char.new('T')
+    gl['A']=RFIL::RFI::Char.new('A')
+    gl['hyphen']=RFIL::RFI::Char.new('hyphen')
     gl['hyphen'].kern_data={"A"=>[21,0],"T" => [-48,0]}
     gl.apply_ligkern_instructions("hyphen {} A")
     assert_equal({"T" => [-48,0]},gl['hyphen'].kern_data)
@@ -84,7 +83,7 @@ class TestRFI < Test::Unit::TestCase
     assert(gl['hyphen'].kerns_x.member?(["A", 21]))
     assert(gl['hyphen'].kerns_x.member?(["T", -48]))
 
-    gl['A']=RFI::Char.new('A')
+    gl['A']=RFIL::RFI::Char.new('A')
     gl.apply_ligkern_instructions("A B =: C")
     gl.apply_ligkern_instructions("A D =: E")
     gl.apply_ligkern_instructions("A D =: F")
@@ -92,7 +91,7 @@ class TestRFI < Test::Unit::TestCase
     # assert_equal(2,fm.get_lig('A').size)
     assert(gl['A'].has_ligkern?)
 
-    gl['B']=RFI::Char.new('B')
+    gl['B']=RFIL::RFI::Char.new('B')
     assert_equal(false, gl['B'].has_ligkern?)
     assert_raise(NoMethodError) {
       assert_equal(false, gl['C'].has_ligkern?)
@@ -101,7 +100,7 @@ class TestRFI < Test::Unit::TestCase
   end
   # Tcaron <-> tquoteright
   def test_glyphlist_uc_lc
-    font=RFI::Font.new
+    font=RFIL::RFI::Font.new
     font.load_variant("savorg__.afm")
     gl=font.defaultfm.chars
     gl.update_uc_lc_list
@@ -116,7 +115,7 @@ class TestRFI < Test::Unit::TestCase
     assert_equal(nil,gl['A'].capitalize)
   end
   def test_get_glyphlist
-    font=RFI::Font.new
+    font=RFIL::RFI::Font.new
     font.load_variant("savorg__.afm")
     gl=font.defaultfm.chars
     lc=["a", "aacute", "acircumflex", "adieresis", "ae", "agrave", "aring", "atilde", "b", "c", "ccedilla", "d", "dotlessi", "e", "eacute", "ecircumflex", "edieresis", "egrave", "eth", "f", "g", "germandbls", "h", "i", "iacute", "icircumflex", "idieresis", "igrave", "j", "k", "l", "lslash", "m", "n", "ntilde", "o", "oacute", "ocircumflex", "odieresis", "oe", "ograve", "oslash", "otilde", "p", "q", "r", "s", "scaron", "t", "thorn", "u", "uacute", "ucircumflex", "udieresis", "ugrave", "v", "w", "x", "y", "yacute", "ydieresis", "z", "zcaron"]
