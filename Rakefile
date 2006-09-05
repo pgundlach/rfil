@@ -34,6 +34,8 @@ spec = Gem::Specification.new do |s|
   s.version          = RFIL_VERSION
   s.email            = "patrick @nospam@ gundla.ch"
   s.files            =  to_package
+  s.bindir           = 'examples'
+  s.executables      << 'afm2tfm.rb' << 'encodingtable' << 'afminfo' << 'plinfo' << 'pldiff' << 'rfont'
 #  s.autorequire      = '
   s.require_path     = 'lib'
   s.homepage         = "http://rfil.rubyforge.org/"
