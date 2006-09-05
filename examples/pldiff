@@ -31,12 +31,10 @@ License::  Copyright (c) 2005 Patrick Gundlach.
 require 'optparse'
 require 'ostruct'
 
-require 'rfil/tex/kpathsea'
-require 'rfil/tex/enc'
-require 'rfil/tex/tfm'
-require 'rfil/tex/vf'
-
-include RFIL
+require 'tex/kpathsea'
+require 'tex/enc'
+require 'tex/tfm'
+require 'tex/vf'
 
 
 def showmap(mapary)

@@ -8,7 +8,7 @@ require 'fileutils'
 
 
 require 'rfil/fontcollection'
-require 'rfil/tex/kpathsea'
+require 'tex/kpathsea'
 
 $:.unshift File.dirname($0)
 require 'rfii.tab'

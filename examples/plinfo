@@ -23,11 +23,10 @@ License::  Copyright (c) 2005 Patrick Gundlach.
 require 'optparse'
 require 'ostruct'
 
-require 'rfil/tex/tfm'
-require 'rfil/tex/kpathsea'
-require 'rfil/tex/enc'
-
-include RFIL
+require 'tex/tfm'
+require 'tex/kpathsea'
+require 'tex/enc'
+         
 include TeX
 
 kpse=Kpathsea.new

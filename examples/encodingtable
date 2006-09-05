@@ -30,11 +30,9 @@ Author:: Patrick Gundlach <patrick@gundla.ch>
 
 # :enddoc:
 
-require 'rfil/tex/enc'
-require 'rfil/tex/kpathsea'
+require 'tex/enc'
+require 'tex/kpathsea'
 
-include RFIL
-include TeX
 
 unless ARGV.size > 0
   puts "Usage: #{File.basename($0)} encoding[.enc] ..."
