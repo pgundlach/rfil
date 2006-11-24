@@ -18,6 +18,7 @@ require 'tc_truetype'
 require 'tc_fontmetric'
 require 'tc_metric'
 require 'tc_font'
+require "tc_ziff"
 # font2 is slow
 require 'tc_font2'
 require 'tc_fontcollection'
