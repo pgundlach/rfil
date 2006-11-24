@@ -470,7 +470,10 @@ module RFIL # :nodoc:
               vf=to_vf(outenc,te)
               vf.tfmpathname=tfmfilename
               vf.vfpathname=vffilename
-              vf.save(true)
+              begin
+                vf.save(true)
+              rescue TeX::TFM::TFMError
+              end
             end
           }
         end

@@ -8,8 +8,12 @@ require 'bigdecimal/util'
 
 module TeX # :nodoc:
 
+
   # TFM (TeX font metric) reader/writer class
   class TFM
+    class TFMError < Exception
+    end
+
     class TFMReader
       # reading a tfm file is about 10 times faster than doing
       # `tftop xyz.pl` and using PL#parse. And only a bit slower than
@@ -22,8 +26,6 @@ module TeX # :nodoc:
       STOPFLAG=128
       KERNFLAG=128
       LIGSIZE=5000
-      class TFMError < Exception
-      end
 
       def initialize(tfmobject=nil)
         # type of font: textfont (:vanilla), math symbols (:mathsy), math
@@ -595,6 +597,7 @@ module TeX # :nodoc:
           @bc=i if @bc==nil and elt!=nil
           @ec=i if elt
         }
+        raise TFMError, "No chars" unless @bc
       end
       def checksum
         return out_qbyte(@tfm.checksum)

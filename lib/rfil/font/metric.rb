@@ -84,7 +84,7 @@ module RFIL
       
       def initialize
         @chars=Hash.new
-        @xheight=nil
+        @xheight=100 # some default xheight. What should we do if the font does not specify an xheight?
         @glyph_class=Glyph
         @outlinetype=nil
         @info={}

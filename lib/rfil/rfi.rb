@@ -459,6 +459,7 @@ module RFIL # :nodoc:
           # same as texheight in afm2tfm source
           unless name.size>1 or xheight < 50
             %w(acute tilde caron dieresis).each {|accent|
+              next unless self[accent] # they don't exist in all cases
               naccent=name + accent
               next unless self[naccent]
               data.ury = self[naccent].ury - self[accent].ury + xheight
