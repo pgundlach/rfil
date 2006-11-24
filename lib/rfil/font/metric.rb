@@ -102,7 +102,7 @@ module RFIL
       
 
       def space  # :nodoc:
-        chars['space'].wx
+        chars['space'] && chars['space'].wx || 0
       end
 
       def filename # :nodoc: 
