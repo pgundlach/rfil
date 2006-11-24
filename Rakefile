@@ -5,8 +5,7 @@ require 'rake/packagetask'
 require 'rake/gempackagetask'
 
 
-$:.unshift File.join(File.dirname(__FILE__), "lib")
-require "rfil/version"
+require "lib/rfil/version"
 
 # task :default => [:test]
 
@@ -36,7 +35,6 @@ spec = Gem::Specification.new do |s|
   s.files            =  to_package
   s.bindir           = 'examples'
   s.executables      << 'afm2tfm.rb' << 'encodingtable' << 'afminfo' << 'plinfo' << 'pldiff' << 'rfont'
-#  s.autorequire      = '
   s.require_path     = 'lib'
   s.homepage         = "http://rfil.rubyforge.org/"
   s.has_rdoc         = true
@@ -49,11 +47,13 @@ end
 Rake::RDocTask.new do |rd|
   rd.rdoc_files.include(to_package)
   rd.title="Ruby Font Installer Library"
+  rd.options << "--main" << "README"
   rd.options << "-A"
   rd.options << "documented_as_accessor=RW,documented_as_reader=R"
   rd.options << "--inline-source"
   rd.options << "-T"
   rd.options << "pghtml"
+  rd.rdoc_dir = "../../webpage/rdoc"
 end
 
 Rake::GemPackageTask.new(spec) do  |p|
