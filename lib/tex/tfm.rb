@@ -3,6 +3,9 @@
 # Last Change: Tue May 16 19:12:26 2006
 #++
 
+require 'bigdecimal'
+require 'bigdecimal/util'
+
 module TeX # :nodoc:
 
   # TFM (TeX font metric) reader/writer class
@@ -559,7 +562,7 @@ module TeX # :nodoc:
         i=start
         what=[0,0,0,0]
         while (i=@link[i]) > 0
-          what += out_fix_word(@memory[i])
+          what += out_fix_word(@memory[i].to_f) # need to convert back from BigDecimal to float
         end
         return what
       end
@@ -596,7 +599,6 @@ module TeX # :nodoc:
       def checksum
         return out_qbyte(@tfm.checksum)
       end
-
       def out_bcpl(string,len)
         str=string
         l = str.length
@@ -652,7 +654,8 @@ module TeX # :nodoc:
         [a0,a1, a2, a3]
       end
 
-      def sort_in(h,d)
+      def sort_in(h,_d)
+        d=_d.to_d # to_d is from bigdecimal, now we are calculating with big decimals
         if d==0 and h!=WIDTH
           return 0
         end
@@ -697,7 +700,7 @@ module TeX # :nodoc:
         end
         @excess=@memory[h]-m
         if @excess > 0 and @verbose
-          puts "We need to shorten the list by #@excess"
+          puts "We need to shorten the list #{h} by #@excess"
         end
         k=min_cover(h,0)
         d=@next_d

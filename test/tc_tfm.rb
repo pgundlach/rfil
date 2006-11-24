@@ -55,5 +55,17 @@ class TestTFM < Test::Unit::TestCase
     str=""
     tfm.write_file(str)
   end
+  def test_big_decimal_shorten_mincover
+    # There was a bug where the following data lead to an endless loop. This was due to the fact that 
+    # the calculation with floats had some strange effects, e.g. 0.018-0.017=0.000999999999999997
+    # this confused min_cover. The solution was to use BigDecimal
+    w = TeX::TFM::TFMWriter.new(nil)
+    data=[0.0, 0.003, 0.007, 0.01, 0.013, 0.014, 0.017, 0.018, 0.019, 0.02, 0.021, 0.024 ]
+    data.each do |d|
+      w.sort_in(3,d)
+    end
+    w.shorten(3,2)
+  end
+
 
 end
