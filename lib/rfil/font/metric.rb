@@ -90,6 +90,7 @@ module RFIL
         @info={}
         @fontfilename=nil
         @efactor=1.0
+        @italicangle=0
         @slantfactor=0.0
         @pathname=nil
       end
