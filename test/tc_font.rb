@@ -180,11 +180,11 @@ class TestFont < Test::Unit::TestCase
     font.texenc=[@ecenc,@texnansienc]
     font.mapenc=nil
     fontmaplines=font.maplines
-    mapline=["texnansi-savorg__-orig Savoy-Regular \"TeXnANSIEncoding ReEncodeFont\" <texnansi.enc <savorg__.pfb\n",
-      "ec-savorg__-orig Savoy-Regular \"ECEncoding ReEncodeFont\" <EC.enc <savorg__.pfb\n"]
+    mapline=["texnansi-savorg__-orig savoy-regular \"texnansiencoding reencodefont\" <texnansi.enc <savorg__.pfb\n",
+      "ec-savorg__-orig savoy-regular \"ecencoding reencodefont\" <ec.enc <savorg__.pfb\n"]
     assert_equal(mapline.size,fontmaplines.size)
     fontmaplines.each { |fm|
-      assert(mapline.member?(fm), "#{fm} is not recognized")
+      assert(mapline.member?(fm.downcase), "#{fm} is not recognized")
     }
   end
   

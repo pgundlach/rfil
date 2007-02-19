@@ -12,7 +12,7 @@ class TestKpathsea < Test::Unit::TestCase
   end
   def test_file_search_open
     kp=TeX::Kpathsea.new
-    assert(kp.find_file("ec.enc","enc") =~ Regexp.new("fonts/enc/dvips/base/EC.enc"))
+    assert(kp.find_file("ec.enc","enc").downcase =~ Regexp.new("fonts/enc/dvips/base/ec.enc"))
 
     # open_file comes in two flavours: 1) rubyish with block and auto
     # close on block end and 2) manual closing of file after use
