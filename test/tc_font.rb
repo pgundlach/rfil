@@ -1,4 +1,4 @@
-#!/opt/ruby/1.8/bin/ruby -w
+#!/usr/bin/env ruby
 
 require 'test/unit'
 
@@ -186,6 +186,18 @@ class TestFont < Test::Unit::TestCase
     fontmaplines.each { |fm|
       assert(mapline.member?(fm.downcase), "#{fm} is not recognized")
     }
+  end
+  def test_sparse_lig
+    # there was a problem where the apply_ligkern_instructions generated
+    # a corrupt tfm file when the destination of a lig instruction was not
+    # in the font.
+    font=RFIL::RFI::Font.new
+    font.load_variant("loose.afm")
+    font.apply_ligkern_instructions(RFIL::RFI::STDLIGKERN)
+    font.mapenc="8r"
+    font.texenc="ec"
+    tfm=font.to_tfm(font.texenc[0])
+    assert_nil(tfm.chars[44][:lig_kern])
   end
   
   def test_vpl_fontname

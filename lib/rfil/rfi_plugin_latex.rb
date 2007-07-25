@@ -25,6 +25,7 @@ class FDWriterLaTeX < RFIL::RFI::Plugin
   
   # example, should be an extra plugin
   def latex_fd(e)
+    raise ScriptError,"fontcollection: name not set" unless @fc.name
     latexenc=case e.encname
              when "ECEncoding","T1Encoding"
                "T1"
@@ -37,7 +38,7 @@ class FDWriterLaTeX < RFIL::RFI::Plugin
              else
                raise "unknown latex encoding: #{e.encname}"
              end
-    filename="#{latexenc.downcase}#{@fc.name}.fd"
+    filename="#{latexenc}#{@fc.name}.fd"
 
     fd="\\ProvidesFile{#{filename}}
 \\DeclareFontFamily{#{latexenc}}{#{@fc.name}}{}

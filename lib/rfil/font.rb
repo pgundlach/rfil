@@ -1,6 +1,6 @@
 # font.rb - Implements Font. See that class for documentaton.
 #-- 
-# Last Change: Thu May 18 17:20:03 2006
+# Last Change: Do 19 Jul 2007 15:52:00 CEST
 #++
 require 'set'
 
@@ -664,6 +664,10 @@ module RFIL # :nodoc:
           lk=[]
           
           thischar.lig_data.each_value { |lig|
+            # if the destination is not in the afm file, we should skip
+            # it. Otherwise the tfm data will be corrupt and TeX complains
+            next unless @defaultfm.chars[lig.result]
+            
             if (enc.glyph_index.has_key? lig.right) and
                 (enc.glyph_index.has_key? lig.result)
               # lig is like "hyphen ..." but needs to be in a format like
